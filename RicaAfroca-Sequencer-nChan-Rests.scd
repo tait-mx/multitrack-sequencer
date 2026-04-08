@@ -13,12 +13,12 @@ s.waitForBoot({
 	s.meter;
     // 1. Load n distinct sounds (Replace with your own paths)
     ~samples = [
-		Buffer.read(s, "/home/ernesto/Documents/SuperColliderCodes/RicaAfroca/Clave.wav"), // Ch 0: Kick-ish
-        Buffer.read(s, "/home/ernesto/Documents/SuperColliderCodes/RicaAfroca/Cowbell.wav"),  // Ch 1: Perc-ish
-        Buffer.read(s, "/home/ernesto/Documents/SuperColliderCodes/RicaAfroca/Cata.wav"),  // Ch 1: Perc-ish
-        Buffer.read(s, "/home/ernesto/Documents/SuperColliderCodes/RicaAfroca/Shaker3.wav"), // Ch 2: Snare-ish
-        Buffer.read(s, "/home/ernesto/Documents/SuperColliderCodes/RicaAfroca/Shaker1.wav"),   // Ch 3: Hi-hat-ish
-        Buffer.read(s, "/home/ernesto/Documents/SuperColliderCodes/RicaAfroca/Conga.wav")   // Ch 3: Hi-hat-ish
+		Buffer.read(s, "/home/ernesto/Documents/SuperColliderCodes/RicaAfroca/multitrack-sequencer/Clave.wav"), // Ch 0: Kick-ish
+        Buffer.read(s, "/home/ernesto/Documents/SuperColliderCodes/RicaAfroca/multitrack-sequencer/Cowbell.wav"),  // Ch 1: Perc-ish
+        Buffer.read(s, "/home/ernesto/Documents/SuperColliderCodes/RicaAfroca/multitrack-sequencer/Cata.wav"),  // Ch 1: Perc-ish
+        Buffer.read(s, "/home/ernesto/Documents/SuperColliderCodes/RicaAfroca/multitrack-sequencer/Shaker3.wav"), // Ch 2: Snare-ish
+        Buffer.read(s, "/home/ernesto/Documents/SuperColliderCodes/RicaAfroca/multitrack-sequencer/Shaker1.wav"),   // Ch 3: Hi-hat-ish
+        Buffer.read(s, "/home/ernesto/Documents/SuperColliderCodes/RicaAfroca/multitrack-sequencer/Conga.wav")   // Ch 3: Hi-hat-ish
     ];
 
     // 2. Arrays to hold state for n channels
