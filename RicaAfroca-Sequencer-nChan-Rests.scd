@@ -46,15 +46,16 @@ s.waitForBoot({
 
     // 3. Updated SynthDef
     SynthDef(\liveChannel, {
-        arg out=0, buf=0, freq=440, amp=0.5, ffreq=2000, rq=0.5, pan=0, rel=0.3;
-        var sig, osc, smpl, env;
-        env = EnvGen.kr(Env.perc(0.005, rel), 1, doneAction: 2);
-		// osc = MoogFF.ar(Pulse.ar(freq, 0.5), ffreq, rq);
-        smpl = PlayBuf.ar(2, buf, BufRateScale.kr(buf), loop: 0);
-		// sig = (osc * 0.2) + (smpl * 0.8);
-        sig = (smpl * 0.8);
-        Out.ar(out, Pan2.ar(sig * env * amp, pan));
-    }).add;
+    arg out=0, buf=0, freq=440, amp=0.5, pan=0, rel=0.3;
+    var sig, env, rate;
+    // Calculate rate based on incoming freq vs base pitch (MIDI 60)
+    rate = freq / 60.midicps;
+    env = EnvGen.kr(Env.perc(0.005, rel), 1, doneAction: 2);
+    // Apply the rate to PlayBuf
+    sig = PlayBuf.ar(2, buf, BufRateScale.kr(buf) * rate, loop: 0);
+    sig = sig * 0.8;
+    Out.ar(out, Pan2.ar(sig * env * amp, pan));
+}).add;
 
     ~tempo = TempoClock.new(120/60).permanent_(true);
 
@@ -183,12 +184,14 @@ win.view.decorator.nextLine;
 
     StaticText(comp, 105@20).string_("TRACK " + i).align_(\center).font_(Font(bold:true));
 
-    // Mute
-    Button(comp, 105@40)
-        .states_([["ON", Color.black, Color.green], ["MUTE", Color.white, Color.red]])
-        .value_(~mutes[i].asInteger)
-        .action_({ |b| ~mutes[i] = (b.value == 1) });
 
+    // Mute - Stored in global array for visual refresh
+    ~muteButtons[i] = Button(comp, 105@40)
+        .states_([["ON", Color.black, Color.green], ["MUTE", Color.white, Color.red]])
+        .value_(~mutes[i].asInteger) // Sets state when GUI opens
+        .action_({ |b|
+            ~mutes[i] = (b.value == 1)
+        });
     // Menu - We store it in the global array
     ~rhythmMenus[i] = PopUpMenu(comp, 105@30)
         .items_(["Clave", "Cascara1", "Golpe", "ShekereT", "ShekereA", "16ths", "8ths", "Swing", "Quarters", "Dotted", "Triplets"])
@@ -202,9 +205,11 @@ win.view.decorator.nextLine;
 
     // Pitch
     StaticText(comp, 105@20).string_("Pitch").align_(\center);
-    Slider(comp, 105@30).value_(~pitches[i].linlin(36, 72, 0, 1)).action_({ |s|
-        ~pitches[i] = s.value.linlin(0, 1, 36, 72).round;
-    });
+    // Inside the ~numTracks.do loop in the GUI
+Slider(comp, 105@30).value_(~pitches[i].linlin(36, 72, 0, 1)).action_({ |s|
+    // Convert slider 0-1 to MIDI 36-72
+    ~pitches[i] = s.value.linlin(0, 1, 36, 72).round;
+});
 });
 
 win.view.decorator.nextLine;
@@ -217,8 +222,14 @@ loadBtn = Button(win, 235@40).states_([["LOAD SETTINGS", Color.black, Color.cyan
     {
         bpmDisplay.value = ~tempo.tempo * 60;
         ~numTracks.do({ |i|
+            // Refresh Menus
             if(~rhythmMenus[i].notNil) {
                 ~rhythmMenus[i].value = ~rhythmIndices[i];
+            };
+
+            // ADD THIS: Refresh Mute Buttons
+            if(~muteButtons[i].notNil) {
+                ~muteButtons[i].value = ~mutes[i].asInteger;
             };
         });
     }.defer;
