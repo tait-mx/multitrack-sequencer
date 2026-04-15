@@ -155,11 +155,12 @@ rhythmOptions = [
     [0.25], [0.5], [0.5, 0.25, 0.25], [1, 1], [0.75, 0.25], [0.33, 0.33, 0.34]
 ];
 
-win = Window("RicaAfroca Sequencer", Rect(100, 100, 520, 950)).front;
+// 1. WIDER WINDOW: 800 pixels wide, shorter height
+win = Window("RicaAfroca Sequencer", Rect(100, 100, 800, 550)).front;
 win.view.decorator = FlowLayout(win.view.bounds, 15@15, 10@10);
 
-// Global Start
-startBtn = Button(win, 480@40)
+// Global Start (Stretched to fit the new width)
+startBtn = Button(win, 770@40)
     .states_([["START ALL", Color.black, Color.green], ["STOP ALL", Color.white, Color.red]])
     .action_({ |b|
         ~numTracks.do({ |i|
@@ -167,8 +168,8 @@ startBtn = Button(win, 480@40)
         });
     });
 
-// Tempo
-tempoSlid = Slider(win, 350@30).value_(0.5).action_({ |s|
+// Tempo Section
+tempoSlid = Slider(win, 640@30).value_(0.5).action_({ |s|
     var bpm = s.value.linlin(0, 1, 60, 200);
     ~tempo.tempo = bpm / 60;
     bpmDisplay.value = bpm;
@@ -177,22 +178,20 @@ bpmDisplay = NumberBox(win, 110@30).value_(~tempo.tempo * 60);
 
 win.view.decorator.nextLine;
 
-// Track Channels
+// 2. TRACK CHANNELS: These will now stay in a single row
 ~numTracks.do({ |i|
-    var comp = CompositeView(win, 115@300).background_(Color.grey(0.7));
+    var comp = CompositeView(win, 115@320).background_(Color.grey(0.7));
     comp.decorator = FlowLayout(comp.bounds, 5@5, 5@5);
 
     StaticText(comp, 105@20).string_("TRACK " + i).align_(\center).font_(Font(bold:true));
 
-
-    // Mute - Stored in global array for visual refresh
+    // Mute
     ~muteButtons[i] = Button(comp, 105@40)
         .states_([["ON", Color.black, Color.green], ["MUTE", Color.white, Color.red]])
-        .value_(~mutes[i].asInteger) // Sets state when GUI opens
-        .action_({ |b|
-            ~mutes[i] = (b.value == 1)
-        });
-    // Menu - We store it in the global array
+        .value_(~mutes[i].asInteger)
+        .action_({ |b| ~mutes[i] = (b.value == 1) });
+
+    // Menu
     ~rhythmMenus[i] = PopUpMenu(comp, 105@30)
         .items_(["Clave", "Cascara1", "Golpe", "ShekereT", "ShekereA", "16ths", "8ths", "Swing", "Quarters", "Dotted", "Triplets"])
         .action_({ |m|
@@ -200,37 +199,27 @@ win.view.decorator.nextLine;
             ~rhythmIndices[i] = m.value;
         });
 
-    // Set initial visual state from loaded indices
     ~rhythmMenus[i].value = ~rhythmIndices[i];
 
     // Pitch
     StaticText(comp, 105@20).string_("Pitch").align_(\center);
-    // Inside the ~numTracks.do loop in the GUI
-Slider(comp, 105@30).value_(~pitches[i].linlin(36, 72, 0, 1)).action_({ |s|
-    // Convert slider 0-1 to MIDI 36-72
-    ~pitches[i] = s.value.linlin(0, 1, 36, 72).round;
-});
+    Slider(comp, 105@30).value_(~pitches[i].linlin(36, 72, 0, 1)).action_({ |s|
+        ~pitches[i] = s.value.linlin(0, 1, 36, 72).round;
+    });
 });
 
-win.view.decorator.nextLine;
+win.view.decorator.nextLine; // Move to the bottom for Save/Load
 
-// Save/Load
-saveBtn = Button(win, 235@40).states_([["SAVE SETTINGS", Color.black, Color.yellow]]).action_({ ~saveSettings.value });
+// 3. Save/Load Buttons
+saveBtn = Button(win, 380@40).states_([["SAVE SETTINGS", Color.black, Color.yellow]]).action_({ ~saveSettings.value });
 
-loadBtn = Button(win, 235@40).states_([["LOAD SETTINGS", Color.black, Color.cyan]]).action_({
+loadBtn = Button(win, 380@40).states_([["LOAD SETTINGS", Color.black, Color.cyan]]).action_({
     ~loadSettings.value;
     {
         bpmDisplay.value = ~tempo.tempo * 60;
         ~numTracks.do({ |i|
-            // Refresh Menus
-            if(~rhythmMenus[i].notNil) {
-                ~rhythmMenus[i].value = ~rhythmIndices[i];
-            };
-
-            // ADD THIS: Refresh Mute Buttons
-            if(~muteButtons[i].notNil) {
-                ~muteButtons[i].value = ~mutes[i].asInteger;
-            };
+            if(~rhythmMenus[i].notNil) { ~rhythmMenus[i].value = ~rhythmIndices[i] };
+            if(~muteButtons[i].notNil) { ~muteButtons[i].value = ~mutes[i].asInteger };
         });
     }.defer;
 });

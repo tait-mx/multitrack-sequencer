@@ -1,169 +1,167 @@
-
-
-
-/////////////////////////////////////////
-//
-//      Synths and Server stuff
-//
-/////////////////////////////////////////
+////////////////////////////////////////////////////////////
+// 1. INITIAL CONDITIONS & VARIABLES
+////////////////////////////////////////////////////////////
 
 (
 s.waitForBoot({
-    // 1. Load Samples into a Dictionary for easy access
-    ~samples = Dictionary.new;
-    ~samples.put(\kick, Buffer.read(s, "/home/ernesto/Documents/SuperColliderCodes/RicaAfroca/Cowbell_07_175_SP.wav")); // Replace with your paths
-    ~samples.put(\perc, Buffer.read(s, "/home/ernesto/Documents/SuperColliderCodes/RicaAfroca/Clave_SP_01_376.wav"));
+    // Local GUI variables
+    var win, startBtn, tempoSlid, bpmDisplay, saveBtn, loadBtn, rhythmOptions;
 
-    // 2. The Hybrid SynthDef
-	(
-    SynthDef(\liveSynth, {
-        arg out=0, buf=0, bufnum=1, freq=440, amp=0.5, gate=1, ffreq=2000, rq=0.5, pan=0;
-        var sig, osc, smpl, env;
-
-        env = EnvGen.kr(Env.perc(0.01, 0.4), gate, doneAction: 2);
-        smpl = PlayBuf.ar(2, buf, BufRateScale.kr(buf), loop: 0);
-
-		// sig = (osc * 0.3) + (smpl * 0.7);
-        sig = (smpl * 0.7);
-        Out.ar(out, Pan2.ar(sig * env * amp, pan));
-    }).add;
-	);
-
-    // 3. Global Clock Variable
+    // Global variables
+    ~numTracks = 6;
     ~tempo = TempoClock.new(120/60).permanent_(true);
-});
 
-s.makeGui;
-s.meter;
-);
+    // Global arrays for GUI objects
+    ~muteButtons = Array.newClear(~numTracks);
+    ~rhythmMenus = Array.newClear(~numTracks);
+    ~pitchSliders = Array.newClear(~numTracks);
 
+    // State variables
+    ~rhythmIndices = Array.fill(~numTracks, { 0 });
+    ~rhythms = Array.fill(~numTracks, { [0.5, 0.5] });
+    ~mutes = Array.fill(~numTracks, { false });
+    ~pitches = Array.fill(~numTracks, { 60 });
 
-(
-~muteSynth = false;
-~muteSample = false;
+    s.makeGui;
+    s.meter;
 
-Tdef(\sequencer, {
-    loop {
-        // Step 1: Kick/Sample trigger
-        if(~muteSample.not) {
-            Synth(\liveSynth, [
-                \buf, ~samples[\kick],
-                \bufnum, ~samples[\kick].numChannels,
-                \amp, 0.6,
-                \freq, 0 // No pitch needed for raw sample
-            ]);
+    // Load Samples
+    ~samples = [
+        Buffer.read(s, "/home/ernesto/Documents/SuperColliderCodes/RicaAfroca/multitrack-sequencer/Clave.wav"),
+        Buffer.read(s, "/home/ernesto/Documents/SuperColliderCodes/RicaAfroca/multitrack-sequencer/Cowbell.wav"),
+        Buffer.read(s, "/home/ernesto/Documents/SuperColliderCodes/RicaAfroca/multitrack-sequencer/Cata.wav"),
+        Buffer.read(s, "/home/ernesto/Documents/SuperColliderCodes/RicaAfroca/multitrack-sequencer/Shaker3.wav"),
+        Buffer.read(s, "/home/ernesto/Documents/SuperColliderCodes/RicaAfroca/multitrack-sequencer/Shaker1.wav"),
+        Buffer.read(s, "/home/ernesto/Documents/SuperColliderCodes/RicaAfroca/multitrack-sequencer/Conga.wav")
+    ];
+
+    // Updated SynthDef with Pitch Rate logic
+    SynthDef(\liveChannel, {
+        arg out=0, buf=0, freq=440, amp=0.5, pan=0, rel=0.3;
+        var sig, env, rate;
+        // Rate 1.0 = MIDI 60
+        rate = freq / 60.midicps;
+        env = EnvGen.kr(Env.perc(0.005, rel), 1, doneAction: 2);
+        sig = PlayBuf.ar(2, buf, BufRateScale.kr(buf) * rate, loop: 0);
+        Out.ar(out, Pan2.ar(sig * 0.8 * env * amp, pan));
+    }).add;
+
+    // --- SAVE & LOAD LOGIC ---
+    ~saveSettings = {
+        var data = Dictionary.new;
+        data.put(\rhythms, ~rhythms);
+        data.put(\mutes, ~mutes);
+        data.put(\pitches, ~pitches);
+        data.put(\bpm, ~tempo.tempo * 60);
+        data.put(\indices, ~rhythmIndices);
+        data.writeArchive("/home/ernesto/Documents/SuperColliderCodes/RicaAfroca/mySettings.scd");
+        "--- Settings Saved ---".postln;
+    };
+
+    ~loadSettings = {
+        var data = Object.readArchive("/home/ernesto/Documents/SuperColliderCodes/RicaAfroca/mySettings.scd");
+        if(data.notNil) {
+            ~rhythms = data[\rhythms];
+            ~mutes = data[\mutes];
+            ~pitches = data[\pitches];
+            ~tempo.tempo = (data[\bpm] ?? {120}) / 60;
+            ~rhythmIndices = data[\indices] ?? { Array.fill(~numTracks, {0}) };
+            "--- Settings Loaded ---".postln;
         };
+    };
 
-        0.5.wait; // Wait 8th note (relative to tempo clock)
+    // Load settings from disk before building GUI or Tdefs
+    ~loadSettings.value;
 
-        // Step 2: Synth trigger
-        if(~muteSynth.not) {
-            Synth(\liveSynth, [
-                \buf, ~samples[\perc],
-                \bufnum, ~samples[\perc].numChannels,
-                \freq, [60, 63, 67].choose.midicps, // Random chord notes
-                \ffreq, exprand(800, 4000)
-            ]);
-        };
-
-        0.5.wait;
-    }
-}).quant = 4; // Syncs to the start of a 4-beat bar
-);
-
-
-
-
-
-/////////////////////////////////////////
-//
-//      GUI
-//
-/////////////////////////////////////////
-
-
-(
-var win, startBtn, tempoSlid, muteSyntBtn, muteSmplBtn, rhythmMenu, bpmDisplay;
-
-win = Window("Live Performance Rig", Rect(200, 200, 320, 350)).front;
-win.view.decorator = FlowLayout(win.view.bounds, 10@10, 10@10);
-
-// START / STOP
-startBtn = Button(win, 300@50)
-    .states_([["START", Color.black, Color.green], ["STOP", Color.white, Color.red]])
-    .action_({ |b|
-        if(b.value == 1) { Tdef(\sequencer).play(~tempo) } { Tdef(\sequencer).stop };
+    // --- THE TDEF SEQUENCERS ---
+    ~numTracks.do({ |i|
+        Tdef( ("chan" ++ i).asSymbol, {
+            var step = 0;
+            loop {
+                var delta = ~rhythms[i].wrapAt(step);
+                if(delta > 0 && ~mutes[i].not) {
+                    Synth(\liveChannel, [
+                        \buf, ~samples[i],
+                        \freq, ~pitches[i].midicps,
+                        \amp, 0.7,
+                        \rel, delta.abs * 0.8
+                    ]);
+                };
+                step = step + 1;
+                delta.abs.wait;
+            }
+        }).quant = 4;
     });
 
-// TEMPO SECTION
-StaticText(win, 300@20).string_("Tempo (BPM)");
-bpmDisplay = NumberBox(win, 50@30).value_(120);
-tempoSlid = Slider(win, 240@30)
-    .value_(0.5)
-    .action_({ |s|
-        var bpm = s.value.linlin(0, 1, 60, 180);
+    // --- THE GUI (Widescreen Single Row) ---
+    rhythmOptions = [
+        [0.75, 1, 0.75, 0.5, 1], [0.25, 0.5, 0.25, 0.25, 0.5, 0.25, 0.5, 0.5, 0.25, 0.5, 0.25],
+        [-1, -0.5, 0.5], [2], [-1.75, 0.25], [0.25], [0.5], [0.5, 0.25, 0.25], [1, 1], [0.75, 0.25], [0.33, 0.33, 0.34]
+    ];
+
+    win = Window("RicaAfroca Sequencer", Rect(100, 100, 830, 550)).front;
+    win.view.decorator = FlowLayout(win.view.bounds, 15@15, 10@10);
+
+    startBtn = Button(win, 800@40)
+        .states_([["START ALL", Color.black, Color.green], ["STOP ALL", Color.white, Color.red]])
+        .action_({ |b|
+            ~numTracks.do({ |i|
+                if(b.value == 1) { Tdef(("chan"++i).asSymbol).play(~tempo) } { Tdef(("chan"++i).asSymbol).stop };
+            });
+        });
+
+    tempoSlid = Slider(win, 670@30).value_(~tempo.tempo.linlin(1, 3.3, 0, 1)).action_({ |s|
+        var bpm = s.value.linlin(0, 1, 60, 200);
         ~tempo.tempo = bpm / 60;
         bpmDisplay.value = bpm;
     });
+    bpmDisplay = NumberBox(win, 110@30).value_(~tempo.tempo * 60);
 
-// RHYTHM SELECTOR
-StaticText(win, 300@20).string_("Select Rhythm Pattern");
-rhythmMenu = PopUpMenu(win, 300@30)
-    .items_(["Ti-ti-ta", "Dotted", "Straight 16ths"])
-    .action_({ |menu|
-        case
-        { menu.value == 0 } { ~currentRhythm = ~rhythm1 }
-        { menu.value == 1 } { ~currentRhythm = ~rhythm2 }
-        { menu.value == 2 } { ~currentRhythm = ~rhythm3 };
+    win.view.decorator.nextLine;
+
+    ~numTracks.do({ |i|
+        var comp = CompositeView(win, 115@320).background_(Color.grey(0.7));
+        comp.decorator = FlowLayout(comp.bounds, 5@5, 5@5);
+
+        StaticText(comp, 105@20).string_("TRACK " + i).align_(\center).font_(Font(bold:true));
+
+        ~muteButtons[i] = Button(comp, 105@40)
+            .states_([["ON", Color.black, Color.green], ["MUTE", Color.white, Color.red]])
+            .value_(~mutes[i].asInteger)
+            .action_({ |b| ~mutes[i] = (b.value == 1) });
+
+        ~rhythmMenus[i] = PopUpMenu(comp, 105@30)
+            .items_(["Clave", "Cascara1", "Golpe", "ShekereT", "ShekereA", "16ths", "8ths", "Swing", "Quarters", "Dotted", "Triplets"])
+            .value_(~rhythmIndices[i])
+            .action_({ |m|
+                ~rhythms[i] = rhythmOptions[m.value];
+                ~rhythmIndices[i] = m.value;
+            });
+
+        StaticText(comp, 105@20).string_("Pitch").align_(\center);
+        ~pitchSliders[i] = Slider(comp, 105@30)
+            .value_(~pitches[i].linlin(36, 72, 0, 1))
+            .action_({ |s|
+                ~pitches[i] = s.value.linlin(0, 1, 36, 72).round;
+            });
     });
 
-// MUTE BUTTONS
-muteSmplBtn = Button(win, 145@40)
-    .states_([["Samples ON", Color.black, Color.white], ["Samples MUTE", Color.white, Color.grey]])
-    .action_({ |b| ~muteSample = b.value.asBoolean });
+    win.view.decorator.nextLine;
 
-muteSyntBtn = Button(win, 145@40)
-    .states_([["Synth ON", Color.black, Color.white], ["Synth MUTE", Color.white, Color.grey]])
-    .action_({ |b| ~muteSynth = b.value.asBoolean });
+    saveBtn = Button(win, 395@40).states_([["SAVE", Color.black, Color.yellow]]).action_({ ~saveSettings.value });
 
-win.onClose = { Tdef(\sequencer).stop; };
-);
+    loadBtn = Button(win, 395@40).states_([["LOAD", Color.black, Color.cyan]]).action_({
+        ~loadSettings.value;
+        {
+            bpmDisplay.value = ~tempo.tempo * 60;
+            ~numTracks.do({ |i|
+                if(~rhythmMenus[i].notNil) { ~rhythmMenus[i].value = ~rhythmIndices[i] };
+                if(~muteButtons[i].notNil) { ~muteButtons[i].value = ~mutes[i].asInteger };
+                if(~pitchSliders[i].notNil) { ~pitchSliders[i].value = ~pitches[i].linlin(36, 72, 0, 1) };
+            });
+        }.defer;
+    });
 
-
-
-/////////////////////////////////////////
-//
-//      Sequencer
-//
-/////////////////////////////////////////
-
-(
-// Define some rhythmic presets (measured in beats)
-~rhythm1 = [2, 2, 1, 2, 2, 2, 1]/3;           // "Ti-ti-ta"
-~rhythm2 = [0.75, 0.25];                // Dotted feel
-~rhythm3 = [0.25, 0.25, 0.25, 0.25];    // Straight 16ths
-~currentRhythm = ~rhythm1;              // Default
-
-Tdef(\sequencer, {
-    var index = 0;
-    loop {
-        var delta = ~currentRhythm.wrapAt(index);
-
-        // Trigger Logic
-        if(~muteSample.not) {
-            Synth(\liveSynth, [\buf, ~samples[\kick], \amp, 0.6, \freq, 0]);
-        };
-
-        if(~muteSynth.not) {
-            Synth(\liveSynth, [
-                \buf, ~samples[\perc],
-                \freq, [60, 63, 67].choose.midicps,
-                \ffreq, exprand(800, 4000)
-            ]);
-        };
-
-        index = index + 1;
-        delta.wait;
-    }
-}).quant = 4;
+    win.onClose = { ~numTracks.do({ |i| Tdef(("chan"++i).asSymbol).stop }) };
+});
 )
