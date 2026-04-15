@@ -75,22 +75,25 @@ s.waitForBoot({
 
     // --- THE TDEF SEQUENCERS ---
     ~numTracks.do({ |i|
-        Tdef( ("chan" ++ i).asSymbol, {
-            var step = 0;
-            loop {
-                var delta = ~rhythms[i].wrapAt(step);
-                if(delta > 0 && ~mutes[i].not) {
-                    Synth(\liveChannel, [
-                        \buf, ~samples[i],
-                        \freq, ~pitches[i].midicps,
-                        \amp, 0.7,
-                        \rel, delta.abs * 0.8
-                    ]);
-                };
-                step = step + 1;
-                delta.abs.wait;
-            }
-        }).quant = 4;
+        // --- Updated Tdef Loop (Inside the ~numTracks.do) ---
+Tdef( ("chan" ++ i).asSymbol, {
+    var step = 0;
+    loop {
+        var delta = ~rhythms[i].wrapAt(step);
+        if(delta > 0 && ~mutes[i].not) {
+            s.makeBundle(s.latency, {
+                Synth(\liveChannel, [
+                    \buf, ~samples[i],
+                    \freq, ~pitches[i].midicps,
+                    \amp, 0.7,
+                    \rel, (delta.abs / ~tempo.tempo) * 0.8 // Scale release by tempo
+                ]);
+            });
+        };
+        step = step + 1;
+        delta.abs.wait;
+    }
+}).quant = 4;
     });
 
     // --- THE GUI (Widescreen Single Row) ---
@@ -150,17 +153,22 @@ s.waitForBoot({
 
     saveBtn = Button(win, 395@40).states_([["SAVE", Color.black, Color.yellow]]).action_({ ~saveSettings.value });
 
-    loadBtn = Button(win, 395@40).states_([["LOAD", Color.black, Color.cyan]]).action_({
-        ~loadSettings.value;
-        {
-            bpmDisplay.value = ~tempo.tempo * 60;
-            ~numTracks.do({ |i|
-                if(~rhythmMenus[i].notNil) { ~rhythmMenus[i].value = ~rhythmIndices[i] };
-                if(~muteButtons[i].notNil) { ~muteButtons[i].value = ~mutes[i].asInteger };
-                if(~pitchSliders[i].notNil) { ~pitchSliders[i].value = ~pitches[i].linlin(36, 72, 0, 1) };
-            });
-        }.defer;
-    });
+    // --- Updated Load Logic ---
+loadBtn = Button(win, 395@40).states_([["LOAD", Color.black, Color.cyan]]).action_({
+    ~loadSettings.value;
+    {
+        bpmDisplay.value = ~tempo.tempo * 60;
+        tempoSlid.value = ~tempo.tempo.linlin(1, 3.3, 0, 1);
+        ~numTracks.do({ |i|
+            // Crucial: Update the actual rhythm array from the loaded index
+            ~rhythms[i] = rhythmOptions[~rhythmIndices[i]];
+
+            if(~rhythmMenus[i].notNil) { ~rhythmMenus[i].value = ~rhythmIndices[i] };
+            if(~muteButtons[i].notNil) { ~muteButtons[i].value = ~mutes[i].asInteger };
+            if(~pitchSliders[i].notNil) { ~pitchSliders[i].value = ~pitches[i].linlin(36, 72, 0, 1) };
+        });
+    }.defer;
+});
 
     win.onClose = { ~numTracks.do({ |i| Tdef(("chan"++i).asSymbol).stop }) };
 });
