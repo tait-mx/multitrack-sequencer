@@ -18,7 +18,7 @@ s.waitForBoot({
     ~rhythms = Array.fill(~numTracks, { [0.5, 0.5] });
     ~mutes = Array.fill(~numTracks, { false });
     ~pitches = Array.fill(~numTracks, { 60 });
-    ~volumes = Array.fill(~numTracks, { 0.7 });
+	~volumes = Array.fill(~numTracks, { -6.dbamp });
 
     s.makeGui;
     s.meter;
@@ -143,13 +143,20 @@ s.waitForBoot({
                 ~pitches[i] = s.value.linlin(0, 1, 36, 72).round;
             });
 
-        StaticText(comp, 105@20).string_("Volume").align_(\center);
+        StaticText(comp, 105@20).string_("Vol (dB)").align_(\center);
 
-        // VOLUME: Vertical, matches track width
         ~volSliders[i] = Slider(comp, 105@280)
-            .value_(~volumes[i].sqrt)
+            // Map the current amplitude back to the 0-1 slider position
+            .value_(~volumes[i].ampdb.linlin(-30, 0, 0, 1))
             .action_({ |s|
-                ~volumes[i] = s.value.squared;
+                // Slider 0.0 to 1.0 now maps to -40dB up to +6dB boost
+                var db = s.value.linlin(0, 1, -30, 0);
+
+                // Convert dB to amplitude
+                ~volumes[i] = db.dbamp;
+
+                // To help you calibrate, this prints the current dB of the fader:
+                // (i.asString + ":" + db.round(0.1) + "dB").postln;
             });
     });
 
