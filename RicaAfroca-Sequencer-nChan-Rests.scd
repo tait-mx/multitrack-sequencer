@@ -16,6 +16,7 @@ var rhythmOptions;
 
 (
 ~numTracks = 6;
+~muteButtons = Array.newClear(~numTracks);
 ~tempo = TempoClock.new(120/60).permanent_(true);
 // Pre-initialize these so the GUI never finds them as 'nil'
 ~rhythmMenus = Array.newClear(~numTracks);
