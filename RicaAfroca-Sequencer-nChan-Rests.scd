@@ -7,6 +7,13 @@
 ////////////////////////////////////////////////////////////
 
 (
+
+// GUI vars
+var win, startBtn, tempoSlid, bpmDisplay;
+var saveBtn, loadBtn;
+var rhythmOptions;
+
+
 ~numTracks=6;
 s.waitForBoot({
 	s.makeGui;
@@ -39,8 +46,15 @@ s.waitForBoot({
     }).add;
 
     ~tempo = TempoClock.new(120/60).permanent_(true);
+
+	// Attempt to load settings automatically
+    ~loadSettings.value;
+
+    // If no file exists, set defaults only if ~rhythms is still nil
+    if(~rhythms.isNil) {
+        ~rhythms = Array.fill(~numTracks, { [0.5, 0.5] });
+    };
 });
-);
 
 
 
@@ -81,13 +95,44 @@ s.waitForBoot({
 
 ////////////////////////////////////////////////////////////
 //
+//              SAVE & LOAD SETTINGS
+//
+////////////////////////////////////////////////////////////
+
+(
+~saveSettings = {
+    var data = Dictionary.new;
+    data.put(\rhythms, ~rhythms);
+    data.put(\mutes, ~mutes);
+    data.put(\pitches, ~pitches);
+    data.put(\bpm, ~tempo.tempo * 60);
+
+    data.writeArchive("/home/ernesto/Documents/SuperColliderCodes/RicaAfroca/mySettings.scd");
+    "Settings Saved!".postln;
+};
+
+~loadSettings = {
+    var data = Object.readArchive("/home/ernesto/Documents/SuperColliderCodes/RicaAfroca/mySettings.scd");
+    if(data.notNil) {
+        ~rhythms = data[\rhythms];
+        ~mutes = data[\mutes];
+        ~pitches = data[\pitches];
+        ~tempo.tempo = data[\bpm] / 60;
+        "Settings Loaded!".postln;
+    } {
+        "No save file found".postln;
+    };
+};
+);
+
+////////////////////////////////////////////////////////////
+//
 //              THE GUI!!!!
 //
 ////////////////////////////////////////////////////////////
 
 (
-var win, startBtn, tempoSlid, bpmDisplay;
-var rhythmOptions = [
+rhythmOptions = [
 	[0.75,1,0.75,0.5,1], // Clave
     [0.25,0.5,0.25,0.25,0.5,0.25,0.5,0.5,0.25,0.5,0.25], // Cascara1
 	[-1,-0.5,0.5],            // Golpe
@@ -148,41 +193,21 @@ win.view.decorator.nextLine;
     win.view.decorator.shift(5, 0);
 });
 
+saveBtn = Button(win, 230@30)
+    .states_([["SAVE SETTINGS", Color.black, Color.yellow]])
+    .action_({ ~saveSettings.value });
+
+loadBtn = Button(win, 230@30)
+    .states_([["LOAD SETTINGS", Color.black, Color.cyan]])
+    .action_({
+        ~loadSettings.value;
+        // Optional: Update GUI displays here if needed
+        bpmDisplay.value = ~tempo.tempo * 60;
+    });
+
 win.onClose = { ~numTracks.do({ |i| Tdef(("chan"++i).asSymbol).stop }) };
 )
 
 
-
-
-
-////////////////////////////////////////////////////////////
-//
-//              SAVE & LOAD SETTINGS
-//
-////////////////////////////////////////////////////////////
-
-(
-~saveSettings = {
-    var data = Dictionary.new;
-    data.put(\rhythms, ~rhythms);
-    data.put(\mutes, ~mutes);
-    data.put(\pitches, ~pitches);
-    data.put(\bpm, ~tempo.tempo * 60);
-
-    data.writeArchive("/home/ernesto/Documents/SuperColliderCodes/RicaAfroca/mySettings.scd");
-    "Settings Saved!".postln;
-};
-
-~loadSettings = {
-    var data = Object.readArchive("/home/ernesto/Documents/SuperColliderCodes/RicaAfroca/mySettings.scd");
-    if(data.notNil) {
-        ~rhythms = data[\rhythms];
-        ~mutes = data[\mutes];
-        ~pitches = data[\pitches];
-        ~tempo.tempo = data[\bpm] / 60;
-        "Settings Loaded!".postln;
-    } {
-        "No save file found".postln;
-    };
-};
 )
+
