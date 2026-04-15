@@ -21,6 +21,8 @@ s.waitForBoot({
     ~rhythms = Array.fill(~numTracks, { [0.5, 0.5] });
     ~mutes = Array.fill(~numTracks, { false });
     ~pitches = Array.fill(~numTracks, { 60 });
+	~volumes = Array.fill(~numTracks, { 0.7 }); // Default 70% volume
+	~volSliders = Array.newClear(~numTracks);
 
     s.makeGui;
     s.meter;
