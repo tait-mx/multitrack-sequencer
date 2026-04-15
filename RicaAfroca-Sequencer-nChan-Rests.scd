@@ -14,7 +14,17 @@ var saveBtn, loadBtn;
 var rhythmOptions;
 
 
-~numTracks=6;
+(
+~numTracks = 6;
+~tempo = TempoClock.new(120/60).permanent_(true);
+// Pre-initialize these so the GUI never finds them as 'nil'
+~rhythmMenus = Array.newClear(~numTracks);
+~rhythmIndices = Array.fill(~numTracks, { 0 });
+~rhythms = Array.fill(~numTracks, { [0.5, 0.5] });
+~mutes = Array.fill(~numTracks, { false });
+~pitches = Array.fill(~numTracks, { 60 });
+);
+
 s.waitForBoot({
 	s.makeGui;
 	s.meter;
@@ -106,9 +116,10 @@ s.waitForBoot({
     data.put(\mutes, ~mutes);
     data.put(\pitches, ~pitches);
     data.put(\bpm, ~tempo.tempo * 60);
+    data.put(\indices, ~rhythmIndices);
 
     data.writeArchive("/home/ernesto/Documents/SuperColliderCodes/RicaAfroca/mySettings.scd");
-    "Settings Saved!".postln;
+    "--- Settings Saved to Disk ---".postln;
 };
 
 ~loadSettings = {
@@ -117,10 +128,11 @@ s.waitForBoot({
         ~rhythms = data[\rhythms];
         ~mutes = data[\mutes];
         ~pitches = data[\pitches];
-        ~tempo.tempo = data[\bpm] / 60;
-        "Settings Loaded!".postln;
+        ~tempo.tempo = (data[\bpm] ?? {120}) / 60;
+        ~rhythmIndices = data[\indices] ?? { Array.fill(~numTracks, {0}) };
+        "--- Settings Loaded from Disk ---".postln;
     } {
-        "No save file found".postln;
+        "!!! No save file found !!!".postln;
     };
 };
 );
@@ -133,24 +145,19 @@ s.waitForBoot({
 
 (
 rhythmOptions = [
-	[0.75,1,0.75,0.5,1], // Clave
-    [0.25,0.5,0.25,0.25,0.5,0.25,0.5,0.5,0.25,0.5,0.25], // Cascara1
-	[-1,-0.5,0.5],            // Golpe
-	[2],                      // ShekereTiempo
-	[-1.75,0.25],            // ShekereAnacruza
-    [0.25],                   // 16ths
-    [0.5],                    // 8ths
-    [0.5, 0.25, 0.25],        // Swing-ish
-    [1, 1],                   // Quarter notes
-    [0.75, 0.25],             // Dotted
-    [0.33, 0.33, 0.34]        // Triplets
+    [0.75, 1, 0.75, 0.5, 1], // Clave
+    [0.25, 0.5, 0.25, 0.25, 0.5, 0.25, 0.5, 0.5, 0.25, 0.5, 0.25], // Cascara1
+    [-1, -0.5, 0.5],             // Golpe
+    [2],                       // ShekereTiempo
+    [-1.75, 0.25],             // ShekereAnacruza
+    [0.25], [0.5], [0.5, 0.25, 0.25], [1, 1], [0.75, 0.25], [0.33, 0.33, 0.34]
 ];
 
-win = Window("n-Channel Performance Rig", Rect(100, 100, 500, 900)).front;
+win = Window("RicaAfroca Sequencer", Rect(100, 100, 520, 950)).front;
 win.view.decorator = FlowLayout(win.view.bounds, 15@15, 10@10);
 
-// GLOBAL CONTROLS
-startBtn = Button(win, 470@40)
+// Global Start
+startBtn = Button(win, 480@40)
     .states_([["START ALL", Color.black, Color.green], ["STOP ALL", Color.white, Color.red]])
     .action_({ |b|
         ~numTracks.do({ |i|
@@ -158,52 +165,63 @@ startBtn = Button(win, 470@40)
         });
     });
 
+// Tempo
 tempoSlid = Slider(win, 350@30).value_(0.5).action_({ |s|
     var bpm = s.value.linlin(0, 1, 60, 200);
     ~tempo.tempo = bpm / 60;
     bpmDisplay.value = bpm;
 });
-bpmDisplay = NumberBox(win, 100@30).value_(130);
+bpmDisplay = NumberBox(win, 110@30).value_(~tempo.tempo * 60);
 
 win.view.decorator.nextLine;
 
-// CHANNEL CONTROLS (Loop to create n strips)
+// Track Channels
 ~numTracks.do({ |i|
-    var composite = CompositeView(win, 110@300).background_(Color.grey(0.8));
-    composite.decorator = FlowLayout(composite.bounds, 5@5, 5@5);
+    var comp = CompositeView(win, 115@300).background_(Color.grey(0.7));
+    comp.decorator = FlowLayout(comp.bounds, 5@5, 5@5);
 
-    StaticText(composite, 100@20).string_("INST " + i).align_(\center);
+    StaticText(comp, 105@20).string_("TRACK " + i).align_(\center).font_(Font(bold:true));
 
-    // Mute Button
-    Button(composite, 100@40)
-        .states_([[ "ON", Color.black, Color.green], ["MUTE", Color.white, Color.red]])
+    // Mute
+    Button(comp, 105@40)
+        .states_([["ON", Color.black, Color.green], ["MUTE", Color.white, Color.red]])
+        .value_(~mutes[i].asInteger)
         .action_({ |b| ~mutes[i] = (b.value == 1) });
 
-    // Rhythm Selector
-    PopUpMenu(composite, 100@30)
-	.items_(["Clave", "Cascara1", "Golpe", "ShekereTiempo", "ShekereAnacruza", "16ths", "8ths", "Swing", "Quarters", "Dotted", "Triplets"])
-        .action_({ |m| ~rhythms[i] = rhythmOptions[m.value] });
+    // Menu - We store it in the global array
+    ~rhythmMenus[i] = PopUpMenu(comp, 105@30)
+        .items_(["Clave", "Cascara1", "Golpe", "ShekereT", "ShekereA", "16ths", "8ths", "Swing", "Quarters", "Dotted", "Triplets"])
+        .action_({ |m|
+            ~rhythms[i] = rhythmOptions[m.value];
+            ~rhythmIndices[i] = m.value;
+        });
 
-    // Pitch Slider (MIDI)
-    StaticText(composite, 100@20).string_("Pitch");
-    Slider(composite, 100@30).value_(0.5).action_({ |s|
+    // Set initial visual state from loaded indices
+    ~rhythmMenus[i].value = ~rhythmIndices[i];
+
+    // Pitch
+    StaticText(comp, 105@20).string_("Pitch").align_(\center);
+    Slider(comp, 105@30).value_(~pitches[i].linlin(36, 72, 0, 1)).action_({ |s|
         ~pitches[i] = s.value.linlin(0, 1, 36, 72).round;
     });
-
-    win.view.decorator.shift(5, 0);
 });
 
-saveBtn = Button(win, 230@30)
-    .states_([["SAVE SETTINGS", Color.black, Color.yellow]])
-    .action_({ ~saveSettings.value });
+win.view.decorator.nextLine;
 
-loadBtn = Button(win, 230@30)
-    .states_([["LOAD SETTINGS", Color.black, Color.cyan]])
-    .action_({
-        ~loadSettings.value;
-        // Optional: Update GUI displays here if needed
+// Save/Load
+saveBtn = Button(win, 235@40).states_([["SAVE SETTINGS", Color.black, Color.yellow]]).action_({ ~saveSettings.value });
+
+loadBtn = Button(win, 235@40).states_([["LOAD SETTINGS", Color.black, Color.cyan]]).action_({
+    ~loadSettings.value;
+    {
         bpmDisplay.value = ~tempo.tempo * 60;
-    });
+        ~numTracks.do({ |i|
+            if(~rhythmMenus[i].notNil) {
+                ~rhythmMenus[i].value = ~rhythmIndices[i];
+            };
+        });
+    }.defer;
+});
 
 win.onClose = { ~numTracks.do({ |i| Tdef(("chan"++i).asSymbol).stop }) };
 )
