@@ -1,7 +1,15 @@
 (
 s.waitForBoot({
+
+	/////////////////////////////////////////////////////////////////
+	//
+	//               VARIABLES
+	//
+	/////////////////////////////////////////////////////////////////
+
+
     // Local GUI variables
-    var win, startBtn, tempoSlid, bpmDisplay, saveBtn, loadBtn, rhythmOptions;
+    var win, startBtn, tempoSlid, bpmDisplay, saveBtn, loadBtn, presetNameField, rhythmOptions, rhythmNames;
 
     // Global variables
     ~numTracks = 6;
@@ -23,6 +31,17 @@ s.waitForBoot({
     s.makeGui;
     s.meter;
 
+
+
+
+
+	/////////////////////////////////////////////////////////////////
+	//
+	//               BUFFERS
+	//
+	/////////////////////////////////////////////////////////////////
+
+
     // Load Samples
     ~samples = [
         Buffer.read(s, "/home/ernesto/Documents/SuperColliderCodes/RicaAfroca/multitrack-sequencer/Clave.wav"),
@@ -33,6 +52,17 @@ s.waitForBoot({
         Buffer.read(s, "/home/ernesto/Documents/SuperColliderCodes/RicaAfroca/multitrack-sequencer/Conga.wav")
     ];
 
+
+
+
+
+	/////////////////////////////////////////////////////////////////
+	//
+	//               SYNTHDEF
+	//
+	/////////////////////////////////////////////////////////////////
+
+
     SynthDef(\liveChannel, {
         arg out=0, buf=0, freq=440, amp=0.5, pan=0, rel=0.3;
         var sig, env, rate;
@@ -42,34 +72,75 @@ s.waitForBoot({
         Out.ar(out, Pan2.ar(sig * 0.8 * env * amp, pan));
     }).add;
 
-    ~saveSettings = {
-        var data = Dictionary.new;
-        data.put(\rhythms, ~rhythms);
-        data.put(\mutes, ~mutes);
-        data.put(\pitches, ~pitches);
-        data.put(\bpm, ~tempo.tempo * 60);
-        data.put(\indices, ~rhythmIndices);
-        data.put(\volumes, ~volumes);
-        data.writeArchive("/home/ernesto/Documents/SuperColliderCodes/RicaAfroca/mySettings.scd");
-        "--- Settings Saved ---".postln;
-    };
 
-    ~loadSettings = {
-        var data = Object.readArchive("/home/ernesto/Documents/SuperColliderCodes/RicaAfroca/mySettings.scd");
-        if(data.notNil) {
-            ~rhythms = data[\rhythms];
-            ~mutes = data[\mutes];
-            ~pitches = data[\pitches];
-            ~tempo.tempo = (data[\bpm] ?? {120}) / 60;
-            ~rhythmIndices = data[\indices] ?? { Array.fill(~numTracks, {0}) };
-            ~volumes = data[\volumes] ?? { Array.fill(~numTracks, { 0.7 }) };
-            "--- Settings Loaded ---".postln;
-        };
+
+
+
+	/////////////////////////////////////////////////////////////////
+	//
+	//               SAVE & LOAD SETTINGS
+	//
+	/////////////////////////////////////////////////////////////////
+
+
+   ~saveSettings = { |name|
+    var data = Dictionary.new;
+    var path = "/home/ernesto/Documents/SuperColliderCodes/RicaAfroca/" ++ name ++ ".scd";
+    data.put(\rhythms, ~rhythms);
+    data.put(\mutes, ~mutes);
+    data.put(\pitches, ~pitches);
+    data.put(\bpm, ~tempo.tempo * 60);
+    data.put(\indices, ~rhythmIndices);
+    data.put(\volumes, ~volumes);
+    data.writeArchive(path);
+    ("--- Saved to: " ++ name ++ " ---").postln;
+};
+
+~loadSettings = { |name|
+    var path = "/home/ernesto/Documents/SuperColliderCodes/RicaAfroca/" ++ name ++ ".scd";
+    var data = Object.readArchive(path);
+    if(data.notNil) {
+        ~rhythms = data[\rhythms];
+        ~mutes = data[\mutes];
+        ~pitches = data[\pitches];
+        ~tempo.tempo = (data[\bpm] ?? {120}) / 60;
+        ~rhythmIndices = data[\indices] ?? { Array.fill(~numTracks, {0}) };
+        ~volumes = data[\volumes] ?? { Array.fill(~numTracks, { 0.7 }) };
+        ("--- Loaded: " ++ name ++ " ---").postln;
+    } {
+        ("!!! Preset " ++ name ++ " not found !!!").warn;
     };
+};
 
     ~loadSettings.value;
 
+
+
+
+	/////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////
+	//
+	//
+	//                  CREATION LOOP
+	//
+	//
+	/////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////
+
     ~numTracks.do({ |i|
+
+
+
+
+
+
+	/////////////////////////////////////////////////////////////////
+	//
+	//               TDEF
+	//
+	/////////////////////////////////////////////////////////////////
+
+
         Tdef( ("chan" ++ i).asSymbol, {
             var step = 0;
             loop {
@@ -90,10 +161,38 @@ s.waitForBoot({
         }).quant = 4;
     });
 
+
+
+
+
+
+	/////////////////////////////////////////////////////////////////
+	//
+	//               RITMOS
+	//
+	/////////////////////////////////////////////////////////////////
+
+
+
     rhythmOptions = [
         [0.75, 1, 0.75, 0.5, 1], [0.25, 0.5, 0.25, 0.25, 0.5, 0.25, 0.5, 0.5, 0.25, 0.5, 0.25],
         [-1, -0.5, 0.5], [2], [-1.75, 0.25], [0.25], [0.5], [0.5, 0.25, 0.25], [1, 1], [0.75, 0.25], [0.33, 0.33, 0.34]
     ];
+
+	rhythmNames = ["Clave", "Cascara1", "Golpe", "ShekereT", "ShekereA", "16ths", "8ths", "Swing", "Quarters", "Dotted", "Triplets"];
+
+
+
+
+
+
+
+	/////////////////////////////////////////////////////////////////
+	//
+	//               GUI
+	//
+	/////////////////////////////////////////////////////////////////
+
 
     // UPDATED: Height increased to 750
     win = Window("RicaAfroca Sequencer", Rect(100, 100, 830, 750)).front;
@@ -129,7 +228,7 @@ s.waitForBoot({
             .action_({ |b| ~mutes[i] = (b.value == 1) });
 
         ~rhythmMenus[i] = PopUpMenu(comp, 105@30)
-            .items_(["Clave", "Cascara1", "Golpe", "ShekereT", "ShekereA", "16ths", "8ths", "Swing", "Quarters", "Dotted", "Triplets"])
+            .items_(rhythmNames)
             .value_(~rhythmIndices[i])
             .action_({ |m|
                 ~rhythms[i] = rhythmOptions[m.value];
@@ -162,9 +261,22 @@ s.waitForBoot({
 
     win.view.decorator.nextLine;
 
-    saveBtn = Button(win, 395@40).states_([["SAVE", Color.black, Color.yellow]]).action_({ ~saveSettings.value });
-    loadBtn = Button(win, 395@40).states_([["LOAD", Color.black, Color.cyan]]).action_({
-        ~loadSettings.value;
+   win.view.decorator.nextLine;
+
+// The text field where you type the name
+presetNameField = TextField(win, 200@40)
+    .string_("mySettings") // Default name
+    .font_(Font("sans-serif", 18))
+    .align_(\center);
+
+saveBtn = Button(win, 290@40)
+    .states_([["SAVE PRESET", Color.black, Color.yellow]])
+    .action_({ ~saveSettings.value(presetNameField.string) });
+
+loadBtn = Button(win, 290@40)
+    .states_([["LOAD PRESET", Color.black, Color.cyan]])
+    .action_({
+        ~loadSettings.value(presetNameField.string);
         {
             bpmDisplay.value = ~tempo.tempo * 60;
             tempoSlid.value = ~tempo.tempo.linlin(1, 3.3, 0, 1);
@@ -173,7 +285,15 @@ s.waitForBoot({
                 if(~rhythmMenus[i].notNil) { ~rhythmMenus[i].value = ~rhythmIndices[i] };
                 if(~muteButtons[i].notNil) { ~muteButtons[i].value = ~mutes[i].asInteger };
                 if(~pitchSliders[i].notNil) { ~pitchSliders[i].value = ~pitches[i].linlin(36, 72, 0, 1) };
-                if(~volSliders[i].notNil) { ~volSliders[i].value = ~volumes[i].sqrt };
+
+                // Volume Loading Logic with silence safety
+                if(~volSliders[i].notNil) {
+                    if (~volumes[i] <= 0) {
+                        ~volSliders[i].value = 0;
+                    } {
+                        ~volSliders[i].value = ~volumes[i].ampdb.linlin(-30, 0, 0, 1);
+                    };
+                };
             });
         }.defer;
     });
