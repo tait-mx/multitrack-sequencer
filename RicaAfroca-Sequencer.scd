@@ -175,11 +175,19 @@ s.waitForBoot({
 
 
     rhythmOptions = [
-        [0.75, 1, 0.75, 0.5, 1], [0.25, 0.5, 0.25, 0.25, 0.5, 0.25, 0.5, 0.5, 0.25, 0.5, 0.25],
-        [-1, -0.5, 0.5], [2], [-1.75, 0.25], [0.25], [0.5], [0.5, 0.25, 0.25], [1, 1], [0.75, 0.25], [0.33, 0.33, 0.34]
+		[0.75, 1, 0.75, 0.5, 1], //Clave4/4
+		[2,2,1,2,2,2,1]/3,           //Clave6/8
+		[0.25, 0.5, 0.25, 0.25, 0.5, 0.25, 0.5, 0.5, 0.25, 0.5, 0.25], //Cascara1
+        [-1, -0.5, 0.5], //Golpe
+		[-3,-1,1,1]/3,   //GolpeCol
+		[2],             //ShekereT
+		[-1.75, 0.25],   //ShekereA
+		[0.25],          //16ths
+		[0.5],           //8ths
+		[1, 1]          //Quarters
     ];
 
-	rhythmNames = ["Clave", "Cascara1", "Golpe", "ShekereT", "ShekereA", "16ths", "8ths", "Swing", "Quarters", "Dotted", "Triplets"];
+	rhythmNames = ["Clave4/4", "Clave6/8", "Cascara1", "Golpe", "GolpeCol", "ShekereT", "ShekereA", "16ths", "8ths", "Quarters"];
 
 
 
