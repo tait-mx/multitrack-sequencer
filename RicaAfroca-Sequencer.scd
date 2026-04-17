@@ -178,6 +178,7 @@ s.waitForBoot({
 		[0.75, 1, 0.75, 0.5, 1], //Clave4/4
 		[2,2,1,2,2,2,1]/3,           //Clave6/8
 		[0.25, 0.5, 0.25, 0.25, 0.5, 0.25, 0.5, 0.5, 0.25, 0.5, 0.25], //Cascara1
+		[0.5, 0.25, 0.25 + 0.25, 0.5, 0.25, 0.5, 0.5, 0.25, 0.25, 0.25, 0.25], //Cascara2
         [-1, -0.5, 0.5], //Golpe
 		[-3,-1,1,1]/3,   //GolpeCol
 		[2],             //ShekereT
@@ -187,7 +188,7 @@ s.waitForBoot({
 		[1, 1]          //Quarters
     ];
 
-	rhythmNames = ["Clave4/4", "Clave6/8", "Cascara1", "Golpe", "GolpeCol", "ShekereT", "ShekereA", "16ths", "8ths", "Quarters"];
+	rhythmNames = ["Clave4/4", "Clave6/8", "Cascara1", "Cascara2", "Golpe", "GolpeCol", "ShekereT", "ShekereA", "16ths", "8ths", "Quarters"];
 
 
 
