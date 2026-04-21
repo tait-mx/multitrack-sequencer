@@ -30,11 +30,19 @@ s.waitForBoot({
 	~sampleMenus = Array.newClear(~numTracks);
 
 	// 3. Paths (Ubuntu/Linux)
-	~projectPath = "/home/ernesto/Documents/SuperColliderCodes/RicaAfroca/multitrack-sequencer/";
-	~samplePath = ~projectPath ++ "samples/";
-	~presetPath = ~projectPath ++ "sequences/";
+// --- DYNAMIC PATH SETUP ---
+// This finds the folder where "RicaAfroca-Sequencer.scd" is currently saved
+~projectPath = PathName(thisProcess.nowExecutingPath).pathOnly;
 
-	File.mkdir(~presetPath);
+// These will now automatically point to the folders in your screenshot
+~samplePath = ~projectPath ++ "samples/";
+~presetPath = ~projectPath ++ "sequences/";
+
+// Ensure the directory exists (it will skip if it's already there)
+File.mkdir(~presetPath);
+
+"Project Path: ".post; ~projectPath.postln;
+"Samples found: ".post; (~samplePath ++ "*.wav").pathMatch.size.postln;
 
 	// Load Samples with fallback
 	~sampleFiles = (~samplePath ++ "*.wav").pathMatch;
@@ -154,13 +162,32 @@ s.waitForBoot({
 	/////////////////////////////////////////////////////////////////
 
 	rhythmOptions = [
-		[0.75, 1, 0.75, 0.5, 1], [2,2,1,2,2,2,1]/3,
-		[0.25, 0.5, 0.25, 0.25, 0.5, 0.25, 0.5, 0.5, 0.25, 0.5, 0.25],
-		[0.5, 0.25, 0.5, 0.5, 0.25, 0.5, 0.5, 0.25, 0.25, 0.25, 0.25],
-		[-1, -0.5, 0.5], [-1.0, -0.33333333333333, 0.33333333333333, 0.33333333333333],
-		[2], [-1.75, 0.25], [0.25], [0.5], [1, 1]
+		[0.75, 1, 0.75, 0.5, 1], //Clave4/4
+		[2,2,1,2,2,2,1]/3, //Clave6/8
+		[0.25, 0.5, 0.25, 0.25, 0.5, 0.25, 0.5, 0.5, 0.25, 0.5, 0.25], //Cascara1
+		[0.5, 0.25, 0.5, 0.5, 0.25, 0.5, 0.5, 0.25, 0.25, 0.25, 0.25], //Cascara2
+		[-1, -0.5, 0.5],   //Golpe
+		[-1.0, -0.33333333333333, 0.33333333333333, 0.33333333333333], //GolpeCol
+		[2], //ShekereT
+		[-1.75, 0.25], //ShekereA
+		[0.25], //16ths
+		[0.5], //8ths
+		[1, 1] //Quarters
 	];
-	rhythmNames = ["Clave4/4", "Clave6/8", "Cascara1", "Cascara2", "Golpe", "GolpeCol", "ShekereT", "ShekereA", "16ths", "8ths", "Quarters"];
+	rhythmNames = [
+		"Clave4/4",
+		"Clave6/8",
+		"Cascara1",
+		"Cascara2",
+		"Golpe",
+		"GolpeCol",
+		"ShekereT",
+		"ShekereA",
+		"16ths",
+		"8ths",
+		"Quarters"
+
+	];
 
 	/////////////////////////////////////////////////////////////////
 	// GUI
@@ -259,23 +286,48 @@ s.waitForBoot({
 
 	win.view.decorator.nextLine;
 
-	// PRESET FOOTER
-	presetNameField = TextField(win, 150@40).string_("newPreset").align_(\center).canFocus_(false);
-	saveBtn = Button(win, 100@40).states_([["SAVE", Color.black, Color.yellow]]).action_({
-		~saveSettings.value(presetNameField.string);
-		~updatePresetList.value;
-	}).canFocus_(false);
+// PRESET FOOTER
+	presetNameField = TextField(win, 150@40)
+		.string_("newPreset")
+		.align_(\center)
+		.canFocus_(true)
+		.action_({ |tf|
+			// When you hit Enter, it releases focus
+			// and focuses on the Window instead
+			win.view.focus;
+			("Preset name set to: " ++ tf.string).postln;
+		});
 
-	presetMenu = PopUpMenu(win, 200@40).items_(["Scanning..."]).background_(Color.white).canFocus_(false);
-	loadBtn = Button(win, 100@40).states_([["LOAD", Color.black, Color.cyan]]).action_({
-		var selectedName = presetMenu.item;
-		if(selectedName.notNil && (selectedName != "No Presets Found")) {
-			~loadSettings.value(selectedName);
-		};
-	}).canFocus_(false);
+	saveBtn = Button(win, 100@40)
+		.states_([["SAVE", Color.black, Color.yellow]])
+		.canFocus_(false)
+		.action_({
+			~saveSettings.value(presetNameField.string);
+			~updatePresetList.value;
+		});
 
-	refreshBtn = Button(win, 100@40).states_([["REFRESH", Color.white, Color.grey(0.3)]]).action_({ ~updatePresetList.value }).canFocus_(false);
+	presetMenu = PopUpMenu(win, 200@40)
+		.items_(["Scanning..."])
+		.background_(Color.white)
+		.canFocus_(false);
 
+	loadBtn = Button(win, 100@40)
+		.states_([["LOAD", Color.black, Color.cyan]])
+		.canFocus_(false)
+		.action_({
+			var selectedName = presetMenu.item;
+			// Ensure we don't try to load the "Scanning" or "No Presets" placeholder
+			if(selectedName.notNil && (selectedName != "No Presets Found") && (selectedName != "Scanning...")) {
+				~loadSettings.value(selectedName);
+			};
+		});
+
+	refreshBtn = Button(win, 100@40)
+		.states_([["REFRESH", Color.white, Color.grey(0.3)]])
+		.canFocus_(false)
+		.action_({ ~updatePresetList.value });
+
+	// Initial population of the menu
 	~updatePresetList.value;
 
 	win.view.keyDownAction = { |view, char, modifiers, unicode, keycode|

@@ -3,23 +3,23 @@ o = [
 	Dictionary.prNew,  Array.prNew(32),  Array.prNew(6),  Array.prNew(6),  
 	Array.prNew(6),  Array.prNew(6),  Array.prNew(5),  Array.prNew(1),  
 	Array.prNew(11),  Array.prNew(2),  Array.prNew(1),  Array.prNew(3),  
-	Array.prNew(6)
+	Array.prNew(6),  Array.prNew(6)
 ];
 p = [
 	// Dictionary
-	0, [ array: o[1],  size: 6 ],  
+	0, [ array: o[1],  size: 7 ],  
 	// Array
 	1, [ 'pitches',  o[2],  nil,  nil,  
 		nil,  nil,  'volumes',  o[3],  
 		nil,  nil,  nil,  nil,  
 		nil,  nil,  'mutes',  o[4],  
-		'rhythms',  o[5],  nil,  nil,  
-		'bpm',  110.77160493827,  'indices',  o[12],  
+		'rhythms',  o[5],  'sampleIndices',  o[12],  
+		'bpm',  110.77160493827,  'indices',  o[13],  
 		nil,  nil,  nil,  nil,  
 		nil,  nil,  nil,  nil ],  
 	// Array
 	2, [ 46.0,  60,  58.0,  49.0,  
-		55.0,  60.0 ],  
+		55.0,  70.0 ],  
 	// Array
 	3, [ 0.50118723362727,  0.50118723362727,  1.0,  0.50118723362727,  
 		0.50118723362727,  0.50118723362727 ],  
@@ -45,7 +45,10 @@ p = [
 	// Array
 	11, [ -1,  -0.5,  0.5 ],  
 	// Array
-	12, [ 0,  8,  2,  7,  
+	12, [ 0,  3,  0,  5,  
+		4,  2 ],  
+	// Array
+	13, [ 0,  8,  2,  7,  
 		6,  4 ]
 ];
 prUnarchive(o,p);
