@@ -1,9 +1,6 @@
 /*
-subir tempo con botones por paso
-
+Crear variaciones en el Golpe y poner un botón para dispararlas
 botones físicos para tempo y respuestas golpe
-
-spacebar stop/start
 */
 
 
@@ -148,6 +145,7 @@ s.waitForBoot({
 
 	startBtn = Button(win, 800@40)
 		.states_([["START ALL", Color.black, Color.green], ["STOP ALL", Color.white, Color.red]])
+	    .canFocus_(false) // <--- ADD THIS
 		.action_({ |b|
 			~numTracks.do({ |i|
 				if(b.value == 1) { Tdef(("chan"++i).asSymbol).play(~tempo) } { Tdef(("chan"++i).asSymbol).stop };
@@ -161,10 +159,11 @@ s.waitForBoot({
     var bpm = s.value.linlin(0, 1, 60, 200);
     ~tempo.tempo = bpm / 60;
     bpmDisplay.value = bpm;
-});
+}).canFocus_(false); // <--- ADD THIS;
 
 	tempoDown = Button(win, 40@30)
-    .states_([["-1", Color.black, Color.grey(0.8)]])
+	.states_([["-1", Color.black, Color.grey(0.8)]])
+	.canFocus_(false) // <--- ADD THIS
     .action_({
         var newBpm = (~tempo.tempo * 60) - 1;
         ~tempo.tempo = newBpm.max(20) / 60;
@@ -176,6 +175,7 @@ s.waitForBoot({
 
 	tempoUp = Button(win, 40@30)
     .states_([["+1", Color.black, Color.grey(0.8)]])
+	.canFocus_(false) // <--- ADD THIS
     .action_({
         var newBpm = (~tempo.tempo * 60) + 1;
         ~tempo.tempo = newBpm.min(300) / 60;
@@ -196,11 +196,13 @@ s.waitForBoot({
 
 		~muteButtons[i] = Button(comp, 105@40)
 			.states_([["ON", Color.black, Color.green], ["MUTE", Color.white, Color.red]])
+		    .canFocus_(false) // <--- ADD THIS
 			.value_(~mutes[i].asInteger)
 			.action_({ |b| ~mutes[i] = (b.value == 1) });
 
 		~rhythmMenus[i] = PopUpMenu(comp, 105@30)
 			.items_(rhythmNames)
+		    .canFocus_(false) // <--- ADD THIS
 			.value_(~rhythmIndices[i])
 			.action_({ |m|
 				~rhythms[i] = rhythmOptions[m.value];
@@ -209,6 +211,7 @@ s.waitForBoot({
 
 		StaticText(comp, 105@20).string_("Pitch").align_(\center);
 		~pitchSliders[i] = Slider(comp, 105@30)
+	        .canFocus_(false) // <--- ADD THIS
 			.value_(~pitches[i].linlin(36, 72, 0, 1))
 			.action_({ |s| ~pitches[i] = s.value.linlin(0, 1, 36, 72).round; });
 
@@ -227,6 +230,7 @@ s.waitForBoot({
 	StaticText(masterCol, 105@20).string_(""); // Spacer for Track Label
 	masterMuteBtn = Button(masterCol, 105@40)
 		.states_([["MUTE ALL", Color.black, Color.yellow], ["UNMUTE ALL", Color.white, Color.red]])
+	    .canFocus_(false) // <--- ADD THIS
 		.action_({ |b|
 			~numTracks.do({ |i| ~muteButtons[i].valueAction_(b.value); });
 		});
@@ -234,14 +238,14 @@ s.waitForBoot({
 	win.view.decorator.nextLine;
 
 	// --- PRESET FOOTER ---
-	presetNameField = TextField(win, 150@40).string_("newPreset").align_(\center);
+	presetNameField = TextField(win, 150@40).string_("newPreset").align_(\center).canFocus_(false); // <--- ADD THIS;;
 
 	saveBtn = Button(win, 100@40).states_([["SAVE", Color.black, Color.yellow]]).action_({
 		~saveSettings.value(presetNameField.string);
 		~updatePresetList.value;
-	});
+	}).canFocus_(false); // <--- ADD THIS;
 
-	presetMenu = PopUpMenu(win, 200@40).items_(["Scanning..."]).background_(Color.white);
+	presetMenu = PopUpMenu(win, 200@40).items_(["Scanning..."]).background_(Color.white).canFocus_(false); // <--- ADD THIS;;
 
 	loadBtn = Button(win, 100@40).states_([["LOAD", Color.black, Color.cyan]]).action_({
 		var selectedName = presetMenu.item;
@@ -259,11 +263,22 @@ s.waitForBoot({
 				});
 			}.defer;
 		};
-	});
+	}).canFocus_(false); // <--- ADD THIS;
 
-	refreshBtn = Button(win, 100@40).states_([["REFRESH", Color.white, Color.grey(0.3)]]).action_({ ~updatePresetList.value });
+	refreshBtn = Button(win, 100@40).states_([["REFRESH", Color.white, Color.grey(0.3)]]).action_({ ~updatePresetList.value }).canFocus_(false); // <--- ADD THIS;
 
 	~updatePresetList.value;
+
+	// --- KEYBOARD SHORTCUTS ---
+    win.view.keyDownAction = { |view, char, modifiers, unicode, keycode|
+        // keycode 32 is Spacebar on most Linux/Mac/Win systems
+        if (unicode == 32) {
+            // .valueAction_ simulates a physical click on the Start button
+            startBtn.valueAction = (startBtn.value + 1) % 2;
+            "Spacebar: Toggle Start/Stop".postln;
+        };
+    };
+
 	win.onClose = { ~numTracks.do({ |i| Tdef(("chan"++i).asSymbol).stop }) };
 });
 )
