@@ -21,6 +21,7 @@ s.waitForBoot({
 	~pitches = Array.fill(~numTracks, { 60 });
 	~volumes = Array.fill(~numTracks, { -6.dbamp });
 	~sampleIndices = Array.fill(~numTracks, { |i| i }); // Stores the current sample index
+	~golpeRequest = false;
 
 	// 2. Initialize GUI arrays
 	~muteButtons = Array.newClear(~numTracks);
@@ -134,28 +135,62 @@ File.mkdir(~presetPath);
 	/////////////////////////////////////////////////////////////////
 
 	~numTracks.do({ |i|
-		Tdef( ("chan" ++ i).asSymbol, {
-			var step = 0;
-			loop {
-				var delta = ~rhythms[i].wrapAt(step);
-				// CRITICAL: Read from ~sampleIndices array, NOT the PopUpMenu object
-				var currentBuf = ~samples[~sampleIndices[i].wrap(0, ~samples.size - 1)];
+	Tdef( ("chan" ++ i).asSymbol, {
+		var step = 0;
+		var varPattern = [0.5, 0.25, 0.25, 0.5, 0.5, -1, -0.5, 0.25, 0.25];
 
-				if(delta > 0 && ~mutes[i].not) {
-					s.makeBundle(s.latency, {
-						Synth(\liveChannel, [
-							\buf, currentBuf,
-							\freq, ~pitches[i].midicps,
-							\amp, ~volumes[i],
-							\rel, (delta.abs / ~tempo.tempo) * 0.8
-						]);
-					});
-				};
-				step = step + 1;
-				delta.abs.wait;
-			}
-		}).quant = 4;
-	});
+		loop {
+			var currentPattern, delta;
+
+			// Check if we should start a variation cycle
+			// Only happens if the track is set to 'Golpe' (index 4)
+			if (~rhythmIndices[i] == 4 && ~golpeRequest) {
+
+				// 1. Reset the request so it only plays once
+				~golpeRequest = false;
+
+				// 2. Play the variation pattern in its entirety
+				varPattern.do({ |vDelta|
+					var currentBuf = ~samples[~sampleIndices[i].wrap(0, ~samples.size - 1)];
+
+					if(vDelta > 0 && ~mutes[i].not) {
+						s.makeBundle(s.latency, {
+							Synth(\liveChannel, [
+								\buf, currentBuf,
+								\freq, ~pitches[i].midicps,
+								\amp, ~volumes[i],
+								\rel, (vDelta.abs / ~tempo.tempo) * 0.8
+							]);
+						});
+					};
+					vDelta.abs.wait;
+				});
+
+				// 3. Reset the main loop 'step' to 0 so the base rhythm
+				// starts from the beginning after the variation
+				step = 0;
+			};
+
+			// DEFAULT BASE RHYTHM LOGIC
+			currentPattern = ~rhythms[i];
+			delta = currentPattern.wrapAt(step);
+
+			if(delta > 0 && ~mutes[i].not) {
+				s.makeBundle(s.latency, {
+					Synth(\liveChannel, [
+						\buf, ~samples[~sampleIndices[i].wrap(0, ~samples.size - 1)],
+						\freq, ~pitches[i].midicps,
+						\amp, ~volumes[i],
+						\rel, (delta.abs / ~tempo.tempo) * 0.8
+					]);
+				});
+			};
+
+			step = step + 1;
+			delta.abs.wait;
+		}
+	}).quant = 4; // This 'quant' ensures the whole Tdef aligns to the bar/beat
+});
 
 	/////////////////////////////////////////////////////////////////
 	// RHYTHMS
@@ -227,6 +262,8 @@ File.mkdir(~presetPath);
 			{ bpmDisplay.value = ~tempo.tempo * 60; tempoSlid.value = ~tempo.tempo.linlin(1, 3.3, 0, 1); }.defer;
 		});
 
+
+
 	win.view.decorator.nextLine;
 
 	// TRACK LOOP
@@ -283,6 +320,14 @@ File.mkdir(~presetPath);
 		.states_([["MUTE ALL", Color.black, Color.yellow], ["UNMUTE ALL", Color.white, Color.red]])
 		.canFocus_(false)
 		.action_({ |b| ~numTracks.do({ |i| ~muteButtons[i].valueAction_(b.value); }); });
+
+	Button(masterCol, 105@60)
+	.states_([["GOLPE VAR (Trigger)", Color.black, Color.green(0.8)]])
+	.canFocus_(false)
+	.action_({
+		~golpeRequest = true;
+		"Variation queued for next pulse...".postln;
+	});
 
 	win.view.decorator.nextLine;
 
