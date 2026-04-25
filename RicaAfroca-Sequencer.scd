@@ -142,7 +142,8 @@ File.mkdir(~presetPath);
 ~numTracks.do({ |i|
 		Tdef( ("chan" ++ i).asSymbol, {
 			var step = 0;
-			var varPattern = [-1, -0.5, 0.5, -1, -0.5, 0.25, 0.25] ++ [0.5, 0.25, 0.25, 0.5, 0.5, -1, -0.5, 0.5];
+			// var varPattern = [-1, -0.5, 0.5, -1, -0.5, 0.25, 0.25] ++ [0.5, 0.25, 0.25, 0.5, 0.5, -1, -0.5, 0.5];
+			var varPattern = [-1, -0.5, 0.25, 0.25] ++ [0.5, 0.25, 0.25, 0.5, 0.5];
 
 			loop {
 				var currentPattern, delta;
@@ -170,7 +171,6 @@ File.mkdir(~presetPath);
 
 					// --- SYNC RETURN ---
 					step = 0;
-					(4 - (~tempo.beats % 4)).wait;
 				};
 
 				// --- DEFAULT BASE RHYTHM LOGIC ---
