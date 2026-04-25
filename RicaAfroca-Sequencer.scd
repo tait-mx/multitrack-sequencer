@@ -310,6 +310,22 @@ File.mkdir(~presetPath);
 				~rhythmIndices[i] = m.value;
 			});
 
+		// --- NEW TRIGGER LOCATION ---
+if (i == 5) {
+    Button(comp, 105@40)
+    .states_([["GOLPE (Trig)", Color.black, Color.green(0.8)]])
+    .canFocus_(false)
+    .action_({
+        ~golpeRequest = true;
+        "Variation queued...".postln;
+    });
+} {
+    // Optional: Add a spacer or empty text for other tracks
+    // to keep the "Pitch" sliders aligned horizontally
+    StaticText(comp, 105@40).string_("");
+};
+// ----------------------------
+
 		StaticText(comp, 105@20).string_("Pitch").align_(\center);
 		~pitchSliders[i] = Slider(comp, 105@30)
 			.canFocus_(false)
@@ -335,13 +351,6 @@ File.mkdir(~presetPath);
 		.canFocus_(false)
 		.action_({ |b| ~numTracks.do({ |i| ~muteButtons[i].valueAction_(b.value); }); });
 
-	Button(masterCol, 105@60)
-	.states_([["GOLPE VAR (Trigger)", Color.black, Color.green(0.8)]])
-	.canFocus_(false)
-	.action_({
-		~golpeRequest = true;
-		"Variation queued for next pulse...".postln;
-	});
 
 
 
