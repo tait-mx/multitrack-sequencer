@@ -1,5 +1,6 @@
 /*
-RicaAfroca Sequencer - Independent Variations + Master Meter
+RicaAfroca Sequencer - Final Version
+Independent Variations, Master Volume/Meter, and Preset Management
 */
 
 (
@@ -9,7 +10,9 @@ s.waitForBoot({
 	// VARIABLES & INITIALIZATION
 	/////////////////////////////////////////////////////////////////
 
-	var win, startBtn, tempoSlid, tempoUp, tempoDown, bpmDisplay, saveBtn, loadBtn, presetNameField, presetMenu, refreshBtn, rhythmOptions, rhythmNames, masterMuteBtn, masterCol, peakMeter, meterRoutine;
+	var win, startBtn, tempoSlid, tempoUp, tempoDown, bpmDisplay, saveBtn, loadBtn,
+    presetNameField, presetMenu, refreshBtn, rhythmOptions, rhythmNames,
+    masterMuteBtn, masterCol, peakMeter, meterRoutine, hLayout; // <--- Added hLayout here
 
 	~numTracks = 6;
 	~tempo = TempoClock.new(120/60).permanent_(true);
@@ -20,7 +23,7 @@ s.waitForBoot({
 	~rhythms = Array.fill(~numTracks, { [0.5, 0.5] });
 	~mutes = Array.fill(~numTracks, { false });
 	~pitches = Array.fill(~numTracks, { 60 });
-	~volumes = Array.fill(~numTracks, { -6.dbamp });
+	~volumes = Array.fill(~numTracks, { 0.7 });
 	~sampleIndices = Array.fill(~numTracks, { |i| i });
 	~varRequests = Array.fill(~numTracks, { false });
 
@@ -45,23 +48,66 @@ s.waitForBoot({
 	if(~samples.isEmpty) { ~sampleNames = ["empty"]; ~samples = [Buffer.alloc(s, 44100, 2)]; };
 
 	/////////////////////////////////////////////////////////////////
-	// MASTER LEVEL MONITORING
+	// FUNCTIONS (Save, Load, and the missing Update)
+	/////////////////////////////////////////////////////////////////
+
+	~saveSettings = { |name|
+		var data = Dictionary.new;
+		var path = ~presetPath ++ name ++ ".scd";
+		data.put(\rhythms, ~rhythms);
+		data.put(\mutes, ~mutes);
+		data.put(\pitches, ~pitches);
+		data.put(\bpm, ~tempo.tempo * 60);
+		data.put(\indices, ~rhythmIndices);
+		data.put(\volumes, ~volumes);
+		data.put(\sampleIndices, ~sampleIndices);
+		data.writeArchive(path);
+		("--- Saved to: " ++ path).postln;
+	};
+
+	~loadSettings = { |name|
+		var path = ~presetPath ++ name ++ ".scd";
+		var data = Object.readArchive(path);
+		if(data.notNil) {
+			~rhythms = data[\rhythms];
+			~mutes = data[\mutes];
+			~pitches = data[\pitches];
+			~tempo.tempo = (data[\bpm] ?? {120}) / 60;
+			~rhythmIndices = data[\indices] ?? { Array.fill(~numTracks, {0}) };
+			~volumes = data[\volumes] ?? { Array.fill(~numTracks, { 0.7 }) };
+			if(data[\sampleIndices].notNil) { ~sampleIndices = data[\sampleIndices] };
+			{
+				bpmDisplay.value = ~tempo.tempo * 60;
+				tempoSlid.value = ~tempo.tempo.linlin(1, 3.3, 0, 1);
+				~numTracks.do({ |i|
+					~rhythmMenus[i].value = ~rhythmIndices[i];
+					~muteButtons[i].value = ~mutes[i].asInteger;
+					~sampleMenus[i].value = ~sampleIndices[i].wrap(0, ~sampleNames.size-1);
+					~pitchSliders[i].value = ~pitches[i].linlin(36, 72, 0, 1);
+					~volSliders[i].value = ~volumes[i];
+				});
+			}.defer;
+		};
+	};
+
+	~updatePresetList = {
+		var files = (~presetPath ++ "*.scd").pathMatch;
+		var names = files.collect({ |p| PathName(p).fileNameWithoutExtension });
+		if(names.isEmpty) { names = ["No Presets Found"] };
+		{ if(presetMenu.notNil) { presetMenu.items = names; presetMenu.value = 0; } }.defer;
+	};
+
+	/////////////////////////////////////////////////////////////////
+	// SERVER SIDE (Bus & SynthDefs)
 	/////////////////////////////////////////////////////////////////
 
 	~peakBus = Bus.control(s, 1);
 
-	// This Synth constantly checks the master output level
 	SynthDef(\peakMonitor, {
-		var sig = In.ar(0, 2); // Read stereo output
-		// Use .max to compare signals on the Server side
-		var combined = sig[0].abs.max(sig[1].abs);
-		var peak = PeakFollower.kr(combined, 0.999);
+		var sig = In.ar(0, 2);
+		var peak = PeakFollower.kr(sig[0].abs.max(sig[1].abs), 0.999);
 		Out.kr(~peakBus, peak);
 	}).add;
-
-	/////////////////////////////////////////////////////////////////
-	// SYNTHDEF & ENGINE
-	/////////////////////////////////////////////////////////////////
 
 	SynthDef(\liveChannel, {
 		arg out=0, buf=0, freq=440, amp=0.5, pan=0, rel=0.3;
@@ -74,6 +120,10 @@ s.waitForBoot({
 
 	s.sync;
 	Synth(\peakMonitor, addAction: \addAfter);
+
+	/////////////////////////////////////////////////////////////////
+	// ENGINE
+	/////////////////////////////////////////////////////////////////
 
 	~variations = [ [0.25, 0.25, 0.25, 0.25], [0.5, 0.5], [1/3, 1/3, 1/3], [0.75, 0.25], [1], [-1, -0.5, 0.25, 0.25, 0.5, 0.25, 0.25, 0.5, 0.5] ];
 
@@ -136,23 +186,40 @@ s.waitForBoot({
 		StaticText(comp, 105@20).string_("Pitch").align_(\center);
 		~pitchSliders[i] = Slider(comp, 105@30).value_(0.5).action_({ |s| ~pitches[i] = s.value.linlin(0, 1, 36, 72).round; });
 		StaticText(comp, 105@20).string_("Vol").align_(\center);
-		~volSliders[i] = Slider(comp, 105@240).value_(0.7).action_({ |s| ~volumes[i] = s.value.linlin(0,1,0,1); });
+		~volSliders[i] = Slider(comp, 105@240).value_(0.7).action_({ |s| ~volumes[i] = s.value; });
 	});
 
-	// MASTER COLUMN
+	// MASTER COLUMN (Aligned with Tracks)
 	masterCol = CompositeView(win, 115@520).background_(Color.grey(0.6));
 	masterCol.decorator = FlowLayout(masterCol.bounds, 5@5, 5@5);
+
+	// 1. Title Alignment
 	StaticText(masterCol, 105@20).string_("MASTER").align_(\center).font_(Font(bold:true));
-	masterMuteBtn = Button(masterCol, 105@40).states_([["MUTE ALL", Color.black, Color.yellow], ["UNMUTE ALL", Color.white, Color.red]]).action_({ |b| ~numTracks.do({ |i| ~muteButtons[i].valueAction_(b.value); }); });
 
-	// --- NEW: MASTER VOL & METER ---
-	StaticText(masterCol, 105@20).string_("Peak").align_(\center).font_(Font(size:10));
-	peakMeter = LevelIndicator(masterCol, 25@350).warning_(0.8).critical_(0.95).background_(Color.black);
+	// 2. Spacer for Sample Menu (Matches PopUpMenu)
+	StaticText(masterCol, 105@25).string_("");
 
-	Slider(masterCol, 70@350).value_(0.8).action_({ |s| ~masterVol = s.value; });
+	// 3. MUTE ALL (Matches Track Mute Buttons)
+	masterMuteBtn = Button(masterCol, 105@40)
+		.states_([["MUTE ALL", Color.black, Color.yellow], ["UNMUTE ALL", Color.white, Color.red]])
+		.action_({ |b| ~numTracks.do({ |i| ~muteButtons[i].valueAction_(b.value); }); });
+
+	// 4. Spacer for Rhythm Menu & Variation Button
+	// Calculation: 30 (rhythm) + 40 (var) + 15 (margins) = 85
+	StaticText(masterCol, 105@85).string_("");
+
+	// 5. PEAK & MASTER SLIDER
+	StaticText(masterCol, 105@20).string_("Peak / Master").align_(\center).font_(Font(size:10));
+
+	// Local variable hLayout used here
+	hLayout = CompositeView(masterCol, 105@310);
+	hLayout.decorator = FlowLayout(hLayout.bounds, 0@0, 5@0);
+
+	peakMeter = LevelIndicator(hLayout, 25@305).warning_(0.8).critical_(0.95).background_(Color.black);
+	Slider(hLayout, 70@305).value_(0.8).action_({ |s| ~masterVol = s.value; });
+
 	StaticText(masterCol, 105@20).string_("Master Vol").align_(\center);
 
-	// Meter Routine
 	meterRoutine = {
 		loop {
 			~peakBus.get({ |val| { peakMeter.value = val; }.defer; });
@@ -165,8 +232,11 @@ s.waitForBoot({
 	presetNameField = TextField(win, 150@40).string_("newPreset");
 	saveBtn = Button(win, 100@40).states_([["SAVE", Color.black, Color.yellow]]).action_({ ~saveSettings.value(presetNameField.string); ~updatePresetList.value; });
 	presetMenu = PopUpMenu(win, 200@40).items_(["Scanning..."]);
-	loadBtn = Button(win, 100@40).states_([["LOAD", Color.black, Color.cyan]]).action_({ if(presetMenu.item.notNil) { ~loadSettings.value(presetMenu.item) }; });
+	loadBtn = Button(win, 100@40).states_([["LOAD", Color.black, Color.cyan]]).action_({ if(presetMenu.item != "No Presets Found") { ~loadSettings.value(presetMenu.item) }; });
 	refreshBtn = Button(win, 100@40).states_([["REFRESH", Color.white, Color.grey(0.3)]]).action_({ ~updatePresetList.value });
+
+	// Initial Scan
+	~updatePresetList.value;
 
 	win.onClose = { meterRoutine.stop; ~numTracks.do({ |i| Tdef(("chan"++i).asSymbol).stop }) };
 });
