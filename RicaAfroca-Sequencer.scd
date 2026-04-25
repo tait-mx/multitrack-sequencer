@@ -220,7 +220,15 @@ File.mkdir(~presetPath);
 	];
 	rhythmNames = [
 		"Clave4/4",
-		git
+		"ClaveMatanzas",
+		"Clave6/8",
+		"Cascara1",
+		"Cascara2",
+		"cascara Yuka",
+		"Golpe",
+		"GolpeCol",
+		"Yuka Llamador",
+		"Yuka Golpe",
 		"ShekereT",
 		"ShekereA",
 		"16ths",
