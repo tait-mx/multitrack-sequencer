@@ -3,6 +3,7 @@ RicaAfroca Sequencer - Complete Thread-Safe Version
 Poner Vol Master
 Poner foot swithces para subir y bajar el tiempo
 Escribir las letras de todas las canciones
+Poner variaciones de amplitud, timbre y precision en todos los patromnes
 */
 
 (
@@ -16,6 +17,7 @@ s.waitForBoot({
 
 	~numTracks = 6;
 	~tempo = TempoClock.new(120/60).permanent_(true);
+
 
 	// 1. Initialize logic arrays
 	~rhythmIndices = Array.fill(~numTracks, { 0 });
@@ -218,15 +220,7 @@ File.mkdir(~presetPath);
 	];
 	rhythmNames = [
 		"Clave4/4",
-		"ClaveMatanzas",
-		"Clave6/8",
-		"Cascara1",
-		"Cascara2",
-		"cascara Yuka",
-		"Golpe",
-		"GolpeCol",
-		"Yuka Llamador",
-		"Yuka Golpe",
+		git
 		"ShekereT",
 		"ShekereA",
 		"16ths",

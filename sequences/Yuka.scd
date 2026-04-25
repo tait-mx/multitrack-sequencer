@@ -14,11 +14,11 @@ p = [
 		nil,  nil,  nil,  nil,  
 		nil,  nil,  'mutes',  o[4],  
 		'rhythms',  o[5],  'sampleIndices',  o[12],  
-		'bpm',  136.65492957746,  'indices',  o[13],  
+		'bpm',  174.61267605634,  'indices',  o[13],  
 		nil,  nil,  nil,  nil,  
 		nil,  nil,  nil,  nil ],  
 	// Array
-	2, [ 59.0,  53.0,  51.0,  60,  
+	2, [ 62.0,  53.0,  51.0,  60,  
 		60,  62.0 ],  
 	// Array
 	3, [ 1.0,  0.58538536481818,  1.0,  0.38655322624632,  
