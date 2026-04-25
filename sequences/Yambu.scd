@@ -1,7 +1,7 @@
 var o, p;
 o = [
 	Dictionary.prNew,  Array.prNew(32),  Array.prNew(6),  Array.prNew(6),  
-	Array.prNew(6),  Array.prNew(6),  Array.prNew(5),  Array.prNew(1),  
+	Array.prNew(6),  Array.prNew(6),  Array.prNew(7),  Array.prNew(1),  
 	Array.prNew(11),  Array.prNew(2),  Array.prNew(1),  Array.prNew(3),  
 	Array.prNew(6),  Array.prNew(6)
 ];
@@ -14,12 +14,12 @@ p = [
 		nil,  nil,  nil,  nil,  
 		nil,  nil,  'mutes',  o[4],  
 		'rhythms',  o[5],  'sampleIndices',  o[12],  
-		'bpm',  110.77160493827,  'indices',  o[13],  
+		'bpm',  92.380281690141,  'indices',  o[13],  
 		nil,  nil,  nil,  nil,  
 		nil,  nil,  nil,  nil ],  
 	// Array
-	2, [ 46.0,  60,  58.0,  49.0,  
-		55.0,  60.0 ],  
+	2, [ 43.0,  71.0,  59.0,  54.0,  
+		52.0,  58.0 ],  
 	// Array
 	3, [ 0.50118723362727,  0.50118723362727,  1.0,  0.50118723362727,  
 		0.50118723362727,  0.50118723362727 ],  
@@ -30,8 +30,8 @@ p = [
 	5, [ o[6],  o[7],  o[8],  o[9],  
 		o[10],  o[11] ],  
 	// Array
-	6, [ 0.75,  1,  0.75,  0.5,  
-		1 ],  
+	6, [ 0.75,  0.25,  0.75,  0.25,  
+		0.5,  0.5,  1 ],  
 	// Array
 	7, [ 0.25 ],  
 	// Array
@@ -45,10 +45,10 @@ p = [
 	// Array
 	11, [ -1,  -0.5,  0.5 ],  
 	// Array
-	12, [ 0,  3,  0,  5,  
+	12, [ 1,  3,  0,  5,  
 		4,  2 ],  
 	// Array
-	13, [ 0,  8,  2,  7,  
+	13, [ 1,  8,  2,  7,  
 		6,  4 ]
 ];
 prUnarchive(o,p);

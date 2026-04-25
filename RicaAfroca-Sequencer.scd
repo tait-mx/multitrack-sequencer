@@ -1,5 +1,8 @@
 /*
 RicaAfroca Sequencer - Complete Thread-Safe Version
+Poner Vol Master
+Poner foot swithces para subir y bajar el tiempo
+Escribir las letras de todas las canciones
 */
 
 (
@@ -198,11 +201,15 @@ File.mkdir(~presetPath);
 
 	rhythmOptions = [
 		[0.75, 1, 0.75, 0.5, 1], //Clave4/4
+		[0.75, 0.25,0.75, 0.25, 0.5, 0.5, 1], //ClaveMatanzas
 		[2,2,1,2,2,2,1]/3, //Clave6/8
 		[0.25, 0.5, 0.25, 0.25, 0.5, 0.25, 0.5, 0.5, 0.25, 0.5, 0.25], //Cascara1
 		[0.5, 0.25, 0.5, 0.5, 0.25, 0.5, 0.5, 0.25, 0.25, 0.25, 0.25], //Cascara2
+		[2, 2, 2, 1, 1, 4]/3, // cascara Yuka
 		[-1, -0.5, 0.5],   //Golpe
 		[-1.0, -0.33333333333333, 0.33333333333333, 0.33333333333333], //GolpeCol
+		[-1, -0.5, 0.5], // Yuka Llamador
+		[-1, 1], // Yuka Golpe
 		[2], //ShekereT
 		[-1.75, 0.25], //ShekereA
 		[0.25], //16ths
@@ -211,11 +218,15 @@ File.mkdir(~presetPath);
 	];
 	rhythmNames = [
 		"Clave4/4",
+		"ClaveMatanzas",
 		"Clave6/8",
 		"Cascara1",
 		"Cascara2",
+		"cascara Yuka",
 		"Golpe",
 		"GolpeCol",
+		"Yuka Llamador",
+		"Yuka Golpe",
 		"ShekereT",
 		"ShekereA",
 		"16ths",
