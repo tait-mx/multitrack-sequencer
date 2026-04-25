@@ -136,66 +136,67 @@ File.mkdir(~presetPath);
 	};
 
 	/////////////////////////////////////////////////////////////////
-	// TDEF GENERATION
+	// TDEF GENERATION (Fixed for Synchronized Return)
 	/////////////////////////////////////////////////////////////////
 
-	~numTracks.do({ |i|
-	Tdef( ("chan" ++ i).asSymbol, {
-		var step = 0;
-		var varPattern = [0.5, 0.25, 0.25, 0.5, 0.5, -1, -0.5, 0.25, 0.25];
+~numTracks.do({ |i|
+		Tdef( ("chan" ++ i).asSymbol, {
+			var step = 0;
+			var varPattern = [-1, -0.5, 0.5, -1, -0.5, 0.25, 0.25] ++ [0.5, 0.25, 0.25, 0.5, 0.5, -1, -0.5, 0.5];
 
-		loop {
-			var currentPattern, delta;
+			loop {
+				var currentPattern, delta;
 
-			// Check if we should start a variation cycle
-			// Only happens if the track is set to 'Golpe' (index 4)
-			if (~rhythmIndices[i] == 4 && ~golpeRequest) {
+				// --- NEW: QUANTIZED ENTRY CHECK ---
+				// Only check for the variation when we are at the START of a pattern cycle
+				if (i == 5 && step == 0 && ~golpeRequest) {
+					~golpeRequest = false;
+					"--- BAR SYNC: STARTING GOLPE VAR ---".postln;
 
-				// 1. Reset the request so it only plays once
-				~golpeRequest = false;
+					varPattern.do({ |vDelta|
+						var currentBuf = ~samples[~sampleIndices[i].wrap(0, ~samples.size - 1)];
+						if(vDelta > 0 && ~mutes[i].not) {
+							s.makeBundle(s.latency, {
+								Synth(\liveChannel, [
+									\buf, currentBuf,
+									\freq, ~pitches[i].midicps,
+									\amp, ~volumes[i],
+									\rel, (vDelta.abs / ~tempo.tempo) * 0.8
+								]);
+							});
+						};
+						vDelta.abs.wait;
+					});
 
-				// 2. Play the variation pattern in its entirety
-				varPattern.do({ |vDelta|
-					var currentBuf = ~samples[~sampleIndices[i].wrap(0, ~samples.size - 1)];
+					// --- SYNC RETURN ---
+					step = 0;
+					(4 - (~tempo.beats % 4)).wait;
+				};
 
-					if(vDelta > 0 && ~mutes[i].not) {
-						s.makeBundle(s.latency, {
-							Synth(\liveChannel, [
-								\buf, currentBuf,
-								\freq, ~pitches[i].midicps,
-								\amp, ~volumes[i],
-								\rel, (vDelta.abs / ~tempo.tempo) * 0.8
-							]);
-						});
-					};
-					vDelta.abs.wait;
-				});
+				// --- DEFAULT BASE RHYTHM LOGIC ---
+				currentPattern = ~rhythms[i];
+				delta = currentPattern.wrapAt(step);
 
-				// 3. Reset the main loop 'step' to 0 so the base rhythm
-				// starts from the beginning after the variation
-				step = 0;
-			};
+				if(delta > 0 && ~mutes[i].not) {
+					s.makeBundle(s.latency, {
+						Synth(\liveChannel, [
+							\buf, ~samples[~sampleIndices[i].wrap(0, ~samples.size - 1)],
+							\freq, ~pitches[i].midicps,
+							\amp, ~volumes[i],
+							\rel, (delta.abs / ~tempo.tempo) * 0.8
+						]);
+					});
+				};
 
-			// DEFAULT BASE RHYTHM LOGIC
-			currentPattern = ~rhythms[i];
-			delta = currentPattern.wrapAt(step);
+				step = step + 1;
 
-			if(delta > 0 && ~mutes[i].not) {
-				s.makeBundle(s.latency, {
-					Synth(\liveChannel, [
-						\buf, ~samples[~sampleIndices[i].wrap(0, ~samples.size - 1)],
-						\freq, ~pitches[i].midicps,
-						\amp, ~volumes[i],
-						\rel, (delta.abs / ~tempo.tempo) * 0.8
-					]);
-				});
-			};
+				// Reset step if we reach the end of the base pattern
+				if(step >= currentPattern.size) { step = 0 };
 
-			step = step + 1;
-			delta.abs.wait;
-		}
-	}).quant = 4; // This 'quant' ensures the whole Tdef aligns to the bar/beat
-});
+				delta.abs.wait;
+			}
+		}).quant = 4; // This keeps the whole Tdef on the 4-beat grid
+	});
 
 	/////////////////////////////////////////////////////////////////
 	// RHYTHMS
@@ -208,7 +209,7 @@ File.mkdir(~presetPath);
 		[0.25, 0.5, 0.25, 0.25, 0.5, 0.25, 0.5, 0.5, 0.25, 0.5, 0.25], //Cascara1
 		[0.5, 0.25, 0.5, 0.5, 0.25, 0.5, 0.5, 0.25, 0.25, 0.25, 0.25], //Cascara2
 		[2, 2, 2, 1, 1, 4]/3, // cascara Yuka
-		[-1, -0.5, 0.5],   //Golpe
+		[-1, -0.5, 0.5, -1, -0.5, 0.5],   //Golpe
 		[-1.0, -0.33333333333333, 0.33333333333333, 0.33333333333333], //GolpeCol
 		[-1, -0.5, 0.5], // Yuka Llamador
 		[-1, 1], // Yuka Golpe
@@ -341,6 +342,8 @@ File.mkdir(~presetPath);
 		~golpeRequest = true;
 		"Variation queued for next pulse...".postln;
 	});
+
+
 
 	win.view.decorator.nextLine;
 
