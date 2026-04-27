@@ -115,11 +115,13 @@ s.waitForBoot({
 		rate = freq / 60.midicps;
 		env = EnvGen.kr(Env.perc(0.005, rel), 1, doneAction: 2);
 		sig = PlayBuf.ar(2, buf, BufRateScale.kr(buf) * rate, loop: 0);
-		Out.ar(out, Pan2.ar(sig * 0.8 * env * amp, pan));
+		OffsetOut.ar(out, Pan2.ar(sig * 0.8 * env * amp, pan));
 	}).add;
 
 	s.sync;
 	Synth(\peakMonitor, addAction: \addAfter);
+
+
 
 	/////////////////////////////////////////////////////////////////
 	// ENGINE
