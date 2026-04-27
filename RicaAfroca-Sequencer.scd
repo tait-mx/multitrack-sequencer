@@ -12,7 +12,7 @@ s.waitForBoot({
 
 	var win, startBtn, tempoSlid, tempoUp, tempoDown, bpmDisplay, saveBtn, loadBtn,
     presetNameField, presetMenu, refreshBtn, rhythmOptions, rhythmNames,
-    masterMuteBtn, masterCol, peakMeter, meterRoutine, hLayout; // <--- Added hLayout here
+    masterMuteBtn, masterCol, peakMeter, meterRoutine, hLayout, vRuler; // <--- Added hLayout here
 
 	~numTracks = 6;
 	~tempo = TempoClock.new(120/60).permanent_(true);
@@ -200,41 +200,50 @@ s.waitForBoot({
 		~volSliders[i] = Slider(comp, 105@240).value_(0.7).action_({ |s| ~volumes[i] = s.value; });
 	});
 
-	// MASTER COLUMN (Aligned with Tracks)
-	masterCol = CompositeView(win, 115@520).background_(Color.grey(0.6));
-	masterCol.decorator = FlowLayout(masterCol.bounds, 5@5, 5@5);
+	// --- UPDATED MASTER COLUMN ---
+masterCol = CompositeView(win, 140@520).background_(Color.grey(0.6)); // Widened slightly for ruler
+masterCol.decorator = FlowLayout(masterCol.bounds, 5@5, 5@5);
 
-	// 1. Title Alignment
-	StaticText(masterCol, 105@20).string_("MASTER").align_(\center).font_(Font(bold:true));
+StaticText(masterCol, 130@20).string_("MASTER").align_(\center).font_(Font(bold:true));
+StaticText(masterCol, 130@25).string_(""); // Spacer
 
-	// 2. Spacer for Sample Menu (Matches PopUpMenu)
-	StaticText(masterCol, 105@25).string_("");
+masterMuteBtn = Button(masterCol, 130@40)
+    .states_([["MUTE ALL", Color.black, Color.yellow], ["UNMUTE ALL", Color.white, Color.red]])
+    .action_({ |b| ~numTracks.do({ |i| ~muteButtons[i].valueAction_(b.value); }); });
 
-	// 3. MUTE ALL (Matches Track Mute Buttons)
-	masterMuteBtn = Button(masterCol, 105@40)
-		.states_([["MUTE ALL", Color.black, Color.yellow], ["UNMUTE ALL", Color.white, Color.red]])
-		.action_({ |b| ~numTracks.do({ |i| ~muteButtons[i].valueAction_(b.value); }); });
+StaticText(masterCol, 130@85).string_(""); // Spacer
 
-	// 4. Spacer for Rhythm Menu & Variation Button
-	// Calculation: 30 (rhythm) + 40 (var) + 15 (margins) = 85
-	StaticText(masterCol, 105@85).string_("");
+// PEAK & MASTER SECTION
+StaticText(masterCol, 130@20).string_("Peak / dB / Master").align_(\center).font_(Font(size:10));
 
-	// 5. PEAK & MASTER SLIDER
-	StaticText(masterCol, 105@20).string_("Peak / Master").align_(\center).font_(Font(size:10));
+hLayout = CompositeView(masterCol, 130@310);
+hLayout.decorator = FlowLayout(hLayout.bounds, 0@0, 2@0);
 
-	// Local variable hLayout used here
-	hLayout = CompositeView(masterCol, 105@310);
-	hLayout.decorator = FlowLayout(hLayout.bounds, 0@0, 5@0);
+// 1. Peak Meter
+peakMeter = LevelIndicator(hLayout, 20@305).warning_(0.8).critical_(0.95).background_(Color.black);
 
-	peakMeter = LevelIndicator(hLayout, 25@305).warning_(0.8).critical_(0.95).background_(Color.black);
-	Slider(hLayout, 70@305)
-    .value_(~dbSpec.unmap(0)) // Set initial slider position to 0dB (unity)
+// 2. The dB Ruler (Static Texts)
+vRuler = CompositeView(hLayout, 30@305);
+[3.5, 0, -6, -12, -24, -40, -60].do({ |db, i|
+    var yPos = ~dbSpec.unmap(db);
+    StaticText(vRuler, Rect(0, (1 - yPos) * 285, 30, 20))
+        .string_(db.asString)
+        .font_(Font(size: 15))
+        .align_(\right)
+        .stringColor_(if(db > 0) { Color.red } { Color.white });
+});
+
+// 3. The Master Slider with Logarithmic Curve
+Slider(hLayout, 65@305)
+    .value_(~dbSpec.unmap(0)) // Start at 0dB (Unity)
     .action_({ |s|
         var db = ~dbSpec.map(s.value);
-        ~masterVol = db.dbamp; // Convert decibels to amplitude (0.0 to 1.5)
+        ~masterVol = db.dbamp;
+        // Optional: post the dB value to the console to check accuracy
+        // ("Master: " ++ db.round(0.1) ++ " dB").postln;
     });
 
-	StaticText(masterCol, 105@20).string_("Master Vol").align_(\center);
+StaticText(masterCol, 130@20).string_("Output Level").align_(\center);
 
 	meterRoutine = {
 		loop {
