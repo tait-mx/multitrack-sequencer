@@ -34,6 +34,7 @@ s.waitForBoot({
 	~volSliders = Array.newClear(~numTracks);
 	~sampleMenus = Array.newClear(~numTracks);
 	~varButtons = Array.newClear(~numTracks);
+	~dbSpec = ControlSpec(-60, 3.5, \db, 0, 0);
 
 	// Paths
 	~projectPath = if(thisProcess.nowExecutingPath.notNil) { PathName(thisProcess.nowExecutingPath).pathOnly; } { Platform.userHomeDir +/+ "RicaAfroca/"; };
@@ -103,11 +104,19 @@ s.waitForBoot({
 
 	~peakBus = Bus.control(s, 1);
 
-	SynthDef(\peakMonitor, {
-		var sig = In.ar(0, 2);
-		var peak = PeakFollower.kr(sig[0].abs.max(sig[1].abs), 0.999);
-		Out.kr(~peakBus, peak);
-	}).add;
+
+
+	SynthDef(\masterOut, {
+    arg amp=0.8;
+    var sig = In.ar(0, 2);
+    sig = sig * amp;
+    sig = Limiter.ar(sig, 0.95); // Prevents clipping above 0dB
+
+    // Send peak info to the bus for the GUI meter
+    Out.kr(~peakBus, PeakFollower.kr(sig[0].abs.max(sig[1].abs), 0.999));
+
+    ReplaceOut.ar(0, sig);
+}).add;
 
 	SynthDef(\liveChannel, {
 		arg out=0, buf=0, freq=440, amp=0.5, pan=0, rel=0.3;
@@ -119,7 +128,7 @@ s.waitForBoot({
 	}).add;
 
 	s.sync;
-	Synth(\peakMonitor, addAction: \addAfter);
+	Synth(\masterOut, addAction: \addAfter);
 
 
 
@@ -218,7 +227,12 @@ s.waitForBoot({
 	hLayout.decorator = FlowLayout(hLayout.bounds, 0@0, 5@0);
 
 	peakMeter = LevelIndicator(hLayout, 25@305).warning_(0.8).critical_(0.95).background_(Color.black);
-	Slider(hLayout, 70@305).value_(0.8).action_({ |s| ~masterVol = s.value; });
+	Slider(hLayout, 70@305)
+    .value_(~dbSpec.unmap(0)) // Set initial slider position to 0dB (unity)
+    .action_({ |s|
+        var db = ~dbSpec.map(s.value);
+        ~masterVol = db.dbamp; // Convert decibels to amplitude (0.0 to 1.5)
+    });
 
 	StaticText(masterCol, 105@20).string_("Master Vol").align_(\center);
 
