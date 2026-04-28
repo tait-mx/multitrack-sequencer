@@ -63,43 +63,60 @@ s.waitForBoot({
 	/////////////////////////////////////////////////////////////////
 
 	~saveSettings = { |name|
-		var data = Dictionary.new;
-		var path = ~presetPath ++ name ++ ".scd";
-		data.put(\rhythms, ~rhythms);
-		data.put(\mutes, ~mutes);
-		data.put(\pitches, ~pitches);
-		data.put(\bpm, ~tempo.tempo * 60);
-		data.put(\indices, ~rhythmIndices);
-		data.put(\volumes, ~volumes);
-		data.put(\sampleIndices, ~sampleIndices);
-		data.writeArchive(path);
-		("--- Saved to: " ++ path).postln;
-	};
+    var data = Dictionary.new;
+    var path = ~presetPath ++ name ++ ".scd";
+    data.put(\rhythms, ~rhythms);
+    data.put(\mutes, ~mutes);
+    data.put(\pitches, ~pitches);
+    data.put(\bpm, ~tempo.tempo * 60);
+    data.put(\indices, ~rhythmIndices);
+    data.put(\volumes, ~volumes);
+    data.put(\sampleIndices, ~sampleIndices);
+
+    // ADD THESE LINES:
+    data.put(\humTime, ~humanizeTime.copy);
+    data.put(\humPitch, ~humanizePitch.copy);
+    data.put(\humAmp, ~humanizeAmp.copy);
+
+    data.writeArchive(path);
+    ("--- Saved to: " ++ path).postln;
+};
 
 	~loadSettings = { |name|
-		var path = ~presetPath ++ name ++ ".scd";
-		var data = Object.readArchive(path);
-		if(data.notNil) {
-			~rhythms = data[\rhythms];
-			~mutes = data[\mutes];
-			~pitches = data[\pitches];
-			~tempo.tempo = (data[\bpm] ?? {120}) / 60;
-			~rhythmIndices = data[\indices] ?? { Array.fill(~numTracks, {0}) };
-			~volumes = data[\volumes] ?? { Array.fill(~numTracks, { 0.7 }) };
-			if(data[\sampleIndices].notNil) { ~sampleIndices = data[\sampleIndices] };
-			{
-				bpmDisplay.value = ~tempo.tempo * 60;
-				tempoSlid.value = ~tempo.tempo.linlin(1, 3.3, 0, 1);
-				~numTracks.do({ |i|
-					~rhythmMenus[i].value = ~rhythmIndices[i];
-					~muteButtons[i].value = ~mutes[i].asInteger;
-					~sampleMenus[i].value = ~sampleIndices[i].wrap(0, ~sampleNames.size-1);
-					~pitchSliders[i].value = ~pitches[i].linlin(36, 72, 0, 1);
-					~volSliders[i].value = ~volumes[i];
-				});
-			}.defer;
-		};
-	};
+    var path = ~presetPath ++ name ++ ".scd";
+    var data = Object.readArchive(path);
+    if(data.notNil) {
+        ~rhythms = data[\rhythms];
+        ~mutes = data[\mutes];
+        ~pitches = data[\pitches];
+        ~tempo.tempo = (data[\bpm] ?? {120}) / 60;
+        ~rhythmIndices = data[\indices] ?? { Array.fill(~numTracks, {0}) };
+        ~volumes = data[\volumes] ?? { Array.fill(~numTracks, { 0.7 }) };
+        if(data[\sampleIndices].notNil) { ~sampleIndices = data[\sampleIndices] };
+
+        // NEW: Load humanization data (with fallbacks to 0.0 if not found)
+			~humanizeTime = (data[\humTime] ?? { Array.fill(~numTracks, {0.0}) }).copy;
+			~humanizePitch = (data[\humPitch] ?? { Array.fill(~numTracks, {0.0}) }).copy;
+			~humanizeAmp = (data[\humAmp] ?? { Array.fill(~numTracks, {0.0}) }).copy;
+
+        {
+            bpmDisplay.value = ~tempo.tempo * 60;
+            tempoSlid.value = ~tempo.tempo.linlin(1, 3.3, 0, 1);
+            ~numTracks.do({ |i|
+                ~rhythmMenus[i].value = ~rhythmIndices[i];
+                ~muteButtons[i].value = ~mutes[i].asInteger;
+                ~sampleMenus[i].value = ~sampleIndices[i].wrap(0, ~sampleNames.size-1);
+                ~pitchSliders[i].value = ~pitches[i].linlin(36, 72, 0, 1);
+                ~volSliders[i].value = ~volumes[i];
+
+                // NEW: Update humanize sliders in the GUI
+                ~humTimeSliders[i].value = ~humanizeTime[i].linlin(0, 0.08, 0, 1);
+                ~humPitchSliders[i].value = ~humanizePitch[i].linlin(0, 1.5, 0, 1);
+                ~humAmpSliders[i].value = ~humanizeAmp[i].linlin(0, 0.3, 0, 1);
+            });
+        }.defer;
+    };
+};
 
 	~updatePresetList = {
 		var files = (~presetPath ++ "*.scd").pathMatch;
@@ -107,10 +124,6 @@ s.waitForBoot({
 		if(names.isEmpty) { names = ["No Presets Found"] };
 		{ if(presetMenu.notNil) { presetMenu.items = names; presetMenu.value = 0; } }.defer;
 	};
-
-	/////////////////////////////////////////////////////////////////
-	// SERVER SIDE
-	/////////////////////////////////////////////////////////////////
 
 	/////////////////////////////////////////////////////////////////
 	// SERVER SIDE
@@ -139,6 +152,7 @@ s.waitForBoot({
 
 	s.sync;
 	Synth(\masterOut, [\amp, ~masterVol], addAction: \addAfter);
+
 	/////////////////////////////////////////////////////////////////
 	// ENGINE
 	/////////////////////////////////////////////////////////////////
@@ -208,7 +222,7 @@ s.waitForBoot({
     }).quant = 4;
 });
 
-	rhythmOptions = [ [0.75, 1, 0.75, 0.5, 1], [0.75, 0.25,0.75, 0.25, 0.5, 0.5, 1], [2,2,1,2,2,2,1]/3, [0.25, 0.5, 0.25, 0.25, 0.5, 0.25, 0.5, 0.5, 0.25, 0.5, 0.25], [0.5, 0.25, 0.5, 0.5, 0.25, 0.5, 0.5, 0.25, 0.25, 0.25, 0.25], [2, 2, 2, 1, 1, 4]/3, [2, 2, 2, 6]/3, [-1, -0.5, 0.5, -1, -0.5, 0.5], [-1.0, -0.33, 0.33, 0.33], [-1, -0.5, 0.5], [-1, 1], [2], [-1.75, 0.25], [0.25], [0.5], [1, 1] ];
+	rhythmOptions = [ [0.75, 1, 0.7, 0.55, 1], [0.75, 0.25,0.75, 0.25, 0.5, 0.5, 1], [2,2,1,2,2,2,1]/3, [0.25, 0.5, 0.25, 0.25, 0.5, 0.25, 0.5, 0.5, 0.25, 0.5, 0.25], [0.5, 0.25, 0.5, 0.5, 0.25, 0.5, 0.5, 0.25, 0.25, 0.25, 0.25], [2, 2, 2, 1, 1, 4]/3, [2, 2, 2, 6]/3, [-1, -0.5, 0.5, -1, -0.5, 0.5], [-1.0, -0.33, 0.33, 0.33], [-1, -0.5, 0.5], [-1, 1], [2], [-1.75, 0.25], [0.25], [0.5], [1, 1] ];
 	rhythmNames = ["Clave4/4", "ClaveMatanzas", "Clave6/8", "Cascara1", "Cascara2", "cascara Yuka", "cascara2 Yuka","Golpe", "GolpeCol", "Yuka Llamador", "Yuka Golpe", "ShekereT", "ShekereA", "16ths", "8ths", "Quarters"];
 
 	/////////////////////////////////////////////////////////////////

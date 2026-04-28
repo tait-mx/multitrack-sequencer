@@ -27,13 +27,13 @@ p = [
 		nil,  nil,  nil,  nil,  
 		nil,  nil,  nil,  nil ],  
 	// Array
-	2, [ false,  true,  false,  false,  
-		false,  false ],  
+	2, [ true,  true,  true,  true,  
+		true,  true ],  
 	// Array
 	3, [ o[4],  o[5],  o[6],  o[7],  
 		o[8],  o[9] ],  
 	// Array
-	4, [ 0.75,  1,  0.75,  0.5,  
+	4, [ 0.75,  1,  0.65,  0.6,  
 		1 ],  
 	// Array
 	5, [ 0.25 ],  
