@@ -17,14 +17,14 @@ p = [
 		nil,  nil,  nil,  nil,  
 		nil,  nil,  nil,  nil ],  
 	// Array
-	2, [ 62.0,  53.0,  51.0,  60.0,  
+	2, [ 62.0,  52.0,  51.0,  60.0,  
 		59.0,  62.0 ],  
 	// Array
 	3, [ 1.0,  0.58538536481818,  1.0,  1.0,  
 		0.43025005075584,  0.38141287482832 ],  
 	// Array
 	4, [ false,  false,  false,  false,  
-		false,  false ],  
+		true,  false ],  
 	// Array
 	5, [ o[6],  o[7],  o[8],  o[6],  
 		o[6],  o[9] ],  

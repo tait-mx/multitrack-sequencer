@@ -14,7 +14,7 @@ s.waitForBoot({
 	var win, startBtn, tempoSlid, bpmDisplay, saveBtn, loadBtn,
 	presetNameField, presetMenu, refreshBtn, rhythmOptions, rhythmNames,
 	masterMuteBtn, masterCol, peakMeter, meterRoutine, hLayout, vRuler,
-	masterHumTime, masterHumPitch, masterHumAmp, humGroup;
+	masterHumTime, masterHumPitch, masterHumAmp, humGroup, jT, jP, jA, playbackRate;
 
 	~numTracks = 6;
 	~tempo = TempoClock.new(120/60).permanent_(true);
@@ -112,7 +112,13 @@ s.waitForBoot({
 	// SERVER SIDE
 	/////////////////////////////////////////////////////////////////
 
+	/////////////////////////////////////////////////////////////////
+	// SERVER SIDE
+	/////////////////////////////////////////////////////////////////
+
 	~peakBus = Bus.control(s, 1);
+
+	// REMOVED the loose jT, jP, jA, and playbackRate lines from here!
 
 	SynthDef(\masterOut, {
 		arg amp=0.8;
@@ -124,9 +130,8 @@ s.waitForBoot({
 	}).add;
 
 	SynthDef(\liveChannel, {
-		arg out=0, buf=0, freq=440, amp=0.5, pan=0, rel=0.3;
-		var sig, env, rate;
-		rate = freq / 60.midicps;
+		arg out=0, buf=0, rate=1, amp=0.5, pan=0, rel=0.3;
+		var sig, env;
 		env = EnvGen.kr(Env.perc(0.005, rel), 1, doneAction: 2);
 		sig = PlayBuf.ar(2, buf, BufRateScale.kr(buf) * rate, loop: 0);
 		OffsetOut.ar(out, Pan2.ar(sig * 0.8 * env * amp, pan));
@@ -134,7 +139,6 @@ s.waitForBoot({
 
 	s.sync;
 	Synth(\masterOut, [\amp, ~masterVol], addAction: \addAfter);
-
 	/////////////////////////////////////////////////////////////////
 	// ENGINE
 	/////////////////////////////////////////////////////////////////
@@ -142,50 +146,67 @@ s.waitForBoot({
 	~variations = [ [0.25, 0.25, 0.25, 0.25], [0.5, 0.5], [1/3, 1/3, 1/3], [0.75, 0.25], [1], [-1, -0.5, 0.25, 0.25, 0.5, 0.25, 0.25, 0.5, 0.5] ];
 
 	~numTracks.do({ |i|
-		Tdef( ("chan" ++ i).asSymbol, {
-			var step = 0;
-			loop {
-				var currentPattern, delta;
-				if (step == 0 && ~varRequests[i]) {
-					~varRequests[i] = false;
-					{ if(~varButtons[i].notNil) { ~varButtons[i].value = 0 } }.defer;
-					~variations[i].do({ |vDelta|
-						if(vDelta > 0 && ~mutes[i].not) {
-							var jT = ~humanizeTime[i].rand2;
-							var jP = ~humanizePitch[i].rand2;
-							var jA = ~humanizeAmp[i].rand2;
-							s.makeBundle(s.latency + jT, {
-								Synth(\liveChannel, [\buf, ~samples[~sampleIndices[i].wrap(0, ~samples.size-1)], \freq, (~pitches[i] + jP).midicps, \amp, (~volumes[i] + jA).clip(0,1) * ~masterVol, \rel, (vDelta.abs / ~tempo.tempo) * 0.8]);
-							});
-						};
-						vDelta.abs.wait;
-					});
-					step = 0;
-				};
+    Tdef( ("chan" ++ i).asSymbol, {
+        var step = 0;
+        loop {
+            var currentPattern, delta, playbackRate;
+            var jT, jP, jA;
 
-				currentPattern = ~rhythms[i];
-				delta = currentPattern.wrapAt(step);
+            // --- 1. VARIATION SECTION ---
+            if (step == 0 && ~varRequests[i]) {
+                ~varRequests[i] = false;
+                { if(~varButtons[i].notNil) { ~varButtons[i].value = 0 } }.defer;
+                ~variations[i].do({ |vDelta|
+                    if(vDelta > 0 && ~mutes[i].not) {
 
-				if(delta > 0 && ~mutes[i].not) {
-					var jT = ~humanizeTime[i].rand2;
-					var jP = ~humanizePitch[i].rand2;
-					var jA = ~humanizeAmp[i].rand2;
-					s.makeBundle(s.latency + jT, {
-						Synth(\liveChannel, [
-							\buf, ~samples[~sampleIndices[i].wrap(0, ~samples.size-1)],
-							\freq, (~pitches[i] + jP).midicps,
-							\amp, (~volumes[i] + jA).clip(0,1) * ~masterVol,
-							\rel, (delta.abs / ~tempo.tempo) * 0.8
-						]);
-					});
-				};
+                        // PLACE IT HERE (for variations)
+                        jT = ~humanizeTime[i].rand2;
+                        jP = ~humanizePitch[i].rand2;
+                        jA = ~humanizeAmp[i].rand2;
+                        playbackRate = (~pitches[i] + jP - 60).midiratio;
 
-				step = step + 1;
-				if(step >= currentPattern.size) { step = 0 };
-				delta.abs.wait;
-			}
-		}).quant = 4;
-	});
+                        s.makeBundle(s.latency + jT, {
+                            Synth(\liveChannel, [
+                                \buf, ~samples[~sampleIndices[i].wrap(0, ~samples.size-1)],
+                                \rate, playbackRate,
+                                \amp, (~volumes[i] + jA).clip(0,1) * ~masterVol,
+                                \rel, (vDelta.abs / ~tempo.tempo) * 0.8
+                            ]);
+                        });
+                    };
+                    vDelta.abs.wait;
+                });
+                step = 0;
+            };
+
+            // --- 2. MAIN RHYTHM SECTION ---
+            currentPattern = ~rhythms[i];
+            delta = currentPattern.wrapAt(step);
+
+            if(delta > 0 && ~mutes[i].not) {
+
+                // PLACE IT HERE (for the regular sequence)
+                jT = ~humanizeTime[i].rand2;
+                jP = ~humanizePitch[i].rand2;
+                jA = ~humanizeAmp[i].rand2;
+                playbackRate = (~pitches[i] + jP - 60).midiratio;
+
+                s.makeBundle(s.latency + jT, {
+                    Synth(\liveChannel, [
+                        \buf, ~samples[~sampleIndices[i].wrap(0, ~samples.size-1)],
+                        \rate, playbackRate,
+                        \amp, (~volumes[i] + jA).clip(0,1) * ~masterVol,
+                        \rel, (delta.abs / ~tempo.tempo) * 0.8
+                    ]);
+                });
+            };
+
+            step = step + 1;
+            if(step >= currentPattern.size) { step = 0 };
+            delta.abs.wait;
+        }
+    }).quant = 4;
+});
 
 	rhythmOptions = [ [0.75, 1, 0.75, 0.5, 1], [0.75, 0.25,0.75, 0.25, 0.5, 0.5, 1], [2,2,1,2,2,2,1]/3, [0.25, 0.5, 0.25, 0.25, 0.5, 0.25, 0.5, 0.5, 0.25, 0.5, 0.25], [0.5, 0.25, 0.5, 0.5, 0.25, 0.5, 0.5, 0.25, 0.25, 0.25, 0.25], [2, 2, 2, 1, 1, 4]/3, [2, 2, 2, 6]/3, [-1, -0.5, 0.5, -1, -0.5, 0.5], [-1.0, -0.33, 0.33, 0.33], [-1, -0.5, 0.5], [-1, 1], [2], [-1.75, 0.25], [0.25], [0.5], [1, 1] ];
 	rhythmNames = ["Clave4/4", "ClaveMatanzas", "Clave6/8", "Cascara1", "Cascara2", "cascara Yuka", "cascara2 Yuka","Golpe", "GolpeCol", "Yuka Llamador", "Yuka Golpe", "ShekereT", "ShekereA", "16ths", "8ths", "Quarters"];
