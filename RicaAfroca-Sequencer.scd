@@ -12,7 +12,7 @@ s.waitForBoot({
 
 	var win, startBtn, tempoSlid, tempoUp, tempoDown, bpmDisplay, saveBtn, loadBtn,
     presetNameField, presetMenu, refreshBtn, rhythmOptions, rhythmNames,
-    masterMuteBtn, masterCol, peakMeter, meterRoutine, hLayout, vRuler;
+    masterMuteBtn, masterCol, peakMeter, meterRoutine, hLayout, vRuler, masterHumanSlid;
 
 	~numTracks = 6;
 	~tempo = TempoClock.new(120/60).permanent_(true);
@@ -36,6 +36,7 @@ s.waitForBoot({
 	~volSliders = Array.newClear(~numTracks);
 	~sampleMenus = Array.newClear(~numTracks);
 	~varButtons = Array.newClear(~numTracks);
+	~humanizeSliders = Array.newClear(~numTracks);
 
 	// Paths
 	~projectPath = if(thisProcess.nowExecutingPath.notNil) { PathName(thisProcess.nowExecutingPath).pathOnly; } { Platform.userHomeDir +/+ "RicaAfroca/"; };
@@ -208,7 +209,9 @@ s.waitForBoot({
 		~volSliders[i] = Slider(comp, 105@200).value_(0.7).action_({ |s| ~volumes[i] = s.value; });
 
 		StaticText(comp, 105@20).string_("Humanize").align_(\center).font_(Font(size:10));
-		Slider(comp, 105@20).value_(0.0).action_({ |s| ~humanize[i] = s.value.linlin(0, 1, 0, 0.08); });
+		~humanizeSliders[i] = Slider(comp, 105@20).value_(0.0).action_({ |s|
+			~humanize[i] = s.value.linlin(0, 1, 0, 0.08);
+});
 	});
 
 	// MASTER COLUMN
@@ -222,7 +225,16 @@ s.waitForBoot({
 		.states_([["MUTE ALL", Color.black, Color.yellow], ["UNMUTE ALL", Color.white, Color.red]])
 		.action_({ |b| ~numTracks.do({ |i| ~muteButtons[i].valueAction_(b.value); }); });
 
-	StaticText(masterCol, 130@140).string_(""); // Spacer
+	StaticText(masterCol, 130@80).string_(""); // Reduced spacer to fit new slider
+
+	// NEW: Master Humanize
+	StaticText(masterCol, 130@20).string_("Global Humanize").align_(\center).font_(Font(size:10));
+	masterHumanSlid = Slider(masterCol, 130@20).value_(0.0).action_({ |s|
+		~numTracks.do({ |i|
+			~humanize[i] = s.value.linlin(0, 1, 0, 0.08);
+			{ ~humanizeSliders[i].value = s.value }.defer;
+		});
+	});
 
 	StaticText(masterCol, 130@20).string_("Peak / dB / Master").align_(\center).font_(Font(size:10));
 
