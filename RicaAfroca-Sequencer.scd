@@ -1,6 +1,7 @@
 /*
-RicaAfroca Sequencer - Final Version (Fixed Layout)
-Independent Variations, Master Volume/Meter, Preset Management, and Humanize
+RicaAfroca Sequencer - Pro Version
+Features: 5 Tracks + Master, Multidimensional Humanization (Time, Pitch, Amp),
+Logarithmic Master Volume with dB Ruler, and Preset Management.
 */
 
 (
@@ -10,9 +11,10 @@ s.waitForBoot({
 	// VARIABLES & INITIALIZATION
 	/////////////////////////////////////////////////////////////////
 
-	var win, startBtn, tempoSlid, tempoUp, tempoDown, bpmDisplay, saveBtn, loadBtn,
-    presetNameField, presetMenu, refreshBtn, rhythmOptions, rhythmNames,
-    masterMuteBtn, masterCol, peakMeter, meterRoutine, hLayout, vRuler, masterHumanSlid;
+	var win, startBtn, tempoSlid, bpmDisplay, saveBtn, loadBtn,
+	presetNameField, presetMenu, refreshBtn, rhythmOptions, rhythmNames,
+	masterMuteBtn, masterCol, peakMeter, meterRoutine, hLayout, vRuler,
+	masterHumTime, masterHumPitch, masterHumAmp, humGroup;
 
 	~numTracks = 6;
 	~tempo = TempoClock.new(120/60).permanent_(true);
@@ -27,7 +29,11 @@ s.waitForBoot({
 	~volumes = Array.fill(~numTracks, { 0.7 });
 	~sampleIndices = Array.fill(~numTracks, { |i| i });
 	~varRequests = Array.fill(~numTracks, { false });
-	~humanize = Array.fill(~numTracks, { 0.0 });
+
+	// Humanize Logic Arrays
+	~humanizeTime = Array.fill(~numTracks, { 0.0 });
+	~humanizePitch = Array.fill(~numTracks, { 0.0 });
+	~humanizeAmp = Array.fill(~numTracks, { 0.0 });
 
 	// GUI arrays
 	~muteButtons = Array.newClear(~numTracks);
@@ -36,7 +42,9 @@ s.waitForBoot({
 	~volSliders = Array.newClear(~numTracks);
 	~sampleMenus = Array.newClear(~numTracks);
 	~varButtons = Array.newClear(~numTracks);
-	~humanizeSliders = Array.newClear(~numTracks);
+	~humTimeSliders = Array.newClear(~numTracks);
+	~humPitchSliders = Array.newClear(~numTracks);
+	~humAmpSliders = Array.newClear(~numTracks);
 
 	// Paths
 	~projectPath = if(thisProcess.nowExecutingPath.notNil) { PathName(thisProcess.nowExecutingPath).pathOnly; } { Platform.userHomeDir +/+ "RicaAfroca/"; };
@@ -51,7 +59,7 @@ s.waitForBoot({
 	if(~samples.isEmpty) { ~sampleNames = ["empty"]; ~samples = [Buffer.alloc(s, 44100, 2)]; };
 
 	/////////////////////////////////////////////////////////////////
-	// FUNCTIONS
+	// FUNCTIONS (Save, Load, Update)
 	/////////////////////////////////////////////////////////////////
 
 	~saveSettings = { |name|
@@ -110,7 +118,7 @@ s.waitForBoot({
 		arg amp=0.8;
 		var sig = In.ar(0, 2);
 		sig = sig * amp;
-		sig = Limiter.ar(sig, 0.95);
+		sig = Limiter.ar(sig, 0.98);
 		Out.kr(~peakBus, PeakFollower.kr(sig[0].abs.max(sig[1].abs), 0.999));
 		ReplaceOut.ar(0, sig);
 	}).add;
@@ -143,25 +151,30 @@ s.waitForBoot({
 					{ if(~varButtons[i].notNil) { ~varButtons[i].value = 0 } }.defer;
 					~variations[i].do({ |vDelta|
 						if(vDelta > 0 && ~mutes[i].not) {
-							var jitter = ~humanize[i].rand2;
-							s.makeBundle(s.latency + jitter, {
-								Synth(\liveChannel, [\buf, ~samples[~sampleIndices[i].wrap(0, ~samples.size-1)], \freq, ~pitches[i].midicps, \amp, ~volumes[i] * ~masterVol, \rel, (vDelta.abs / ~tempo.tempo) * 0.8]);
+							var jT = ~humanizeTime[i].rand2;
+							var jP = ~humanizePitch[i].rand2;
+							var jA = ~humanizeAmp[i].rand2;
+							s.makeBundle(s.latency + jT, {
+								Synth(\liveChannel, [\buf, ~samples[~sampleIndices[i].wrap(0, ~samples.size-1)], \freq, (~pitches[i] + jP).midicps, \amp, (~volumes[i] + jA).clip(0,1) * ~masterVol, \rel, (vDelta.abs / ~tempo.tempo) * 0.8]);
 							});
 						};
 						vDelta.abs.wait;
 					});
 					step = 0;
 				};
+
 				currentPattern = ~rhythms[i];
 				delta = currentPattern.wrapAt(step);
 
 				if(delta > 0 && ~mutes[i].not) {
-					var jitter = ~humanize[i].rand2;
-					s.makeBundle(s.latency + jitter, {
+					var jT = ~humanizeTime[i].rand2;
+					var jP = ~humanizePitch[i].rand2;
+					var jA = ~humanizeAmp[i].rand2;
+					s.makeBundle(s.latency + jT, {
 						Synth(\liveChannel, [
 							\buf, ~samples[~sampleIndices[i].wrap(0, ~samples.size-1)],
-							\freq, ~pitches[i].midicps,
-							\amp, ~volumes[i] * ~masterVol,
+							\freq, (~pitches[i] + jP).midicps,
+							\amp, (~volumes[i] + jA).clip(0,1) * ~masterVol,
 							\rel, (delta.abs / ~tempo.tempo) * 0.8
 						]);
 					});
@@ -174,14 +187,14 @@ s.waitForBoot({
 		}).quant = 4;
 	});
 
-	rhythmOptions = [ [0.75, 1, 0.75, 0.5, 1], [0.75, 0.25,0.75, 0.25, 0.5, 0.5, 1], [2,2,1,2,2,2,1]/3, [0.25, 0.5, 0.25, 0.25, 0.5, 0.25, 0.5, 0.5, 0.25, 0.5, 0.25], [0.5, 0.25, 0.5, 0.5, 0.25, 0.5, 0.5, 0.25, 0.25, 0.25, 0.25], [2, 2, 2, 1, 1, 4]/3, [-1, -0.5, 0.5, -1, -0.5, 0.5], [-1.0, -0.33, 0.33, 0.33], [-1, -0.5, 0.5], [-1, 1], [2], [-1.75, 0.25], [0.25], [0.5], [1, 1] ];
-	rhythmNames = ["Clave4/4", "ClaveMatanzas", "Clave6/8", "Cascara1", "Cascara2", "cascara Yuka", "Golpe", "GolpeCol", "Yuka Llamador", "Yuka Golpe", "ShekereT", "ShekereA", "16ths", "8ths", "Quarters"];
+	rhythmOptions = [ [0.75, 1, 0.75, 0.5, 1], [0.75, 0.25,0.75, 0.25, 0.5, 0.5, 1], [2,2,1,2,2,2,1]/3, [0.25, 0.5, 0.25, 0.25, 0.5, 0.25, 0.5, 0.5, 0.25, 0.5, 0.25], [0.5, 0.25, 0.5, 0.5, 0.25, 0.5, 0.5, 0.25, 0.25, 0.25, 0.25], [2, 2, 2, 1, 1, 4]/3, [2, 2, 2, 6]/3, [-1, -0.5, 0.5, -1, -0.5, 0.5], [-1.0, -0.33, 0.33, 0.33], [-1, -0.5, 0.5], [-1, 1], [2], [-1.75, 0.25], [0.25], [0.5], [1, 1] ];
+	rhythmNames = ["Clave4/4", "ClaveMatanzas", "Clave6/8", "Cascara1", "Cascara2", "cascara Yuka", "cascara2 Yuka","Golpe", "GolpeCol", "Yuka Llamador", "Yuka Golpe", "ShekereT", "ShekereA", "16ths", "8ths", "Quarters"];
 
 	/////////////////////////////////////////////////////////////////
 	// GUI
 	/////////////////////////////////////////////////////////////////
 
-	win = Window("RicaAfroca Sequencer", Rect(50, 50, 1000, 850)).front;
+	win = Window("RicaAfroca Sequencer Pro", Rect(50, 50, 1020, 920)).front;
 	win.view.decorator = FlowLayout(win.view.bounds, 15@15, 10@10);
 
 	startBtn = Button(win, 800@40).states_([["START ALL", Color.black, Color.green], ["STOP ALL", Color.white, Color.red]]).action_({ |b| ~numTracks.do({ |i| if(b.value == 1) { Tdef(("chan"++i).asSymbol).play(~tempo) } { Tdef(("chan"++i).asSymbol).stop }; }); });
@@ -194,80 +207,73 @@ s.waitForBoot({
 	win.view.decorator.nextLine;
 
 	~numTracks.do({ |i|
-		// Height increased to 620 to fit all controls
-		var comp = CompositeView(win, 115@620).background_(Color.grey(0.7));
+		var comp = CompositeView(win, 115@700).background_(Color.grey(0.7));
 		comp.decorator = FlowLayout(comp.bounds, 5@5, 5@5);
+
 		StaticText(comp, 105@20).string_("TRACK " + i).align_(\center).font_(Font(bold:true));
 		~sampleMenus[i] = PopUpMenu(comp, 105@25).items_(~sampleNames).action_({ |menu| ~sampleIndices[i] = menu.value });
 		~muteButtons[i] = Button(comp, 105@40).states_([["ON", Color.black, Color.green], ["MUTE", Color.white, Color.red]]).action_({ |b| ~mutes[i] = (b.value == 1) });
 		~rhythmMenus[i] = PopUpMenu(comp, 105@30).items_(rhythmNames).action_({ |m| ~rhythms[i] = rhythmOptions[m.value]; ~rhythmIndices[i] = m.value; });
 		~varButtons[i] = Button(comp, 105@40).states_([["VARIATION", Color.black, Color.grey(0.8)], ["QUEUED", Color.white, Color.red(0.6)]]).action_({ |b| ~varRequests[i] = (b.value == 1); });
+
 		StaticText(comp, 105@20).string_("Pitch").align_(\center);
 		~pitchSliders[i] = Slider(comp, 105@30).value_(0.5).action_({ |s| ~pitches[i] = s.value.linlin(0, 1, 36, 72).round; });
+
 		StaticText(comp, 105@20).string_("Vol").align_(\center);
-		// Vol Slider slightly shorter to make room
 		~volSliders[i] = Slider(comp, 105@200).value_(0.7).action_({ |s| ~volumes[i] = s.value; });
 
-		StaticText(comp, 105@20).string_("Humanize").align_(\center).font_(Font(size:10));
-		~humanizeSliders[i] = Slider(comp, 105@20).value_(0.0).action_({ |s|
-			~humanize[i] = s.value.linlin(0, 1, 0, 0.08);
-});
+		// INDIVIDUAL HUMANIZATION BLOCK
+		humGroup = CompositeView(comp, 105@140).background_(Color.grey(0.6));
+		humGroup.decorator = FlowLayout(humGroup.bounds, 2@2, 2@2);
+		StaticText(humGroup, 100@15).string_("HUMANIZATION").align_(\center).font_(Font(size:9, bold:true));
+
+		StaticText(humGroup, 40@15).string_("Time").font_(Font(size:9));
+		~humTimeSliders[i] = Slider(humGroup, 55@15).value_(0.0).action_({ |s| ~humanizeTime[i] = s.value.linlin(0, 1, 0, 0.08); });
+
+		StaticText(humGroup, 40@15).string_("Pitch").font_(Font(size:9));
+		~humPitchSliders[i] = Slider(humGroup, 55@15).value_(0.0).action_({ |s| ~humanizePitch[i] = s.value.linlin(0, 1, 0, 1.5); });
+
+		StaticText(humGroup, 40@15).string_("Amp").font_(Font(size:9));
+		~humAmpSliders[i] = Slider(humGroup, 55@15).value_(0.0).action_({ |s| ~humanizeAmp[i] = s.value.linlin(0, 1, 0, 0.3); });
 	});
 
 	// MASTER COLUMN
-	masterCol = CompositeView(win, 140@620).background_(Color.grey(0.6));
+	masterCol = CompositeView(win, 150@700).background_(Color.grey(0.6));
 	masterCol.decorator = FlowLayout(masterCol.bounds, 5@5, 5@5);
 
-	StaticText(masterCol, 130@20).string_("MASTER").align_(\center).font_(Font(bold:true));
-	StaticText(masterCol, 130@25).string_("");
+	StaticText(masterCol, 140@20).string_("MASTER").align_(\center).font_(Font(bold:true));
+	masterMuteBtn = Button(masterCol, 140@40).states_([["MUTE ALL", Color.black, Color.yellow], ["UNMUTE ALL", Color.white, Color.red]]).action_({ |b| ~numTracks.do({ |i| ~muteButtons[i].valueAction_(b.value); }); });
 
-	masterMuteBtn = Button(masterCol, 130@40)
-		.states_([["MUTE ALL", Color.black, Color.yellow], ["UNMUTE ALL", Color.white, Color.red]])
-		.action_({ |b| ~numTracks.do({ |i| ~muteButtons[i].valueAction_(b.value); }); });
+	StaticText(masterCol, 140@20).string_(""); // Spacer
 
-	StaticText(masterCol, 130@80).string_(""); // Reduced spacer to fit new slider
+	// GLOBAL HUMANIZATION SLIDERS
+	StaticText(masterCol, 140@15).string_("GLOBAL HUMAN").align_(\center).font_(Font(size:9, bold:true));
+	StaticText(masterCol, 140@12).string_("Time").font_(Font(size:8));
+	Slider(masterCol, 140@15).value_(0.0).action_({ |s| ~numTracks.do({ |i| ~humanizeTime[i] = s.value.linlin(0, 1, 0, 0.08); {~humTimeSliders[i].value = s.value}.defer; }); });
 
-	// NEW: Master Humanize
-	StaticText(masterCol, 130@20).string_("Global Humanize").align_(\center).font_(Font(size:10));
-	masterHumanSlid = Slider(masterCol, 130@20).value_(0.0).action_({ |s|
-		~numTracks.do({ |i|
-			~humanize[i] = s.value.linlin(0, 1, 0, 0.08);
-			{ ~humanizeSliders[i].value = s.value }.defer;
-		});
-	});
+	StaticText(masterCol, 140@12).string_("Pitch").font_(Font(size:8));
+	Slider(masterCol, 140@15).value_(0.0).action_({ |s| ~numTracks.do({ |i| ~humanizePitch[i] = s.value.linlin(0, 1, 0, 1.5); {~humPitchSliders[i].value = s.value}.defer; }); });
 
-	StaticText(masterCol, 130@20).string_("Peak / dB / Master").align_(\center).font_(Font(size:10));
+	StaticText(masterCol, 140@12).string_("Amp").font_(Font(size:8));
+	Slider(masterCol, 140@15).value_(0.0).action_({ |s| ~numTracks.do({ |i| ~humanizeAmp[i] = s.value.linlin(0, 1, 0, 0.3); {~humAmpSliders[i].value = s.value}.defer; }); });
 
-	hLayout = CompositeView(masterCol, 130@310);
+	StaticText(masterCol, 140@50).string_(""); // Spacer
+
+	StaticText(masterCol, 140@20).string_("Peak / dB / Master").align_(\center).font_(Font(size:10));
+	hLayout = CompositeView(masterCol, 140@310);
 	hLayout.decorator = FlowLayout(hLayout.bounds, 0@0, 2@0);
 
 	peakMeter = LevelIndicator(hLayout, 20@305).warning_(0.8).critical_(0.95).background_(Color.black);
 
-	vRuler = CompositeView(hLayout, 35@305);
-	[3.5, 0, -6, -12, -24, -40, -60].do({ |db, i|
+	vRuler = CompositeView(hLayout, 40@305);
+	[3.5, 0, -6, -12, -24, -40, -60].do({ |db|
 		var yPos = ~dbSpec.unmap(db);
-		StaticText(vRuler, Rect(0, (1 - yPos) * 285, 35, 20))
-			.string_(db.asString)
-			.font_(Font(size: 10))
-			.align_(\right)
-			.stringColor_(if(db > 0) { Color.red } { Color.white });
+		StaticText(vRuler, Rect(0, (1 - yPos) * 285, 40, 20)).string_(db.asString).font_(Font(size: 10)).align_(\right).stringColor_(if(db > 0) { Color.red } { Color.white });
 	});
 
-	Slider(hLayout, 60@305)
-		.value_(~dbSpec.unmap(0))
-		.action_({ |s|
-			var db = ~dbSpec.map(s.value);
-			~masterVol = db.dbamp;
-		});
+	Slider(hLayout, 70@305).value_(~dbSpec.unmap(0)).action_({ |s| var db = ~dbSpec.map(s.value); ~masterVol = db.dbamp; });
 
-	StaticText(masterCol, 130@20).string_("Output Level").align_(\center);
-
-	meterRoutine = {
-		loop {
-			~peakBus.get({ |val| { peakMeter.value = val; }.defer; });
-			0.05.wait;
-		}
-	}.fork(AppClock);
+	meterRoutine = { loop { ~peakBus.get({ |val| { peakMeter.value = val; }.defer; }); 0.05.wait; } }.fork(AppClock);
 
 	win.view.decorator.nextLine;
 
@@ -278,7 +284,6 @@ s.waitForBoot({
 	refreshBtn = Button(win, 100@40).states_([["REFRESH", Color.white, Color.grey(0.3)]]).action_({ ~updatePresetList.value });
 
 	~updatePresetList.value;
-
 	win.onClose = { meterRoutine.stop; ~numTracks.do({ |i| Tdef(("chan"++i).asSymbol).stop }) };
 });
 )
