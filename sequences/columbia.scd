@@ -2,7 +2,7 @@ var o, p;
 o = [
 	Dictionary.prNew,  Array.prNew(64),  Array.prNew(6),  Array.prNew(6),  
 	Array.prNew(2),  Array.prNew(7),  Array.prNew(11),  Array.prNew(2),  
-	Array.prNew(1),  Array.prNew(4),  Array.prNew(6),  Array.prNew(6),  
+	Array.prNew(2),  Array.prNew(4),  Array.prNew(6),  Array.prNew(6),  
 	Array.prNew(6),  Array.prNew(6),  Array.prNew(6),  Array.prNew(6),  
 	Array.prNew(6)
 ];
@@ -44,18 +44,18 @@ p = [
 	// Array
 	7, [ 0.5,  0.5 ],  
 	// Array
-	8, [ 2 ],  
+	8, [ 1,  1 ],  
 	// Array
-	9, [ -1.0,  -0.33333333333333,  0.33333333333333,  0.33333333333333 ],  
+	9, [ -1.0,  -0.33,  0.33,  0.33 ],  
 	// Array
-	10, [ 0,  1,  3,  0,  
-		6,  5 ],  
+	10, [ 0,  2,  3,  0,  
+		15,  8 ],  
 	// Array
-	11, [ 0,  0,  0,  0,  
-		0,  0 ],  
+	11, [ 0.01271186440678,  0.01271186440678,  0.01271186440678,  0.01271186440678,  
+		0.01271186440678,  0.01271186440678 ],  
 	// Array
 	12, [ 60,  65.0,  51.0,  60,  
-		60,  60 ],  
+		59.0,  62.0 ],  
 	// Array
 	13, [ 0,  0,  0,  0,  
 		0,  0 ],  
@@ -64,9 +64,9 @@ p = [
 		0.43025005075584,  0.38141287482832 ],  
 	// Array
 	15, [ 0,  0,  0,  0,  
-		0,  0 ],  
+		0.45454545454545,  0 ],  
 	// Array
-	16, [ 0,  0,  0,  0,  
-		2,  2 ]
+	16, [ 0,  3,  0,  0,  
+		4,  2 ]
 ];
 prUnarchive(o,p);

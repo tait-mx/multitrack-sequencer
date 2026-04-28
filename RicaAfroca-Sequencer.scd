@@ -14,7 +14,8 @@ s.waitForBoot({
 	var win, startBtn, tempoSlid, bpmDisplay, saveBtn, loadBtn,
 	presetNameField, presetMenu, refreshBtn, rhythmOptions, rhythmNames,
 	masterMuteBtn, masterCol, peakMeter, meterRoutine, hLayout, vRuler,
-	masterHumTime, masterHumPitch, masterHumAmp, humGroup, jT, jP, jA, playbackRate;
+	masterHumTime, masterHumPitch, masterHumAmp, humGroup, jT, jP, jA, playbackRate,
+	currentPresetName = "newPreset";
 
 	~numTracks = 6;
 	~tempo = TempoClock.new(120/60).permanent_(true);
@@ -88,6 +89,8 @@ s.waitForBoot({
 	var path = ~presetPath ++ name ++ ".scd";
 	var data = Object.readArchive(path);
 	if(data.notNil) {
+			currentPresetName = name; // Remember this name!
+        { presetNameField.string = name; }.defer;
 		// Load logic with fresh copies
 		~rhythms = data[\rhythms].copy;
 		~mutes = data[\mutes].copy;
@@ -102,6 +105,8 @@ s.waitForBoot({
 		~humanizeAmp = (data[\humAmp] ?? { Array.fill(~numTracks, {0.0}) }).copy;
 
 		{
+				win.name = "RicaAfroca Sequencer Pro - Editing: " ++ name;
+
 			// Update Global GUI
 			bpmDisplay.value = ~tempo.tempo * 60;
 			tempoSlid.value = ~tempo.tempo.linlin(1, 3.3, 0, 1);
@@ -320,7 +325,15 @@ s.waitForBoot({
 	win.view.decorator.nextLine;
 
 	presetNameField = TextField(win, 150@40).string_("newPreset");
-	saveBtn = Button(win, 100@40).states_([["SAVE", Color.black, Color.yellow]]).action_({ ~saveSettings.value(presetNameField.string); ~updatePresetList.value; });
+	saveBtn = Button(win, 100@40).states_([["SAVE", Color.black, Color.yellow]]).action_({
+    var nameToSave = presetNameField.string;
+
+    if(nameToSave == "") { nameToSave = currentPresetName }; // Fallback to current
+
+    ~saveSettings.value(nameToSave);
+    currentPresetName = nameToSave; // Update our tracker
+    ~updatePresetList.value;
+});
 	presetMenu = PopUpMenu(win, 200@40).items_(["Scanning..."]);
 	loadBtn = Button(win, 100@40).states_([["LOAD", Color.black, Color.cyan]]).action_({ if(presetMenu.item != "No Presets Found") { ~loadSettings.value(presetMenu.item) }; });
 	refreshBtn = Button(win, 100@40).states_([["REFRESH", Color.white, Color.grey(0.3)]]).action_({ ~updatePresetList.value });
