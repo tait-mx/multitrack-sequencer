@@ -1,6 +1,6 @@
 /*
-RicaAfroca Sequencer - Final Version
-Independent Variations, Master Volume/Meter, and Preset Management
+RicaAfroca Sequencer - Final Version (Fixed Layout)
+Independent Variations, Master Volume/Meter, Preset Management, and Humanize
 */
 
 (
@@ -12,11 +12,12 @@ s.waitForBoot({
 
 	var win, startBtn, tempoSlid, tempoUp, tempoDown, bpmDisplay, saveBtn, loadBtn,
     presetNameField, presetMenu, refreshBtn, rhythmOptions, rhythmNames,
-    masterMuteBtn, masterCol, peakMeter, meterRoutine, hLayout, vRuler; // <--- Added hLayout here
+    masterMuteBtn, masterCol, peakMeter, meterRoutine, hLayout, vRuler;
 
 	~numTracks = 6;
 	~tempo = TempoClock.new(120/60).permanent_(true);
 	~masterVol = 0.8;
+	~dbSpec = ControlSpec(-60, 3.5, \db, 0, 0);
 
 	// Logic arrays
 	~rhythmIndices = Array.fill(~numTracks, { 0 });
@@ -26,6 +27,7 @@ s.waitForBoot({
 	~volumes = Array.fill(~numTracks, { 0.7 });
 	~sampleIndices = Array.fill(~numTracks, { |i| i });
 	~varRequests = Array.fill(~numTracks, { false });
+	~humanize = Array.fill(~numTracks, { 0.0 });
 
 	// GUI arrays
 	~muteButtons = Array.newClear(~numTracks);
@@ -34,7 +36,6 @@ s.waitForBoot({
 	~volSliders = Array.newClear(~numTracks);
 	~sampleMenus = Array.newClear(~numTracks);
 	~varButtons = Array.newClear(~numTracks);
-	~dbSpec = ControlSpec(-60, 3.5, \db, 0, 0);
 
 	// Paths
 	~projectPath = if(thisProcess.nowExecutingPath.notNil) { PathName(thisProcess.nowExecutingPath).pathOnly; } { Platform.userHomeDir +/+ "RicaAfroca/"; };
@@ -49,7 +50,7 @@ s.waitForBoot({
 	if(~samples.isEmpty) { ~sampleNames = ["empty"]; ~samples = [Buffer.alloc(s, 44100, 2)]; };
 
 	/////////////////////////////////////////////////////////////////
-	// FUNCTIONS (Save, Load, and the missing Update)
+	// FUNCTIONS
 	/////////////////////////////////////////////////////////////////
 
 	~saveSettings = { |name|
@@ -99,24 +100,19 @@ s.waitForBoot({
 	};
 
 	/////////////////////////////////////////////////////////////////
-	// SERVER SIDE (Bus & SynthDefs)
+	// SERVER SIDE
 	/////////////////////////////////////////////////////////////////
 
 	~peakBus = Bus.control(s, 1);
 
-
-
 	SynthDef(\masterOut, {
-    arg amp=0.8;
-    var sig = In.ar(0, 2);
-    sig = sig * amp;
-    sig = Limiter.ar(sig, 0.95); // Prevents clipping above 0dB
-
-    // Send peak info to the bus for the GUI meter
-    Out.kr(~peakBus, PeakFollower.kr(sig[0].abs.max(sig[1].abs), 0.999));
-
-    ReplaceOut.ar(0, sig);
-}).add;
+		arg amp=0.8;
+		var sig = In.ar(0, 2);
+		sig = sig * amp;
+		sig = Limiter.ar(sig, 0.95);
+		Out.kr(~peakBus, PeakFollower.kr(sig[0].abs.max(sig[1].abs), 0.999));
+		ReplaceOut.ar(0, sig);
+	}).add;
 
 	SynthDef(\liveChannel, {
 		arg out=0, buf=0, freq=440, amp=0.5, pan=0, rel=0.3;
@@ -128,9 +124,7 @@ s.waitForBoot({
 	}).add;
 
 	s.sync;
-	Synth(\masterOut, addAction: \addAfter);
-
-
+	Synth(\masterOut, [\amp, ~masterVol], addAction: \addAfter);
 
 	/////////////////////////////////////////////////////////////////
 	// ENGINE
@@ -148,7 +142,8 @@ s.waitForBoot({
 					{ if(~varButtons[i].notNil) { ~varButtons[i].value = 0 } }.defer;
 					~variations[i].do({ |vDelta|
 						if(vDelta > 0 && ~mutes[i].not) {
-							s.makeBundle(s.latency, {
+							var jitter = ~humanize[i].rand2;
+							s.makeBundle(s.latency + jitter, {
 								Synth(\liveChannel, [\buf, ~samples[~sampleIndices[i].wrap(0, ~samples.size-1)], \freq, ~pitches[i].midicps, \amp, ~volumes[i] * ~masterVol, \rel, (vDelta.abs / ~tempo.tempo) * 0.8]);
 							});
 						};
@@ -158,11 +153,19 @@ s.waitForBoot({
 				};
 				currentPattern = ~rhythms[i];
 				delta = currentPattern.wrapAt(step);
+
 				if(delta > 0 && ~mutes[i].not) {
-					s.makeBundle(s.latency, {
-						Synth(\liveChannel, [\buf, ~samples[~sampleIndices[i].wrap(0, ~samples.size-1)], \freq, ~pitches[i].midicps, \amp, ~volumes[i] * ~masterVol, \rel, (delta.abs / ~tempo.tempo) * 0.8]);
+					var jitter = ~humanize[i].rand2;
+					s.makeBundle(s.latency + jitter, {
+						Synth(\liveChannel, [
+							\buf, ~samples[~sampleIndices[i].wrap(0, ~samples.size-1)],
+							\freq, ~pitches[i].midicps,
+							\amp, ~volumes[i] * ~masterVol,
+							\rel, (delta.abs / ~tempo.tempo) * 0.8
+						]);
 					});
 				};
+
 				step = step + 1;
 				if(step >= currentPattern.size) { step = 0 };
 				delta.abs.wait;
@@ -177,17 +180,21 @@ s.waitForBoot({
 	// GUI
 	/////////////////////////////////////////////////////////////////
 
-	win = Window("RicaAfroca Sequencer", Rect(100, 100, 950, 820)).front;
+	win = Window("RicaAfroca Sequencer", Rect(50, 50, 1000, 850)).front;
 	win.view.decorator = FlowLayout(win.view.bounds, 15@15, 10@10);
 
 	startBtn = Button(win, 800@40).states_([["START ALL", Color.black, Color.green], ["STOP ALL", Color.white, Color.red]]).action_({ |b| ~numTracks.do({ |i| if(b.value == 1) { Tdef(("chan"++i).asSymbol).play(~tempo) } { Tdef(("chan"++i).asSymbol).stop }; }); });
-	bpmDisplay = NumberBox(win, 110@30).value_(~tempo.tempo * 60);
-	tempoSlid = Slider(win, 590@30).value_(~tempo.tempo.linlin(1, 3.3, 0, 1)).action_({ |s| var bpm = s.value.linlin(0, 1, 60, 200); ~tempo.tempo = bpm / 60; bpmDisplay.value = bpm; });
+
+	win.view.decorator.nextLine;
+
+	bpmDisplay = NumberBox(win, 80@30).value_(~tempo.tempo * 60);
+	tempoSlid = Slider(win, 700@30).value_(~tempo.tempo.linlin(1, 3.3, 0, 1)).action_({ |s| var bpm = s.value.linlin(0, 1, 60, 200); ~tempo.tempo = bpm / 60; bpmDisplay.value = bpm; });
 
 	win.view.decorator.nextLine;
 
 	~numTracks.do({ |i|
-		var comp = CompositeView(win, 115@520).background_(Color.grey(0.7));
+		// Height increased to 620 to fit all controls
+		var comp = CompositeView(win, 115@620).background_(Color.grey(0.7));
 		comp.decorator = FlowLayout(comp.bounds, 5@5, 5@5);
 		StaticText(comp, 105@20).string_("TRACK " + i).align_(\center).font_(Font(bold:true));
 		~sampleMenus[i] = PopUpMenu(comp, 105@25).items_(~sampleNames).action_({ |menu| ~sampleIndices[i] = menu.value });
@@ -197,53 +204,51 @@ s.waitForBoot({
 		StaticText(comp, 105@20).string_("Pitch").align_(\center);
 		~pitchSliders[i] = Slider(comp, 105@30).value_(0.5).action_({ |s| ~pitches[i] = s.value.linlin(0, 1, 36, 72).round; });
 		StaticText(comp, 105@20).string_("Vol").align_(\center);
-		~volSliders[i] = Slider(comp, 105@240).value_(0.7).action_({ |s| ~volumes[i] = s.value; });
+		// Vol Slider slightly shorter to make room
+		~volSliders[i] = Slider(comp, 105@200).value_(0.7).action_({ |s| ~volumes[i] = s.value; });
+
+		StaticText(comp, 105@20).string_("Humanize").align_(\center).font_(Font(size:10));
+		Slider(comp, 105@20).value_(0.0).action_({ |s| ~humanize[i] = s.value.linlin(0, 1, 0, 0.08); });
 	});
 
-	// --- UPDATED MASTER COLUMN ---
-masterCol = CompositeView(win, 140@520).background_(Color.grey(0.6)); // Widened slightly for ruler
-masterCol.decorator = FlowLayout(masterCol.bounds, 5@5, 5@5);
+	// MASTER COLUMN
+	masterCol = CompositeView(win, 140@620).background_(Color.grey(0.6));
+	masterCol.decorator = FlowLayout(masterCol.bounds, 5@5, 5@5);
 
-StaticText(masterCol, 130@20).string_("MASTER").align_(\center).font_(Font(bold:true));
-StaticText(masterCol, 130@25).string_(""); // Spacer
+	StaticText(masterCol, 130@20).string_("MASTER").align_(\center).font_(Font(bold:true));
+	StaticText(masterCol, 130@25).string_("");
 
-masterMuteBtn = Button(masterCol, 130@40)
-    .states_([["MUTE ALL", Color.black, Color.yellow], ["UNMUTE ALL", Color.white, Color.red]])
-    .action_({ |b| ~numTracks.do({ |i| ~muteButtons[i].valueAction_(b.value); }); });
+	masterMuteBtn = Button(masterCol, 130@40)
+		.states_([["MUTE ALL", Color.black, Color.yellow], ["UNMUTE ALL", Color.white, Color.red]])
+		.action_({ |b| ~numTracks.do({ |i| ~muteButtons[i].valueAction_(b.value); }); });
 
-StaticText(masterCol, 130@85).string_(""); // Spacer
+	StaticText(masterCol, 130@140).string_(""); // Spacer
 
-// PEAK & MASTER SECTION
-StaticText(masterCol, 130@20).string_("Peak / dB / Master").align_(\center).font_(Font(size:10));
+	StaticText(masterCol, 130@20).string_("Peak / dB / Master").align_(\center).font_(Font(size:10));
 
-hLayout = CompositeView(masterCol, 130@310);
-hLayout.decorator = FlowLayout(hLayout.bounds, 0@0, 2@0);
+	hLayout = CompositeView(masterCol, 130@310);
+	hLayout.decorator = FlowLayout(hLayout.bounds, 0@0, 2@0);
 
-// 1. Peak Meter
-peakMeter = LevelIndicator(hLayout, 20@305).warning_(0.8).critical_(0.95).background_(Color.black);
+	peakMeter = LevelIndicator(hLayout, 20@305).warning_(0.8).critical_(0.95).background_(Color.black);
 
-// 2. The dB Ruler (Static Texts)
-vRuler = CompositeView(hLayout, 30@305);
-[3.5, 0, -6, -12, -24, -40, -60].do({ |db, i|
-    var yPos = ~dbSpec.unmap(db);
-    StaticText(vRuler, Rect(0, (1 - yPos) * 285, 30, 20))
-        .string_(db.asString)
-        .font_(Font(size: 15))
-        .align_(\right)
-        .stringColor_(if(db > 0) { Color.red } { Color.white });
-});
+	vRuler = CompositeView(hLayout, 35@305);
+	[3.5, 0, -6, -12, -24, -40, -60].do({ |db, i|
+		var yPos = ~dbSpec.unmap(db);
+		StaticText(vRuler, Rect(0, (1 - yPos) * 285, 35, 20))
+			.string_(db.asString)
+			.font_(Font(size: 10))
+			.align_(\right)
+			.stringColor_(if(db > 0) { Color.red } { Color.white });
+	});
 
-// 3. The Master Slider with Logarithmic Curve
-Slider(hLayout, 65@305)
-    .value_(~dbSpec.unmap(0)) // Start at 0dB (Unity)
-    .action_({ |s|
-        var db = ~dbSpec.map(s.value);
-        ~masterVol = db.dbamp;
-        // Optional: post the dB value to the console to check accuracy
-        // ("Master: " ++ db.round(0.1) ++ " dB").postln;
-    });
+	Slider(hLayout, 60@305)
+		.value_(~dbSpec.unmap(0))
+		.action_({ |s|
+			var db = ~dbSpec.map(s.value);
+			~masterVol = db.dbamp;
+		});
 
-StaticText(masterCol, 130@20).string_("Output Level").align_(\center);
+	StaticText(masterCol, 130@20).string_("Output Level").align_(\center);
 
 	meterRoutine = {
 		loop {
@@ -260,7 +265,6 @@ StaticText(masterCol, 130@20).string_("Output Level").align_(\center);
 	loadBtn = Button(win, 100@40).states_([["LOAD", Color.black, Color.cyan]]).action_({ if(presetMenu.item != "No Presets Found") { ~loadSettings.value(presetMenu.item) }; });
 	refreshBtn = Button(win, 100@40).states_([["REFRESH", Color.white, Color.grey(0.3)]]).action_({ ~updatePresetList.value });
 
-	// Initial Scan
 	~updatePresetList.value;
 
 	win.onClose = { meterRoutine.stop; ~numTracks.do({ |i| Tdef(("chan"++i).asSymbol).stop }) };
