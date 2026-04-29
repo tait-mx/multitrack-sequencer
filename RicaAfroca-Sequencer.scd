@@ -1,7 +1,6 @@
 /*
-RicaAfroca Sequencer - Pro Version
-Features: 5 Tracks + Master, Multidimensional Humanization (Time, Pitch, Amp),
-Logarithmic Master Volume with dB Ruler, and Preset Management.
+RicaAfroca Sequencer - Pro Version 2.1
+Refined Preset Management & Rhythmic Data Structure
 */
 
 (
@@ -12,9 +11,9 @@ s.waitForBoot({
 	/////////////////////////////////////////////////////////////////
 
 	var win, startBtn, tempoSlid, bpmDisplay, saveBtn, loadBtn,
-	presetNameField, presetMenu, refreshBtn, rhythmOptions, rhythmNames,
+	presetNameField, presetMenu, refreshBtn, rhythmAndNames,
 	masterMuteBtn, masterCol, peakMeter, meterRoutine, hLayout, vRuler,
-	masterHumTime, masterHumPitch, masterHumAmp, humGroup, jT, jP, jA, playbackRate,
+	masterHumTime, masterHumPitch, masterHumAmp, humGroup,
 	currentPresetName = "newPreset";
 
 	~numTracks = 6;
@@ -47,6 +46,26 @@ s.waitForBoot({
 	~humPitchSliders = Array.newClear(~numTracks);
 	~humAmpSliders = Array.newClear(~numTracks);
 
+	// Rhythm Library (Combined Name and Data)
+	rhythmAndNames = [
+		["Clave4/4", [0.75, 1, 0.7, 0.55, 1]],
+		["ClaveMatanzas", [0.75, 0.25, 0.75, 0.25, 0.5, 0.5, 1]],
+		["Clave6/8", [2, 2, 1, 2, 2, 2, 1]/3],
+		["Cascara1", [0.25, 0.5, 0.25, 0.25, 0.5, 0.25, 0.5, 0.5, 0.25, 0.5, 0.25]],
+		["Cascara2", [0.5, 0.25, 0.5, 0.5, 0.25, 0.5, 0.5, 0.25, 0.25, 0.25, 0.25]],
+		["cascara Yuka", [2, 2, 2, 1, 1, 4]/3],
+		["cascara2 Yuka", [2, 2, 2, 6]/3],
+		["Golpe", [-1, -0.5, 0.5, -1, -0.5, 0.5]],
+		["GolpeCol", [-3, -1, 1, 1, -3, -1, 1, 1]/3],
+		["Yuka Llamador", [-1, -0.5, 0.5]],
+		["Yuka Golpe", [-1, 1]],
+		["ShekereT", [2]],
+		["ShekereA", [-1.75, 0.25]],
+		["16ths", [0.25]],
+		["8ths", [0.5]],
+		["Quarters", [1, 1]]
+	];
+
 	// Paths
 	~projectPath = if(thisProcess.nowExecutingPath.notNil) { PathName(thisProcess.nowExecutingPath).pathOnly; } { Platform.userHomeDir +/+ "RicaAfroca/"; };
 	~samplePath = ~projectPath ++ "samples/";
@@ -64,85 +83,81 @@ s.waitForBoot({
 	/////////////////////////////////////////////////////////////////
 
 	~saveSettings = { |name|
-	var data = Dictionary.new;
-	var path = ~presetPath ++ name ++ ".scd";
-
-	// Use .copy on all arrays to prevent "memory bleeding"
-	data.put(\rhythms, ~rhythms.copy);
-	data.put(\mutes, ~mutes.copy);
-	data.put(\pitches, ~pitches.copy);
-	data.put(\bpm, ~tempo.tempo * 60);
-	data.put(\indices, ~rhythmIndices.copy);
-	data.put(\volumes, ~volumes.copy);
-	data.put(\sampleIndices, ~sampleIndices.copy);
-
-	// Humanization snapshots
-	data.put(\humTime, ~humanizeTime.copy);
-	data.put(\humPitch, ~humanizePitch.copy);
-	data.put(\humAmp, ~humanizeAmp.copy);
-
-	data.writeArchive(path);
-	("--- Saved Preset: " ++ name).postln;
-};
+		var data = Dictionary.new;
+		var path = ~presetPath ++ name ++ ".scd";
+		data.put(\rhythms, ~rhythms.copy);
+		data.put(\mutes, ~mutes.copy);
+		data.put(\pitches, ~pitches.copy);
+		data.put(\bpm, ~tempo.tempo * 60);
+		data.put(\indices, ~rhythmIndices.copy);
+		data.put(\volumes, ~volumes.copy);
+		data.put(\sampleIndices, ~sampleIndices.copy);
+		data.put(\humTime, ~humanizeTime.copy);
+		data.put(\humPitch, ~humanizePitch.copy);
+		data.put(\humAmp, ~humanizeAmp.copy);
+		data.writeArchive(path);
+		("--- Saved Preset: " ++ name).postln;
+	};
 
 	~loadSettings = { |name|
-	var path = ~presetPath ++ name ++ ".scd";
-	var data = Object.readArchive(path);
-	if(data.notNil) {
-			currentPresetName = name; // Remember this name!
-        { presetNameField.string = name; }.defer;
-		// Load logic with fresh copies
-		~rhythms = data[\rhythms].copy;
-		~mutes = data[\mutes].copy;
-		~pitches = data[\pitches].copy;
-		~tempo.tempo = (data[\bpm] ?? {120}) / 60;
-		~rhythmIndices = (data[\indices] ?? { Array.fill(~numTracks, {0}) }).copy;
-		~volumes = (data[\volumes] ?? { Array.fill(~numTracks, { 0.7 }) }).copy;
-		~sampleIndices = (data[\sampleIndices] ?? { Array.fill(~numTracks, { |i| i }) }).copy;
+		var path = ~presetPath ++ name ++ ".scd";
+		var data = Object.readArchive(path);
+		if(data.notNil) {
+			currentPresetName = name;
+			~rhythms = data[\rhythms].copy;
+			~mutes = data[\mutes].copy;
+			~pitches = data[\pitches].copy;
+			~tempo.tempo = (data[\bpm] ?? {120}) / 60;
+			~rhythmIndices = (data[\indices] ?? { Array.fill(~numTracks, {0}) }).copy;
+			~volumes = (data[\volumes] ?? { Array.fill(~numTracks, {0.7}) }).copy;
+			~sampleIndices = (data[\sampleIndices] ?? { Array.fill(~numTracks, {|i| i}) }).copy;
+			~humanizeTime = (data[\humTime] ?? { Array.fill(~numTracks, {0.0}) }).copy;
+			~humanizePitch = (data[\humPitch] ?? { Array.fill(~numTracks, {0.0}) }).copy;
+			~humanizeAmp = (data[\humAmp] ?? { Array.fill(~numTracks, {0.0}) }).copy;
 
-		~humanizeTime = (data[\humTime] ?? { Array.fill(~numTracks, {0.0}) }).copy;
-		~humanizePitch = (data[\humPitch] ?? { Array.fill(~numTracks, {0.0}) }).copy;
-		~humanizeAmp = (data[\humAmp] ?? { Array.fill(~numTracks, {0.0}) }).copy;
-
-		{
+			{
 				win.name = "RicaAfroca Sequencer Pro - Editing: " ++ name;
-
-			// Update Global GUI
-			bpmDisplay.value = ~tempo.tempo * 60;
-			tempoSlid.value = ~tempo.tempo.linlin(1, 3.3, 0, 1);
-
-			// Update Track GUI
-			~numTracks.do({ |i|
-				~rhythmMenus[i].value = ~rhythmIndices[i];
-				~muteButtons[i].value = ~mutes[i].asInteger;
-				~sampleMenus[i].value = ~sampleIndices[i].wrap(0, ~sampleNames.size-1);
-				~pitchSliders[i].value = ~pitches[i].linlin(36, 72, 0, 1);
-				~volSliders[i].value = ~volumes[i];
-
-				// Ensure sliders match the loaded humanization values
-				~humTimeSliders[i].value = ~humanizeTime[i].linlin(0, 0.08, 0, 1);
-				~humPitchSliders[i].value = ~humanizePitch[i].linlin(0, 1.5, 0, 1);
-				~humAmpSliders[i].value = ~humanizeAmp[i].linlin(0, 0.3, 0, 1);
-			});
-		}.defer;
-		("--- Loaded Preset: " ++ name).postln;
+				presetNameField.string = name;
+				bpmDisplay.value = ~tempo.tempo * 60;
+				tempoSlid.value = ~tempo.tempo.linlin(1, 3.3, 0, 1);
+				~numTracks.do({ |i|
+					~rhythmMenus[i].value = ~rhythmIndices[i];
+					~muteButtons[i].value = ~mutes[i].asInteger;
+					~sampleMenus[i].value = ~sampleIndices[i].wrap(0, ~sampleNames.size-1);
+					~pitchSliders[i].value = ~pitches[i].linlin(36, 72, 0, 1);
+					~volSliders[i].value = ~volumes[i];
+					~humTimeSliders[i].value = ~humanizeTime[i].linlin(0, 0.08, 0, 1);
+					~humPitchSliders[i].value = ~humanizePitch[i].linlin(0, 1.5, 0, 1);
+					~humAmpSliders[i].value = ~humanizeAmp[i].linlin(0, 0.3, 0, 1);
+				});
+			}.defer;
+		};
 	};
-};
+
+
 
 	~updatePresetList = {
 		var files = (~presetPath ++ "*.scd").pathMatch;
 		var names = files.collect({ |p| PathName(p).fileNameWithoutExtension });
-		if(names.isEmpty) { names = ["No Presets Found"] };
-		{ if(presetMenu.notNil) { presetMenu.items = names; presetMenu.value = 0; } }.defer;
-	};
+		var currentIndex;
 
+		if(names.isEmpty) { names = ["No Presets Found"] };
+
+		// Find where our current preset is in the alphabetical list
+		currentIndex = names.indexOfEqual(currentPresetName) ?? 0;
+
+		{
+			if(presetMenu.notNil) {
+				presetMenu.items = names;
+				presetMenu.value = currentIndex; // Stay on the current preset!
+			}
+		}.defer;
+	};
 	/////////////////////////////////////////////////////////////////
 	// SERVER SIDE
 	/////////////////////////////////////////////////////////////////
 
 	~peakBus = Bus.control(s, 1);
-
-	// REMOVED the loose jT, jP, jA, and playbackRate lines from here!
 
 	SynthDef(\masterOut, {
 		arg amp=0.8;
@@ -171,71 +186,60 @@ s.waitForBoot({
 	~variations = [ [0.25, 0.25, 0.25, 0.25], [0.5, 0.5], [1/3, 1/3, 1/3], [0.75, 0.25], [1], [-1, -0.5, 0.25, 0.25, 0.5, 0.25, 0.25, 0.5, 0.5] ];
 
 	~numTracks.do({ |i|
-    Tdef( ("chan" ++ i).asSymbol, {
-        var step = 0;
-        loop {
-            var currentPattern, delta, playbackRate;
-            var jT, jP, jA;
+		Tdef( ("chan" ++ i).asSymbol, {
+			var step = 0;
+			loop {
+				var currentPattern, delta, pbRate, jT, jP, jA;
 
-            // --- 1. VARIATION SECTION ---
-            if (step == 0 && ~varRequests[i]) {
-                ~varRequests[i] = false;
-                { if(~varButtons[i].notNil) { ~varButtons[i].value = 0 } }.defer;
-                ~variations[i].do({ |vDelta|
-                    if(vDelta > 0 && ~mutes[i].not) {
+				if (step == 0 && ~varRequests[i]) {
+					~varRequests[i] = false;
+					{ if(~varButtons[i].notNil) { ~varButtons[i].value = 0 } }.defer;
+					~variations[i].do({ |vDelta|
+						if(vDelta > 0 && ~mutes[i].not) {
+							jT = ~humanizeTime[i].rand2;
+							jP = ~humanizePitch[i].rand2;
+							jA = ~humanizeAmp[i].rand2;
+							pbRate = (~pitches[i] + jP - 60).midiratio;
 
-                        // PLACE IT HERE (for variations)
-                        jT = ~humanizeTime[i].rand2;
-                        jP = ~humanizePitch[i].rand2;
-                        jA = ~humanizeAmp[i].rand2;
-                        playbackRate = (~pitches[i] + jP - 60).midiratio;
+							s.makeBundle(s.latency + jT, {
+								Synth(\liveChannel, [
+									\buf, ~samples[~sampleIndices[i].wrap(0, ~samples.size-1)],
+									\rate, pbRate,
+									\amp, (~volumes[i] + jA).clip(0,1) * ~masterVol,
+									\rel, (vDelta.abs / ~tempo.tempo) * 0.8
+								]);
+							});
+						};
+						vDelta.abs.wait;
+					});
+					step = 0;
+				};
 
-                        s.makeBundle(s.latency + jT, {
-                            Synth(\liveChannel, [
-                                \buf, ~samples[~sampleIndices[i].wrap(0, ~samples.size-1)],
-                                \rate, playbackRate,
-                                \amp, (~volumes[i] + jA).clip(0,1) * ~masterVol,
-                                \rel, (vDelta.abs / ~tempo.tempo) * 0.8
-                            ]);
-                        });
-                    };
-                    vDelta.abs.wait;
-                });
-                step = 0;
-            };
+				currentPattern = ~rhythms[i];
+				delta = currentPattern.wrapAt(step);
 
-            // --- 2. MAIN RHYTHM SECTION ---
-            currentPattern = ~rhythms[i];
-            delta = currentPattern.wrapAt(step);
+				if(delta > 0 && ~mutes[i].not) {
+					jT = ~humanizeTime[i].rand2;
+					jP = ~humanizePitch[i].rand2;
+					jA = ~humanizeAmp[i].rand2;
+					pbRate = (~pitches[i] + jP - 60).midiratio;
 
-            if(delta > 0 && ~mutes[i].not) {
+					s.makeBundle(s.latency + jT, {
+						Synth(\liveChannel, [
+							\buf, ~samples[~sampleIndices[i].wrap(0, ~samples.size-1)],
+							\rate, pbRate,
+							\amp, (~volumes[i] + jA).clip(0,1) * ~masterVol,
+							\rel, (delta.abs / ~tempo.tempo) * 0.8
+						]);
+					});
+				};
 
-                // PLACE IT HERE (for the regular sequence)
-                jT = ~humanizeTime[i].rand2;
-                jP = ~humanizePitch[i].rand2;
-                jA = ~humanizeAmp[i].rand2;
-                playbackRate = (~pitches[i] + jP - 60).midiratio;
-
-                s.makeBundle(s.latency + jT, {
-                    Synth(\liveChannel, [
-                        \buf, ~samples[~sampleIndices[i].wrap(0, ~samples.size-1)],
-                        \rate, playbackRate,
-                        \amp, (~volumes[i] + jA).clip(0,1) * ~masterVol,
-                        \rel, (delta.abs / ~tempo.tempo) * 0.8
-                    ]);
-                });
-            };
-
-            step = step + 1;
-            if(step >= currentPattern.size) { step = 0 };
-            delta.abs.wait;
-        }
-    }).quant = 4;
-});
-
-	rhythmOptions = [ [0.75, 1, 0.7, 0.55, 1], [0.75, 0.25,0.75, 0.25, 0.5, 0.5, 1], [2,2,1,2,2,2,1]/3, [0.25, 0.5, 0.25, 0.25, 0.5, 0.25, 0.5, 0.5, 0.25, 0.5, 0.25], [0.5, 0.25, 0.5, 0.5, 0.25, 0.5, 0.5, 0.25, 0.25, 0.25, 0.25], [2, 2, 2, 1, 1, 4]/3, [2, 2, 2, 6]/3, [-1, -0.5, 0.5, -1, -0.5, 0.5], [-1.0, -0.33, 0.33, 0.33], [-1, -0.5, 0.5], [-1, 1], [2], [-1.75, 0.25], [0.25], [0.5], [1, 1] ];
-	rhythmNames = ["Clave4/4", "ClaveMatanzas", "Clave6/8", "Cascara1", "Cascara2", "cascara Yuka", "cascara2 Yuka","Golpe", "GolpeCol", "Yuka Llamador", "Yuka Golpe", "ShekereT", "ShekereA", "16ths", "8ths", "Quarters"];
-
+				step = step + 1;
+				if(step >= currentPattern.size) { step = 0 };
+				delta.abs.wait;
+			}
+		}).quant = 4;
+	});
 
 	/////////////////////////////////////////////////////////////////
 	// GUI
@@ -260,7 +264,11 @@ s.waitForBoot({
 		StaticText(comp, 105@20).string_("TRACK " + i).align_(\center).font_(Font(bold:true));
 		~sampleMenus[i] = PopUpMenu(comp, 105@25).items_(~sampleNames).action_({ |menu| ~sampleIndices[i] = menu.value });
 		~muteButtons[i] = Button(comp, 105@40).states_([["ON", Color.black, Color.green], ["MUTE", Color.white, Color.red]]).action_({ |b| ~mutes[i] = (b.value == 1) });
-		~rhythmMenus[i] = PopUpMenu(comp, 105@30).items_(rhythmNames).action_({ |m| ~rhythms[i] = rhythmOptions[m.value]; ~rhythmIndices[i] = m.value; });
+
+		~rhythmMenus[i] = PopUpMenu(comp, 105@30)
+			.items_(rhythmAndNames.collect({ |item| item[0] }))
+			.action_({ |m| ~rhythms[i] = rhythmAndNames[m.value][1]; ~rhythmIndices[i] = m.value; });
+
 		~varButtons[i] = Button(comp, 105@40).states_([["VARIATION", Color.black, Color.grey(0.8)], ["QUEUED", Color.white, Color.red(0.6)]]).action_({ |b| ~varRequests[i] = (b.value == 1); });
 
 		StaticText(comp, 105@20).string_("Pitch").align_(\center);
@@ -269,7 +277,6 @@ s.waitForBoot({
 		StaticText(comp, 105@20).string_("Vol").align_(\center);
 		~volSliders[i] = Slider(comp, 105@200).value_(0.7).action_({ |s| ~volumes[i] = s.value; });
 
-		// INDIVIDUAL HUMANIZATION BLOCK
 		humGroup = CompositeView(comp, 105@140).background_(Color.grey(0.6));
 		humGroup.decorator = FlowLayout(humGroup.bounds, 2@2, 2@2);
 		StaticText(humGroup, 100@15).string_("HUMANIZATION").align_(\center).font_(Font(size:9, bold:true));
@@ -284,16 +291,12 @@ s.waitForBoot({
 		~humAmpSliders[i] = Slider(humGroup, 55@15).value_(0.0).action_({ |s| ~humanizeAmp[i] = s.value.linlin(0, 1, 0, 0.3); });
 	});
 
-	// MASTER COLUMN
 	masterCol = CompositeView(win, 150@700).background_(Color.grey(0.6));
 	masterCol.decorator = FlowLayout(masterCol.bounds, 5@5, 5@5);
-
 	StaticText(masterCol, 140@20).string_("MASTER").align_(\center).font_(Font(bold:true));
 	masterMuteBtn = Button(masterCol, 140@40).states_([["MUTE ALL", Color.black, Color.yellow], ["UNMUTE ALL", Color.white, Color.red]]).action_({ |b| ~numTracks.do({ |i| ~muteButtons[i].valueAction_(b.value); }); });
 
 	StaticText(masterCol, 140@20).string_(""); // Spacer
-
-	// GLOBAL HUMANIZATION SLIDERS
 	StaticText(masterCol, 140@15).string_("GLOBAL HUMAN").align_(\center).font_(Font(size:9, bold:true));
 	StaticText(masterCol, 140@12).string_("Time").font_(Font(size:8));
 	Slider(masterCol, 140@15).value_(0.0).action_({ |s| ~numTracks.do({ |i| ~humanizeTime[i] = s.value.linlin(0, 1, 0, 0.08); {~humTimeSliders[i].value = s.value}.defer; }); });
@@ -304,14 +307,10 @@ s.waitForBoot({
 	StaticText(masterCol, 140@12).string_("Amp").font_(Font(size:8));
 	Slider(masterCol, 140@15).value_(0.0).action_({ |s| ~numTracks.do({ |i| ~humanizeAmp[i] = s.value.linlin(0, 1, 0, 0.3); {~humAmpSliders[i].value = s.value}.defer; }); });
 
-	StaticText(masterCol, 140@50).string_(""); // Spacer
-
 	StaticText(masterCol, 140@20).string_("Peak / dB / Master").align_(\center).font_(Font(size:10));
 	hLayout = CompositeView(masterCol, 140@310);
 	hLayout.decorator = FlowLayout(hLayout.bounds, 0@0, 2@0);
-
 	peakMeter = LevelIndicator(hLayout, 20@305).warning_(0.8).critical_(0.95).background_(Color.black);
-
 	vRuler = CompositeView(hLayout, 40@305);
 	[3.5, 0, -6, -12, -24, -40, -60].do({ |db|
 		var yPos = ~dbSpec.unmap(db);
@@ -324,16 +323,15 @@ s.waitForBoot({
 
 	win.view.decorator.nextLine;
 
-	presetNameField = TextField(win, 150@40).string_("newPreset");
+	presetNameField = TextField(win, 150@40).string_(currentPresetName);
 	saveBtn = Button(win, 100@40).states_([["SAVE", Color.black, Color.yellow]]).action_({
-    var nameToSave = presetNameField.string;
+		var n = presetNameField.string.stripWhiteSpace;
+		if(n == "") { n = currentPresetName };
+		~saveSettings.value(n);
+		currentPresetName = n;
+		~updatePresetList.value;
+	});
 
-    if(nameToSave == "") { nameToSave = currentPresetName }; // Fallback to current
-
-    ~saveSettings.value(nameToSave);
-    currentPresetName = nameToSave; // Update our tracker
-    ~updatePresetList.value;
-});
 	presetMenu = PopUpMenu(win, 200@40).items_(["Scanning..."]);
 	loadBtn = Button(win, 100@40).states_([["LOAD", Color.black, Color.cyan]]).action_({ if(presetMenu.item != "No Presets Found") { ~loadSettings.value(presetMenu.item) }; });
 	refreshBtn = Button(win, 100@40).states_([["REFRESH", Color.white, Color.grey(0.3)]]).action_({ ~updatePresetList.value });
