@@ -258,8 +258,32 @@ s.waitForBoot({
 
 	win.view.decorator.nextLine;
 
-	bpmDisplay = NumberBox(win, 80@30).value_(~tempo.tempo * 60);
-	tempoSlid = Slider(win, 700@30).value_(~tempo.tempo.linlin(1, 3.3, 0, 1)).action_({ |s| var bpm = s.value.linlin(0, 1, 60, 200); ~tempo.tempo = bpm / 60; bpmDisplay.value = bpm; });
+	// - BUTTON
+	Button(win, 30@30).states_([["-", Color.black, Color.grey(0.8)]])
+		.action_({
+			var newBpm = (~tempo.tempo * 60) - 1;
+			~tempo.tempo = newBpm / 60;
+			bpmDisplay.value = newBpm;
+			tempoSlid.value = newBpm.linlin(60, 200, 0, 1);
+		}).canFocus_(false);
+
+	bpmDisplay = NumberBox(win, 60@30).value_(~tempo.tempo * 60);
+
+	// + BUTTON
+	Button(win, 30@30).states_([["+", Color.black, Color.grey(0.8)]])
+		.action_({
+			var newBpm = (~tempo.tempo * 60) + 1;
+			~tempo.tempo = newBpm / 60;
+			bpmDisplay.value = newBpm;
+			tempoSlid.value = newBpm.linlin(60, 200, 0, 1);
+		}).canFocus_(false);
+
+	tempoSlid = Slider(win, 660@30).value_(~tempo.tempo.linlin(1, 3.3, 0, 1))
+		.action_({ |s|
+			var bpm = s.value.linlin(0, 1, 60, 200);
+			~tempo.tempo = bpm / 60;
+			bpmDisplay.value = bpm;
+		}).canFocus_(false);
 
 	win.view.decorator.nextLine;
 
