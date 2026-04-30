@@ -13,7 +13,7 @@ s.waitForBoot({
 	var win, startBtn, tempoSlid, bpmDisplay, saveBtn, loadBtn,
 	presetNameField, presetMenu, refreshBtn, rhythmAndNames,
 	masterMuteBtn, masterCol, peakMeter, meterRoutine, hLayout, vRuler,
-	masterHumTime, masterHumPitch, masterHumAmp, humGroup,
+	masterHumTime, masterHumPitch, masterHumAmp, humGroup, woodImg,
 	currentPresetName = "newPreset";
 
 	~numTracks = 6;
@@ -245,7 +245,13 @@ s.waitForBoot({
 	// GUI
 	/////////////////////////////////////////////////////////////////
 
-	win = Window("RicaAfroca Sequencer Pro", Rect(50, 50, 1020, 920)).front;
+	// Load the wood texture
+	woodImg = Image.new(~projectPath ++ "images/wood-size.jpg");
+
+	win = Window("RicaAfroca Sequencer Wood", Rect(50, 50, 1020, 920)).front;
+
+	// Set the background to tile the image
+	win.view.backgroundImage_(woodImg, 10); // 10 = tile mode
 	win.view.decorator = FlowLayout(win.view.bounds, 15@15, 10@10);
 
 	win.view.keyDownAction_({ |view, char, modifiers, unicode, keycode|
