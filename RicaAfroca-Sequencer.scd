@@ -248,6 +248,12 @@ s.waitForBoot({
 	win = Window("RicaAfroca Sequencer Pro", Rect(50, 50, 1020, 920)).front;
 	win.view.decorator = FlowLayout(win.view.bounds, 15@15, 10@10);
 
+	win.view.keyDownAction_({ |view, char, modifiers, unicode, keycode|
+	if(keycode == 32) { // 32 is the code for Spacebar
+		startBtn.valueAction = 1 - startBtn.value;
+	};
+});
+
 	startBtn = Button(win, 800@40).states_([["START ALL", Color.black, Color.green], ["STOP ALL", Color.white, Color.red]]).action_({ |b| ~numTracks.do({ |i| if(b.value == 1) { Tdef(("chan"++i).asSymbol).play(~tempo) } { Tdef(("chan"++i).asSymbol).stop }; }); });
 
 	win.view.decorator.nextLine;
@@ -289,6 +295,16 @@ s.waitForBoot({
 
 		StaticText(humGroup, 40@15).string_("Amp").font_(Font(size:9));
 		~humAmpSliders[i] = Slider(humGroup, 55@15).value_(0.0).action_({ |s| ~humanizeAmp[i] = s.value.linlin(0, 1, 0, 0.3); });
+
+		~sampleMenus[i].canFocus_(false);
+		~muteButtons[i].canFocus_(false);
+		~rhythmMenus[i].canFocus_(false);
+		~varButtons[i].canFocus_(false);
+		~pitchSliders[i].canFocus_(false);
+		~volSliders[i].canFocus_(false);
+		~humTimeSliders[i].canFocus_(false);
+		~humPitchSliders[i].canFocus_(false);
+		~humAmpSliders[i].canFocus_(false);
 	});
 
 	masterCol = CompositeView(win, 150@700).background_(Color.grey(0.6));
@@ -335,6 +351,12 @@ s.waitForBoot({
 	presetMenu = PopUpMenu(win, 200@40).items_(["Scanning..."]);
 	loadBtn = Button(win, 100@40).states_([["LOAD", Color.black, Color.cyan]]).action_({ if(presetMenu.item != "No Presets Found") { ~loadSettings.value(presetMenu.item) }; });
 	refreshBtn = Button(win, 100@40).states_([["REFRESH", Color.white, Color.grey(0.3)]]).action_({ ~updatePresetList.value });
+
+	tempoSlid.canFocus_(false);
+	presetMenu.canFocus_(false);
+	loadBtn.canFocus_(false);
+	saveBtn.canFocus_(false);
+	refreshBtn.canFocus_(false);
 
 	~updatePresetList.value;
 	win.onClose = { meterRoutine.stop; ~numTracks.do({ |i| Tdef(("chan"++i).asSymbol).stop }) };
