@@ -186,6 +186,7 @@ s.waitForBoot({
 
 	~variations = [ [0.25, 0.25, 0.25, 0.25], [0.5, 0.5], [1/3, 1/3, 1/3], [0.75, 0.25], [1], [-1, -0.5, 0.25, 0.25, 0.5, 0.25, 0.25, 0.5, 0.5] ];
 
+
 	~numTracks.do({ |i|
 		Tdef( ("chan" ++ i).asSymbol, {
 			var step = 0;
@@ -388,6 +389,7 @@ s.waitForBoot({
 	loadBtn.canFocus_(false);
 	saveBtn.canFocus_(false);
 	refreshBtn.canFocus_(false);
+	masterMuteBtn.canFocus_(false);
 
 	~updatePresetList.value;
 	win.onClose = { meterRoutine.stop; ~numTracks.do({ |i| Tdef(("chan"++i).asSymbol).stop }) };
