@@ -200,20 +200,26 @@ s.waitForBoot({
 			var step = 0;
 			loop {
 				var currentPattern, delta, pbRate, jT, jP, jA;
-				if (step == 0 && ~varRequests[i]) {
-					var selectedVar;
+
+				// CHECK FOR VARIATION REQUEST
+				if (~varRequests[i]) {
+					// Wait until the exact start of the next 4-beat bar
+					var waitTime = ~tempo.beatsPerBar - (~tempo.beats % ~tempo.beatsPerBar);
+					waitTime.wait;
+
 					~varRequests[i] = false;
 					{ if(~varButtons[i].notNil) { ~varButtons[i].value = 0 } }.defer;
 
-					// Choose a random variation from this track's specific pool
-					selectedVar = ~variations.wrapAt(i).choose;
+					step = 0; // Reset step for normal rhythm after variation
 
-					selectedVar.do({ |vDelta|
+					// Choose and play a random variation from this track's pool
+					~variations.wrapAt(i).choose.do({ |vDelta|
 						if(vDelta > 0 && ~mutes[i].not) {
 							jT = ~humanizeTime[i].rand2;
 							jP = ~humanizePitch[i].rand2;
 							jA = ~humanizeAmp[i].rand2;
 							pbRate = (~pitches[i] + jP - 60).midiratio;
+
 							s.makeBundle(s.latency + jT, {
 								Synth(\liveChannel, [
 									\buf, ~samples[~sampleIndices[i].wrap(0, ~samples.size-1)],
@@ -226,15 +232,18 @@ s.waitForBoot({
 						};
 						vDelta.abs.wait;
 					});
-					step = 0; // Reset main loop step after variation
 				};
+
+				// NORMAL RHYTHM LOGIC
 				currentPattern = ~rhythms[i];
 				delta = currentPattern.wrapAt(step);
+
 				if(delta > 0 && ~mutes[i].not) {
 					jT = ~humanizeTime[i].rand2;
 					jP = ~humanizePitch[i].rand2;
 					jA = ~humanizeAmp[i].rand2;
 					pbRate = (~pitches[i] + jP - 60).midiratio;
+
 					s.makeBundle(s.latency + jT, {
 						Synth(\liveChannel, [
 							\buf, ~samples[~sampleIndices[i].wrap(0, ~samples.size-1)],
@@ -245,6 +254,7 @@ s.waitForBoot({
 						]);
 					});
 				};
+
 				step = step + 1;
 				if(step >= currentPattern.size) { step = 0 };
 				delta.abs.wait;
