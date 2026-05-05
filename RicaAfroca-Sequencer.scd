@@ -1,6 +1,6 @@
 /*
-RicaAfroca Sequencer - Pro Version 2.2
-Integrated dB Gain Staging for All Tracks
+RicaAfroca Sequencer - Pro Version 2.3
+Full Metering: Peak Meters on Every Track
 */
 
 (
@@ -26,7 +26,7 @@ s.waitForBoot({
 	~rhythms = Array.fill(~numTracks, { [0.5, 0.5] });
 	~mutes = Array.fill(~numTracks, { false });
 	~pitches = Array.fill(~numTracks, { 60 });
-	~volumes = Array.fill(~numTracks, { 0.7 }); // Stored as amplitude
+	~volumes = Array.fill(~numTracks, { 0.7 });
 	~sampleIndices = Array.fill(~numTracks, { |i| i });
 	~varRequests = Array.fill(~numTracks, { false });
 
@@ -40,13 +40,13 @@ s.waitForBoot({
 	~rhythmMenus = Array.newClear(~numTracks);
 	~pitchSliders = Array.newClear(~numTracks);
 	~volSliders = Array.newClear(~numTracks);
+	~trackMeters = Array.newClear(~numTracks); // NEW: Track Meters
 	~sampleMenus = Array.newClear(~numTracks);
 	~varButtons = Array.newClear(~numTracks);
 	~humTimeSliders = Array.newClear(~numTracks);
 	~humPitchSliders = Array.newClear(~numTracks);
 	~humAmpSliders = Array.newClear(~numTracks);
 
-	// Rhythm Library
 	rhythmAndNames = [
 		["Clave4/4", [0.75, 1, 0.7, 0.55, 1]],
 		["ClaveMatanzas", [0.75, 0.25, 0.75, 0.25, 0.5, 0.5, 1]],
@@ -67,7 +67,6 @@ s.waitForBoot({
 		["Quarters", [1, 1]]
 	];
 
-	// Paths
 	~projectPath = if(thisProcess.nowExecutingPath.notNil) { PathName(thisProcess.nowExecutingPath).pathOnly; } { Platform.userHomeDir +/+ "RicaAfroca/"; };
 	~samplePath = ~projectPath ++ "samples/";
 	~presetPath = ~projectPath ++ "sequences/";
@@ -126,7 +125,7 @@ s.waitForBoot({
 					~muteButtons[i].value = ~mutes[i].asInteger;
 					~sampleMenus[i].value = ~sampleIndices[i].wrap(0, ~sampleNames.size-1);
 					~pitchSliders[i].value = ~pitches[i].linlin(36, 72, 0, 1);
-					~volSliders[i].value = ~dbSpec.unmap(~volumes[i].ampdb); // Update DB slider
+					~volSliders[i].value = ~dbSpec.unmap(~volumes[i].ampdb);
 					~humTimeSliders[i].value = ~humanizeTime[i].linlin(0, 0.08, 0, 1);
 					~humPitchSliders[i].value = ~humanizePitch[i].linlin(0, 1.5, 0, 1);
 					~humAmpSliders[i].value = ~humanizeAmp[i].linlin(0, 0.3, 0, 1);
@@ -149,6 +148,7 @@ s.waitForBoot({
 	/////////////////////////////////////////////////////////////////
 
 	~peakBus = Bus.control(s, 1);
+	~trackPeakBuses = Array.fill(~numTracks, { Bus.control(s, 1) }); // Track Meters
 
 	SynthDef(\masterOut, {
 		arg amp=0.8;
@@ -160,11 +160,14 @@ s.waitForBoot({
 	}).add;
 
 	SynthDef(\liveChannel, {
-		arg out=0, buf=0, rate=1, amp=0.5, pan=0, rel=0.3;
+		arg out=0, buf=0, rate=1, amp=0.5, pan=0, rel=0.3, peakOut;
 		var sig, env;
 		env = EnvGen.kr(Env.perc(0.005, rel), 1, doneAction: 2);
 		sig = PlayBuf.ar(2, buf, BufRateScale.kr(buf) * rate, loop: 0);
-		OffsetOut.ar(out, Pan2.ar(sig * 0.8 * env * amp, pan));
+		sig = sig * 0.8 * env * amp;
+		// Send peak info to the track's specific control bus
+		Out.kr(peakOut, PeakFollower.kr(sig[0].abs.max(sig[1].abs), 0.999));
+		OffsetOut.ar(out, Pan2.ar(sig, pan));
 	}).add;
 
 	s.sync;
@@ -195,7 +198,8 @@ s.waitForBoot({
 									\buf, ~samples[~sampleIndices[i].wrap(0, ~samples.size-1)],
 									\rate, pbRate,
 									\amp, (~volumes[i] + jA).clip(0,2) * ~masterVol,
-									\rel, (vDelta.abs / ~tempo.tempo) * 0.8
+									\rel, (vDelta.abs / ~tempo.tempo) * 0.8,
+									\peakOut, ~trackPeakBuses[i]
 								]);
 							});
 						};
@@ -215,7 +219,8 @@ s.waitForBoot({
 							\buf, ~samples[~sampleIndices[i].wrap(0, ~samples.size-1)],
 							\rate, pbRate,
 							\amp, (~volumes[i] + jA).clip(0,2) * ~masterVol,
-							\rel, (delta.abs / ~tempo.tempo) * 0.8
+							\rel, (delta.abs / ~tempo.tempo) * 0.8,
+							\peakOut, ~trackPeakBuses[i]
 						]);
 					});
 				};
@@ -254,7 +259,7 @@ s.waitForBoot({
 		var comp = CompositeView(win, 115@700).background_(Color.grey(0.7));
 		comp.decorator = FlowLayout(comp.bounds, 5@5, 5@5);
 
-		StaticText(comp, 105@20).string_("TRACK " + (i + 1)).align_(\center).font_(Font(bold:true));
+		StaticText(comp, 105@20).string_("TRACK " + i).align_(\center).font_(Font(bold:true));
 		~sampleMenus[i] = PopUpMenu(comp, 105@25).items_(~sampleNames).action_({ |menu| ~sampleIndices[i] = menu.value });
 		~muteButtons[i] = Button(comp, 105@40).states_([["ON", Color.black, Color.green], ["MUTE", Color.white, Color.red]]).action_({ |b| ~mutes[i] = (b.value == 1) });
 		~rhythmMenus[i] = PopUpMenu(comp, 105@30).items_(rhythmAndNames.collect({ |item| item[0] })).action_({ |m| ~rhythms[i] = rhythmAndNames[m.value][1]; ~rhythmIndices[i] = m.value; });
@@ -263,19 +268,20 @@ s.waitForBoot({
 		StaticText(comp, 105@20).string_("Pitch").align_(\center);
 		~pitchSliders[i] = Slider(comp, 105@30).value_(0.5).action_({ |s| ~pitches[i] = s.value.linlin(0, 1, 36, 72).round; });
 
-		// --- DB VOLUME SECTION ---
 		StaticText(comp, 105@20).string_("Peak / dB").align_(\center).font_(Font(size:10));
 		hLayout = CompositeView(comp, 105@200);
 		hLayout.decorator = FlowLayout(hLayout.bounds, 0@0, 2@0);
 
-		vRuler = CompositeView(hLayout, 30@200);
+		// Track Meter
+		~trackMeters[i] = LevelIndicator(hLayout, 15@200).warning_(0.8).critical_(0.95).background_(Color.black);
+
+		vRuler = CompositeView(hLayout, 25@200);
 		[3.5, 0, -12, -24, -40, -60].do({ |db|
 			var yPos = ~dbSpec.unmap(db);
-			StaticText(vRuler, Rect(0, (1 - yPos) * 180, 30, 20)).string_(db.asString).font_(Font(size: 8)).align_(\right).stringColor_(if(db > 0) { Color.red } { Color.white });
+			StaticText(vRuler, Rect(0, (1 - yPos) * 180, 25, 20)).string_(db.asString).font_(Font(size: 7)).align_(\right).stringColor_(if(db > 0) { Color.red } { Color.white });
 		});
 
-		~volSliders[i] = Slider(hLayout, 60@200).value_(~dbSpec.unmap(0.7.ampdb)).action_({ |s| ~volumes[i] = ~dbSpec.map(s.value).dbamp; });
-		// -------------------------
+		~volSliders[i] = Slider(hLayout, 55@200).value_(~dbSpec.unmap(0.7.ampdb)).action_({ |s| ~volumes[i] = ~dbSpec.map(s.value).dbamp; });
 
 		humGroup = CompositeView(comp, 105@140).background_(Color.grey(0.6));
 		humGroup.decorator = FlowLayout(humGroup.bounds, 2@2, 2@2);
@@ -294,7 +300,6 @@ s.waitForBoot({
 	masterCol.decorator = FlowLayout(masterCol.bounds, 5@5, 5@5);
 	StaticText(masterCol, 140@20).string_("MASTER").align_(\center).font_(Font(bold:true));
 	masterMuteBtn = Button(masterCol, 140@40).states_([["MUTE ALL", Color.black, Color.yellow], ["UNMUTE ALL", Color.white, Color.red]]).action_({ |b| ~numTracks.do({ |i| ~muteButtons[i].valueAction_(b.value); }); });
-	StaticText(masterCol, 140@20).string_("");
 	StaticText(masterCol, 140@15).string_("GLOBAL HUMAN").align_(\center).font_(Font(size:9, bold:true));
 	StaticText(masterCol, 140@12).string_("Time").font_(Font(size:8));
 	Slider(masterCol, 140@15).value_(0.0).action_({ |s| ~numTracks.do({ |i| ~humanizeTime[i] = s.value.linlin(0, 1, 0, 0.08); {~humTimeSliders[i].value = s.value}.defer; }); });
@@ -313,7 +318,16 @@ s.waitForBoot({
 	});
 	Slider(hLayout, 70@305).value_(~dbSpec.unmap(0)).action_({ |s| var db = ~dbSpec.map(s.value); ~masterVol = db.dbamp; });
 
-	meterRoutine = { loop { ~peakBus.get({ |val| { peakMeter.value = val; }.defer; }); 0.05.wait; } }.fork(AppClock);
+	// Updated Meter Routine to handle track meters too
+	meterRoutine = {
+		loop {
+			~peakBus.get({ |val| { peakMeter.value = val; }.defer; });
+			~numTracks.do({ |i|
+				~trackPeakBuses[i].get({ |val| { ~trackMeters[i].value = val; }.defer; });
+			});
+			0.05.wait;
+		}
+	}.fork(AppClock);
 
 	win.view.decorator.nextLine;
 	presetNameField = TextField(win, 150@40).string_(currentPresetName);
