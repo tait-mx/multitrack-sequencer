@@ -196,71 +196,71 @@ s.waitForBoot({
 ];
 
 	~numTracks.do({ |i|
-		Tdef( ("chan" ++ i).asSymbol, {
-			var step = 0;
-			loop {
-				var currentPattern, delta, pbRate, jT, jP, jA;
+	Tdef( ("chan" ++ i).asSymbol, {
+		var step = 0;
+		loop {
+			var currentPattern, delta, pbRate, jT, jP, jA;
 
-				// CHECK FOR VARIATION REQUEST
-				if (~varRequests[i]) {
-					// Wait until the exact start of the next 4-beat bar
-					var waitTime = ~tempo.beatsPerBar - (~tempo.beats % ~tempo.beatsPerBar);
-					waitTime.wait;
+			// NORMAL RHYTHM LOGIC
+			currentPattern = ~rhythms[i];
+			delta = currentPattern.wrapAt(step);
 
-					~varRequests[i] = false;
-					{ if(~varButtons[i].notNil) { ~varButtons[i].value = 0 } }.defer;
+			// SEAMLESS CHECK: If a variation is queued AND we are at the start of a bar
+			// we pivot to the variation immediately instead of playing the normal note.
+			if (~varRequests[i] && ((~tempo.beats % 4) < 0.01)) {
+				~varRequests[i] = false;
+				{ if(~varButtons[i].notNil) { ~varButtons[i].value = 0 } }.defer;
 
-					step = 0; // Reset step for normal rhythm after variation
+				step = 0; // Reset normal rhythm index for after the variation
 
-					// Choose and play a random variation from this track's pool
-					~variations.wrapAt(i).choose.do({ |vDelta|
-						if(vDelta > 0 && ~mutes[i].not) {
-							jT = ~humanizeTime[i].rand2;
-							jP = ~humanizePitch[i].rand2;
-							jA = ~humanizeAmp[i].rand2;
-							pbRate = (~pitches[i] + jP - 60).midiratio;
+				~variations.wrapAt(i).choose.do({ |vDelta|
+					if(vDelta > 0 && ~mutes[i].not) {
+						jT = ~humanizeTime[i].rand2;
+						jP = ~humanizePitch[i].rand2;
+						jA = ~humanizeAmp[i].rand2;
+						pbRate = (~pitches[i] + jP - 60).midiratio;
 
-							s.makeBundle(s.latency + jT, {
-								Synth(\liveChannel, [
-									\buf, ~samples[~sampleIndices[i].wrap(0, ~samples.size-1)],
-									\rate, pbRate,
-									\amp, (~volumes[i] + jA).clip(0,2) * ~masterVol,
-									\rel, (vDelta.abs / ~tempo.tempo) * 0.8,
-									\peakOut, ~trackPeakBuses[i]
-								]);
-							});
-						};
-						vDelta.abs.wait;
-					});
-				};
+						s.makeBundle(s.latency + jT, {
+							Synth(\liveChannel, [
+								\buf, ~samples[~sampleIndices[i].wrap(0, ~samples.size-1)],
+								\rate, pbRate,
+								\amp, (~volumes[i] + jA).clip(0,2) * ~masterVol,
+								\rel, (vDelta.abs / ~tempo.tempo) * 0.8,
+								\peakOut, ~trackPeakBuses[i]
+							]);
+						});
+					};
+					vDelta.abs.wait;
+				});
 
-				// NORMAL RHYTHM LOGIC
-				currentPattern = ~rhythms[i];
+				// After variation finishes, we "re-sync" to the loop
 				delta = currentPattern.wrapAt(step);
+			};
 
-				if(delta > 0 && ~mutes[i].not) {
-					jT = ~humanizeTime[i].rand2;
-					jP = ~humanizePitch[i].rand2;
-					jA = ~humanizeAmp[i].rand2;
-					pbRate = (~pitches[i] + jP - 60).midiratio;
+			// PLAY NORMAL NOTE
+			if(delta > 0 && ~mutes[i].not) {
+				jT = ~humanizeTime[i].rand2;
+				jP = ~humanizePitch[i].rand2;
+				jA = ~humanizeAmp[i].rand2;
+				pbRate = (~pitches[i] + jP - 60).midiratio;
 
-					s.makeBundle(s.latency + jT, {
-						Synth(\liveChannel, [
-							\buf, ~samples[~sampleIndices[i].wrap(0, ~samples.size-1)],
-							\rate, pbRate,
-							\amp, (~volumes[i] + jA).clip(0,2) * ~masterVol,
-							\rel, (delta.abs / ~tempo.tempo) * 0.8,
-							\peakOut, ~trackPeakBuses[i]
-						]);
-					});
-				};
+				s.makeBundle(s.latency + jT, {
+					Synth(\liveChannel, [
+						\buf, ~samples[~sampleIndices[i].wrap(0, ~samples.size-1)],
+						\rate, pbRate,
+						\amp, (~volumes[i] + jA).clip(0,2) * ~masterVol,
+						\rel, (delta.abs / ~tempo.tempo) * 0.8,
+						\peakOut, ~trackPeakBuses[i]
+					]);
+				});
+			};
 
-				step = step + 1;
-				if(step >= currentPattern.size) { step = 0 };
-				delta.abs.wait;
-			}
-		}).quant = 4;
-	});
+			step = step + 1;
+			if(step >= currentPattern.size) { step = 0 };
+			delta.abs.wait;
+		}
+	}).quant = 4;
+});
 
 	/////////////////////////////////////////////////////////////////
 	// GUI
@@ -350,11 +350,24 @@ s.waitForBoot({
 	Slider(hLayout, 70@305).value_(~dbSpec.unmap(0)).action_({ |s| var db = ~dbSpec.map(s.value); ~masterVol = db.dbamp; });
 
 	// Updated Meter Routine to handle track meters too
+	// Updated Meter Routine with Safety Checks
 	meterRoutine = {
 		loop {
-			~peakBus.get({ |val| { peakMeter.value = val; }.defer; });
+			// Update Master Meter
+			~peakBus.get({ |val|
+				{ if(peakMeter.notNil) { peakMeter.value = val } }.defer;
+			});
+
+			// Update Track Meters
 			~numTracks.do({ |i|
-				~trackPeakBuses[i].get({ |val| { ~trackMeters[i].value = val; }.defer; });
+				~trackPeakBuses[i].get({ |val|
+					{
+						// The safety check: only call .value if the meter exists
+						if(~trackMeters[i].notNil) {
+							~trackMeters[i].value = val;
+						};
+					}.defer;
+				});
 			});
 			0.05.wait;
 		}
