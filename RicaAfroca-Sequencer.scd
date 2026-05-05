@@ -177,7 +177,23 @@ s.waitForBoot({
 	// ENGINE
 	/////////////////////////////////////////////////////////////////
 
-	~variations = [ [0.25, 0.25, 0.25, 0.25], [0.5, 0.5], [1/3, 1/3, 1/3], [0.75, 0.25], [1], [-1, -0.5, 0.25, 0.25, 0.5, 0.25, 0.25, 0.5, 0.5] ];
+	// Each track (0-5) now has its own unique pool of variation patterns
+~variations = [
+	// Track 1 Variations
+	[ [0.25, 0.25, 0.25, 0.25], [0.125, 0.125, 0.75], [0.5, 0.5] ],
+	// Track 2 Variations
+	[ [1/3, 1/3, 1/3], [0.25, 0.5, 0.25], [1] ],
+	// Track 3 Variations
+	[ [0.75, 0.25], [0.25, 0.25, 0.5], [0.5, 0.25, 0.25] ],
+	// Track 4 Variations
+	[ [0.125, 0.125, 0.125, 0.125, 0.5], [0.25, 0.75] ],
+	// Track 5 Variations
+	[ [1, 1], [0.5, 0.5, 1], [0.33, 0.33, 0.34, 1] ],
+	// Track 6 Variations
+	[  [-1, -0.5, 0.25, 0.25, 0.5, 0.25, 0.25, 0.5, 0.5],
+	   [-1, -0.5, 0.5, -1, -0.25, 0.5, 0.25,   1, -0.5, 0.5],
+	   [-1, -0.5, 0.5, -1, -0.25, 0.25, 0.25, 0.25,   1, -0.5, 0.5, -1, -0.5, 0.5] ]
+];
 
 	~numTracks.do({ |i|
 		Tdef( ("chan" ++ i).asSymbol, {
@@ -185,9 +201,14 @@ s.waitForBoot({
 			loop {
 				var currentPattern, delta, pbRate, jT, jP, jA;
 				if (step == 0 && ~varRequests[i]) {
+					var selectedVar;
 					~varRequests[i] = false;
 					{ if(~varButtons[i].notNil) { ~varButtons[i].value = 0 } }.defer;
-					~variations.wrapAt(i).do({ |vDelta|
+
+					// Choose a random variation from this track's specific pool
+					selectedVar = ~variations.wrapAt(i).choose;
+
+					selectedVar.do({ |vDelta|
 						if(vDelta > 0 && ~mutes[i].not) {
 							jT = ~humanizeTime[i].rand2;
 							jP = ~humanizePitch[i].rand2;
@@ -205,7 +226,7 @@ s.waitForBoot({
 						};
 						vDelta.abs.wait;
 					});
-					step = 0;
+					step = 0; // Reset main loop step after variation
 				};
 				currentPattern = ~rhythms[i];
 				delta = currentPattern.wrapAt(step);
