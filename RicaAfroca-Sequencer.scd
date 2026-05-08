@@ -48,20 +48,20 @@ s.waitForBoot({
 	~humAmpSliders = Array.newClear(~numTracks);
 
 	rhythmAndNames = [
-		["Clave4/4", [[0.75,0,1], [1,0,1], [0.7,0,1], [0.55,0,1], [1,0,1]]],
-		["ClaveMatanzas", [[0.75,0,1], [0.25,0,1], [0.75,0,1], [0.25,0,1], [0.5,0,1], [0.5,0,1], [1,0,1]]],
-		["Clave6/8", [[2/3,0,1], [3/3,0,1], [2/3,0,1], [2/3,0,1], [3/3,0,1]]],
-		["ClaveAfricana", [[2/3,0,1], [2/3,0,1], [1/3,0,1], [2/3,0,1], [2/3,0,1], [2/3,0,1], [1/3,0,1]]],
+		["Clave4/4", [[0.75,2,1], [1,2,1], [0.7,2,1], [0.55,2,1], [1,2,1]]],
+		["ClaveMatanzas", [[0.75,2,1], [0.25,2,1], [0.75,2,1], [0.25,2,1], [0.5,2,1], [0.5,2,1], [1,2,1]]],
+		["Clave6/8", [[2/3,4,1], [3/3,4,1], [2/3,4,1], [2/3,4,1], [3/3,4,1]]],
+		["ClaveAfricana", [[2/3,4,1], [2/3,4,1], [1/3,4,1], [2/3,4,1], [2/3,4,1], [2/3,0,1], [1/3,0,1]]],
 		["Cascara1", [[0.25,0,1], [0.5,0,1], [0.25,0,1], [0.25,0,1], [0.5,0,1], [0.25,0,1], [0.5,0,1], [0.5,0,1], [0.25,0,1], [0.5,0,1], [0.25,0,1]]],
 		["Cascara2", [[0.5,0,1], [0.25,0,1], [0.5,0,1], [0.5,0,1], [0.25,0,1], [0.5,0,1], [0.5,0,1], [0.25,0,1], [0.25,0,1], [0.25,0,1], [0.25,0,1]]],
 		["cascara Yuka", [[2/3,0,1], [2/3,0,1], [2/3,0,1], [1/3,0,1], [1/3,0,1], [4/3,0,1]]],
 		["cascara2 Yuka", [[2/3,0,1], [2/3,0,1], [2/3,0,1], [6/3,0,1]]],
-		["Golpe", [[-1,0,1], [-0.5,0,1], [0.5,0,1], [-1,0,1], [-0.5,0,1], [0.5,0,1]]],
-		["GolpeCol", [[-3/3,0,1], [-1/3,0,1], [1/3,0,1], [1/3,0,1], [-3/3,0,1], [-1/3,0,1], [1/3,0,1], [1/3,0,1]]],
-		["Yuka Llamador", [[-1,0,1], [-0.5,0,1], [0.5,0,1]]],
-		["Yuka Golpe", [[-1,0,1], [1,0,1]]],
-		["ShekereT", [[2,0,1]]],
-		["ShekereA", [[-1.75,0,1], [0.25,0,1]]],
+		["Golpe", [[1,1,0.5], [0.5,1,0.5], [0.5,3,1], [1,1,0.5], [0.5,1,0.5], [0.5,3,1]]],
+		["GolpeCol", [[2/3,1,0.5], [1/3,9,1],  [1/3,1,0.5], [1/3,3,1], [1/3,3,1], [2/3,1,0.5], [1/3,9,1], [1/3,1,0.5], [1/3,3,1], [1/3,3,1]]],
+		["Yuka Llamador", [[-1,0,1], [-0.5,0,1], [0.5,3,1]]],
+		["Yuka Golpe", [[-1,0,1], [1,3,1]]],
+		["ShekereT", [[1.75,7,1], [0.25,8,1]]],
+		// ["ShekereA", [[-1.75,0,1], [0.25,0,1]]],
 		["16ths", [[0.25,0,1]]],
 		["8ths", [[0.5,0,1]]],
 		["Quarters", [[1,0,1], [1,0,1]]]
@@ -213,82 +213,73 @@ s.waitForBoot({
 	];
 
 	~numTracks.do({ |i|
-		Tdef( ("chan" ++ i).asSymbol, {
-			var step = 0;
-			loop {
-				var currentEvent, delta, bufOff, hitAmp, pbRate, jT, jP, jA;
+	Tdef( ("chan" ++ i).asSymbol, {
+		var step = 0;
+		loop {
+			var currentEvent, delta, bufOff, hitAmp, pbRate, jT, jP, jA;
 
-				// 1. EXTRACT DATA FROM NORMAL RHYTHM
+			// 1. DATA REFRESH
+			currentEvent = ~rhythms[i].wrapAt(step);
+			delta  = currentEvent[0];
+			bufOff = currentEvent[1]; // Should be 1 or 3 in your Golpe example
+			hitAmp = currentEvent[2];
+
+			// 2. VARIATION LOGIC
+			if (~varRequests[i] && ((~tempo.beats % 4) < 0.01)) {
+				~varRequests[i] = false;
+				{ if(~varButtons[i].notNil) { ~varButtons[i].value = 0 } }.defer;
+				step = 0;
+
+				~variations.wrapAt(i).choose.do({ |vEvent|
+					// Localize variation variables strictly
+					var vDelta = vEvent[0];
+					var vBuf   = vEvent[1];
+					var vAmp   = vEvent[2];
+
+					if(vDelta > 0 && ~mutes[i].not) {
+						pbRate = (~pitches[i] + ~humanizePitch[i].rand2 - 60).midiratio;
+						s.makeBundle(s.latency + ~humanizeTime[i].rand2, {
+							Synth(\liveChannel, [
+								\buf, ~samples[vBuf.asInteger.wrap(0, ~samples.size-1)],
+								\rate, pbRate,
+								\amp, (vAmp * ~volumes[i] + ~humanizeAmp[i].rand2).clip(0,2) * ~masterVol,
+								\rel, (vDelta.abs / ~tempo.tempo) * 0.8,
+								\peakOut, ~trackPeakBuses[i]
+							]);
+						});
+					};
+					vDelta.abs.wait;
+				});
+
+				// Re-sync after variation
 				currentEvent = ~rhythms[i].wrapAt(step);
-				delta  = currentEvent[0];
-				bufOff = currentEvent[1];
-				hitAmp = currentEvent[2];
+				delta = currentEvent[0]; bufOff = currentEvent[1]; hitAmp = currentEvent[2];
+			};
 
-				// 2. SEAMLESS VARIATION CHECK (Bar Sync)
-				if (~varRequests[i] && ((~tempo.beats % 4) < 0.01)) {
-					~varRequests[i] = false;
-					{ if(~varButtons[i].notNil) { ~varButtons[i].value = 0 } }.defer;
+			// 3. NORMAL NOTE LOGIC
+			if(delta > 0 && ~mutes[i].not) {
+				pbRate = (~pitches[i] + ~humanizePitch[i].rand2 - 60).midiratio;
 
-					step = 0; // Reset normal rhythm index for after the variation
+				s.makeBundle(s.latency + ~humanizeTime[i].rand2, {
+					// DEBUG LINE: Uncomment the next line to see indices in the Post Window
+					// ["Track: " + i, "Playing Index: " + bufOff].postln;
 
-					// Iterate through the chosen variation pattern
-					~variations.wrapAt(i).choose.do({ |vEvent|
-						var vDelta = vEvent[0];
-						var vBuf   = vEvent[1];
-						var vAmp   = vEvent[2];
+					Synth(\liveChannel, [
+						\buf, ~samples[bufOff.asInteger.wrap(0, ~samples.size-1)],
+						\rate, pbRate,
+						\amp, (hitAmp * ~volumes[i] + ~humanizeAmp[i].rand2).clip(0,2) * ~masterVol,
+						\rel, (delta.abs / ~tempo.tempo) * 0.8,
+						\peakOut, ~trackPeakBuses[i]
+					]);
+				});
+			};
 
-						if(vDelta > 0 && ~mutes[i].not) {
-							jT = ~humanizeTime[i].rand2;
-							jP = ~humanizePitch[i].rand2;
-							jA = ~humanizeAmp[i].rand2;
-							pbRate = (~pitches[i] + jP - 60).midiratio;
-
-							s.makeBundle(s.latency + jT, {
-								Synth(\liveChannel, [
-									// Base sample + variation offset
-									\buf, ~samples[(~sampleIndices[i] + vBuf).wrap(0, ~samples.size-1)],
-									\rate, pbRate,
-									\amp, (vAmp * ~volumes[i] + jA).clip(0,2) * ~masterVol,
-									\rel, (vDelta.abs / ~tempo.tempo) * 0.8,
-									\peakOut, ~trackPeakBuses[i]
-								]);
-							});
-						};
-						vDelta.abs.wait;
-					});
-
-					// Re-pull data for the "Normal Note" after variation finishes
-					currentEvent = ~rhythms[i].wrapAt(step);
-					delta  = currentEvent[0];
-					bufOff = currentEvent[1];
-					hitAmp = currentEvent[2];
-				};
-
-				// 3. PLAY NORMAL NOTE
-				if(delta > 0 && ~mutes[i].not) {
-					jT = ~humanizeTime[i].rand2;
-					jP = ~humanizePitch[i].rand2;
-					jA = ~humanizeAmp[i].rand2;
-					pbRate = (~pitches[i] + jP - 60).midiratio;
-
-					s.makeBundle(s.latency + jT, {
-						Synth(\liveChannel, [
-							// Base sample + pattern offset
-							\buf, ~samples[(~sampleIndices[i] + bufOff).wrap(0, ~samples.size-1)],
-							\rate, pbRate,
-							\amp, (hitAmp * ~volumes[i] + jA).clip(0,2) * ~masterVol,
-							\rel, (delta.abs / ~tempo.tempo) * 0.8,
-							\peakOut, ~trackPeakBuses[i]
-						]);
-					});
-				};
-
-				step = step + 1;
-				if(step >= ~rhythms[i].size) { step = 0 };
-				delta.abs.wait;
-			}
-		}).quant = 4;
-	});
+			step = step + 1;
+			if(step >= ~rhythms[i].size) { step = 0 };
+			delta.abs.wait;
+		}
+	}).quant = 4;
+});
 
 	/////////////////////////////////////////////////////////////////
 	// GUI

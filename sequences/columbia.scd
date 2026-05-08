@@ -7,7 +7,8 @@ o = [
 	Array.prNew(3),  Array.prNew(3),  Array.prNew(3),  Array.prNew(3),  
 	Array.prNew(3),  Array.prNew(3),  Array.prNew(3),  Array.prNew(3),  
 	Array.prNew(3),  Array.prNew(2),  Array.prNew(3),  Array.prNew(3),  
-	Array.prNew(2),  Array.prNew(3),  Array.prNew(3),  Array.prNew(6),  
+	Array.prNew(2),  Array.prNew(3),  Array.prNew(3),  Array.prNew(10),  
+	Array.prNew(3),  Array.prNew(3),  Array.prNew(3),  Array.prNew(3),  
 	Array.prNew(3),  Array.prNew(3),  Array.prNew(3),  Array.prNew(3),  
 	Array.prNew(3),  Array.prNew(3),  Array.prNew(6),  Array.prNew(6),  
 	Array.prNew(6),  Array.prNew(6),  Array.prNew(6),  Array.prNew(6),  
@@ -22,14 +23,14 @@ p = [
 		nil,  nil,  nil,  nil,  
 		nil,  nil,  'mutes',  o[2],  
 		'rhythms',  o[3],  nil,  nil,  
-		'bpm',  120.0,  'indices',  o[38],  
-		nil,  nil,  'humAmp',  o[39],  
+		'bpm',  120.0,  'indices',  o[42],  
+		nil,  nil,  'humAmp',  o[43],  
 		nil,  nil,  nil,  nil,  
-		'pitches',  o[40],  'humTime',  o[41],  
-		nil,  nil,  'volumes',  o[42],  
+		'pitches',  o[44],  'humTime',  o[45],  
+		nil,  nil,  'volumes',  o[46],  
 		nil,  nil,  nil,  nil,  
-		'humPitch',  o[43],  nil,  nil,  
-		nil,  nil,  'sampleIndices',  o[44],  
+		'humPitch',  o[47],  nil,  nil,  
+		nil,  nil,  'sampleIndices',  o[48],  
 		nil,  nil,  nil,  nil,  
 		nil,  nil,  nil,  nil,  
 		nil,  nil,  nil,  nil ],  
@@ -43,15 +44,15 @@ p = [
 	4, [ o[5],  o[6],  o[7],  o[8],  
 		o[9] ],  
 	// Array
-	5, [ 0.75,  2,  1 ],  
+	5, [ 0.66666666666667,  4,  1 ],  
 	// Array
-	6, [ 1,  2,  1 ],  
+	6, [ 1.0,  4,  1 ],  
 	// Array
-	7, [ 0.7,  2,  1 ],  
+	7, [ 0.66666666666667,  4,  1 ],  
 	// Array
-	8, [ 0.55,  2,  1 ],  
+	8, [ 0.66666666666667,  4,  1 ],  
 	// Array
-	9, [ 1,  2,  1 ],  
+	9, [ 1.0,  4,  1 ],  
 	// Array
 	10, [ o[11],  o[12] ],  
 	// Array
@@ -63,25 +64,25 @@ p = [
 		o[18],  o[19],  o[20],  o[21],  
 		o[22],  o[23],  o[24] ],  
 	// Array
-	14, [ 0.25,  0,  1 ],  
+	14, [ 0.5,  0,  1 ],  
 	// Array
-	15, [ 0.5,  0,  1 ],  
+	15, [ 0.25,  0,  1 ],  
 	// Array
-	16, [ 0.25,  0,  1 ],  
+	16, [ 0.5,  0,  1 ],  
 	// Array
-	17, [ 0.25,  0,  1 ],  
+	17, [ 0.5,  0,  1 ],  
 	// Array
-	18, [ 0.5,  0,  1 ],  
+	18, [ 0.25,  0,  1 ],  
 	// Array
-	19, [ 0.25,  0,  1 ],  
+	19, [ 0.5,  0,  1 ],  
 	// Array
 	20, [ 0.5,  0,  1 ],  
 	// Array
-	21, [ 0.5,  0,  1 ],  
+	21, [ 0.25,  0,  1 ],  
 	// Array
 	22, [ 0.25,  0,  1 ],  
 	// Array
-	23, [ 0.5,  0,  1 ],  
+	23, [ 0.25,  0,  1 ],  
 	// Array
 	24, [ 0.25,  0,  1 ],  
 	// Array
@@ -98,39 +99,48 @@ p = [
 	30, [ 0.25,  8,  1 ],  
 	// Array
 	31, [ o[32],  o[33],  o[34],  o[35],  
-		o[36],  o[37] ],  
+		o[36],  o[37],  o[38],  o[39],  
+		o[40],  o[41] ],  
 	// Array
-	32, [ 1,  1,  0.5 ],  
+	32, [ 0.66666666666667,  1,  1 ],  
 	// Array
-	33, [ 0.5,  1,  0.5 ],  
+	33, [ 0.33333333333333,  9,  1 ],  
 	// Array
-	34, [ 0.5,  3,  1 ],  
+	34, [ 0.33333333333333,  1,  1 ],  
 	// Array
-	35, [ 1,  1,  0.5 ],  
+	35, [ 0.33333333333333,  3,  1 ],  
 	// Array
-	36, [ 0.5,  1,  0.5 ],  
+	36, [ 0.33333333333333,  3,  1 ],  
 	// Array
-	37, [ 0.5,  3,  1 ],  
+	37, [ 0.66666666666667,  1,  1 ],  
 	// Array
-	38, [ 0,  0,  4,  0,  
-		12,  8 ],  
+	38, [ 0.33333333333333,  9,  1 ],  
 	// Array
-	39, [ 0.0,  0.0,  0.0,  0.0,  
-		0.0,  0.0 ],  
+	39, [ 0.33333333333333,  1,  1 ],  
 	// Array
-	40, [ 60,  60,  60,  60,  
-		60,  58.0 ],  
+	40, [ 0.33333333333333,  3,  1 ],  
 	// Array
-	41, [ 0.0,  0.0,  0.0,  0.0,  
-		0.0,  0.0 ],  
+	41, [ 0.33333333333333,  3,  1 ],  
 	// Array
-	42, [ 0.7,  0.7,  0.7,  0.7,  
-		0.7,  0.7 ],  
+	42, [ 2,  0,  5,  0,  
+		12,  9 ],  
 	// Array
 	43, [ 0.0,  0.0,  0.0,  0.0,  
 		0.0,  0.0 ],  
 	// Array
-	44, [ 0,  1,  2,  3,  
+	44, [ 60,  60,  60,  60,  
+		60,  60.0 ],  
+	// Array
+	45, [ 0.0,  0.0,  0.0,  0.0,  
+		0.0,  0.0 ],  
+	// Array
+	46, [ 0.7,  0.71496983465007,  1.1642389751001,  0.7,  
+		0.7,  0.7 ],  
+	// Array
+	47, [ 0.0,  0.0,  0.0,  0.0,  
+		0.0,  0.0 ],  
+	// Array
+	48, [ 0,  1,  2,  3,  
 		4,  5 ]
 ];
 prUnarchive(o,p);
