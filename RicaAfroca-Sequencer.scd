@@ -23,7 +23,7 @@ s.waitForBoot({
 
 	// Logic arrays
 	~rhythmIndices = Array.fill(~numTracks, { 0 });
-	~rhythms = Array.fill(~numTracks, { [0.5, 0.5] });
+	~rhythms = Array.fill(~numTracks, { [[0.5, 0, 1], [0.5, 0, 1]] });
 	~mutes = Array.fill(~numTracks, { false });
 	~pitches = Array.fill(~numTracks, { 60 });
 	~volumes = Array.fill(~numTracks, { 0.7 });
@@ -48,23 +48,23 @@ s.waitForBoot({
 	~humAmpSliders = Array.newClear(~numTracks);
 
 	rhythmAndNames = [
-		["Clave4/4", [0.75, 1, 0.7, 0.55, 1]],
-		["ClaveMatanzas", [0.75, 0.25, 0.75, 0.25, 0.5, 0.5, 1]],
-		["Clave6/8", [2, 3, 2, 2, 3]/3],
-		["ClaveAfricana", [2, 2, 1, 2, 2, 2, 1]/3],
-		["Cascara1", [0.25, 0.5, 0.25, 0.25, 0.5, 0.25, 0.5, 0.5, 0.25, 0.5, 0.25]],
-		["Cascara2", [0.5, 0.25, 0.5, 0.5, 0.25, 0.5, 0.5, 0.25, 0.25, 0.25, 0.25]],
-		["cascara Yuka", [2, 2, 2, 1, 1, 4]/3],
-		["cascara2 Yuka", [2, 2, 2, 6]/3],
-		["Golpe", [-1, -0.5, 0.5, -1, -0.5, 0.5]],
-		["GolpeCol", [-3, -1, 1, 1, -3, -1, 1, 1]/3],
-		["Yuka Llamador", [-1, -0.5, 0.5]],
-		["Yuka Golpe", [-1, 1]],
-		["ShekereT", [2]],
-		["ShekereA", [-1.75, 0.25]],
-		["16ths", [0.25]],
-		["8ths", [0.5]],
-		["Quarters", [1, 1]]
+		["Clave4/4", [[0.75,0,1], [1,0,1], [0.7,0,1], [0.55,0,1], [1,0,1]]],
+		["ClaveMatanzas", [[0.75,0,1], [0.25,0,1], [0.75,0,1], [0.25,0,1], [0.5,0,1], [0.5,0,1], [1,0,1]]],
+		["Clave6/8", [[2/3,0,1], [3/3,0,1], [2/3,0,1], [2/3,0,1], [3/3,0,1]]],
+		["ClaveAfricana", [[2/3,0,1], [2/3,0,1], [1/3,0,1], [2/3,0,1], [2/3,0,1], [2/3,0,1], [1/3,0,1]]],
+		["Cascara1", [[0.25,0,1], [0.5,0,1], [0.25,0,1], [0.25,0,1], [0.5,0,1], [0.25,0,1], [0.5,0,1], [0.5,0,1], [0.25,0,1], [0.5,0,1], [0.25,0,1]]],
+		["Cascara2", [[0.5,0,1], [0.25,0,1], [0.5,0,1], [0.5,0,1], [0.25,0,1], [0.5,0,1], [0.5,0,1], [0.25,0,1], [0.25,0,1], [0.25,0,1], [0.25,0,1]]],
+		["cascara Yuka", [[2/3,0,1], [2/3,0,1], [2/3,0,1], [1/3,0,1], [1/3,0,1], [4/3,0,1]]],
+		["cascara2 Yuka", [[2/3,0,1], [2/3,0,1], [2/3,0,1], [6/3,0,1]]],
+		["Golpe", [[-1,0,1], [-0.5,0,1], [0.5,0,1], [-1,0,1], [-0.5,0,1], [0.5,0,1]]],
+		["GolpeCol", [[-3/3,0,1], [-1/3,0,1], [1/3,0,1], [1/3,0,1], [-3/3,0,1], [-1/3,0,1], [1/3,0,1], [1/3,0,1]]],
+		["Yuka Llamador", [[-1,0,1], [-0.5,0,1], [0.5,0,1]]],
+		["Yuka Golpe", [[-1,0,1], [1,0,1]]],
+		["ShekereT", [[2,0,1]]],
+		["ShekereA", [[-1.75,0,1], [0.25,0,1]]],
+		["16ths", [[0.25,0,1]]],
+		["8ths", [[0.5,0,1]]],
+		["Quarters", [[1,0,1], [1,0,1]]]
 	];
 
 	~projectPath = if(thisProcess.nowExecutingPath.notNil) { PathName(thisProcess.nowExecutingPath).pathOnly; } { Platform.userHomeDir +/+ "RicaAfroca/"; };
@@ -174,93 +174,121 @@ s.waitForBoot({
 	Synth(\masterOut, [\amp, ~masterVol], addAction: \addAfter);
 
 	/////////////////////////////////////////////////////////////////
-	// ENGINE
+	// ENGINE (3D EVENT VERSION)
 	/////////////////////////////////////////////////////////////////
 
-	// Each track (0-5) now has its own unique pool of variation patterns
-~variations = [
-	// Track 1 Variations
-	[ [0.25, 0.25, 0.25, 0.25], [0.125, 0.125, 0.75], [0.5, 0.5] ],
-	// Track 2 Variations
-	[ [1/3, 1/3, 1/3], [0.25, 0.5, 0.25], [1] ],
-	// Track 3 Variations
-	[ [0.75, 0.25], [0.25, 0.25, 0.5], [0.5, 0.25, 0.25] ],
-	// Track 4 Variations
-	[ [0.125, 0.125, 0.125, 0.125, 0.5], [0.25, 0.75] ],
-	// Track 5 Variations
-	[ [1, 1], [0.5, 0.5, 1], [0.33, 0.33, 0.34, 1] ],
-	// Track 6 Variations
-	[  [-1, -0.5, 0.25, 0.25, 0.5, 0.25, 0.25, 0.5, 0.5],
-	   [-1, -0.5, 0.5, -1, -0.25, 0.5, 0.25,   1, -0.5, 0.5],
-	   [-1, -0.5, 0.5, -1, -0.25, 0.25, 0.25, 0.25,   1, -0.5, 0.5, -1, -0.5, 0.5] ]
-];
+	// IMPORTANT: Variation patterns must now follow the [delta, bufOffset, amp] format
+	~variations = [
+		// Track 0 (e.g. Kick/Bass)
+		[
+		  [[0.25, 0, 1], [0.25, 0, 0.6], [0.5, 0, 1]],
+		  [[0.5, 0, 1], [0.5, 0, 1]]
+		],
+		// Track 1 (e.g. Kick/Bass)
+		[
+		  [[0.25, 0, 1], [0.25, 0, 0.6], [0.5, 0, 1]],
+		  [[0.5, 0, 1], [0.5, 0, 1]]
+		],
+		// Track 2 (e.g. Kick/Bass)
+		[
+		  [[0.25, 0, 1], [0.25, 0, 0.6], [0.5, 0, 1]],
+		  [[0.5, 0, 1], [0.5, 0, 1]]
+		],
+		// Track 3 (e.g. Kick/Bass)
+		[
+		  [[0.25, 0, 1], [0.25, 0, 0.6], [0.5, 0, 1]],
+		  [[0.5, 0, 1], [0.5, 0, 1]]
+		],
+		// Track 4 (e.g. Kick/Bass)
+		[
+		  [[0.25, 0, 1], [0.25, 0, 0.6], [0.5, 0, 1]],
+		  [[0.5, 0, 1], [0.5, 0, 1]]
+		],
+		// Track 5 (e.g. Kick/Bass)
+		[
+		  [[0.25, 0, 1], [0.25, 0, 0.6], [0.5, 0, 1]],
+		  [[0.5, 0, 1], [0.5, 0, 1]]
+		]
+
+	];
 
 	~numTracks.do({ |i|
-	Tdef( ("chan" ++ i).asSymbol, {
-		var step = 0;
-		loop {
-			var currentPattern, delta, pbRate, jT, jP, jA;
+		Tdef( ("chan" ++ i).asSymbol, {
+			var step = 0;
+			loop {
+				var currentEvent, delta, bufOff, hitAmp, pbRate, jT, jP, jA;
 
-			// NORMAL RHYTHM LOGIC
-			currentPattern = ~rhythms[i];
-			delta = currentPattern.wrapAt(step);
+				// 1. EXTRACT DATA FROM NORMAL RHYTHM
+				currentEvent = ~rhythms[i].wrapAt(step);
+				delta  = currentEvent[0];
+				bufOff = currentEvent[1];
+				hitAmp = currentEvent[2];
 
-			// SEAMLESS CHECK: If a variation is queued AND we are at the start of a bar
-			// we pivot to the variation immediately instead of playing the normal note.
-			if (~varRequests[i] && ((~tempo.beats % 4) < 0.01)) {
-				~varRequests[i] = false;
-				{ if(~varButtons[i].notNil) { ~varButtons[i].value = 0 } }.defer;
+				// 2. SEAMLESS VARIATION CHECK (Bar Sync)
+				if (~varRequests[i] && ((~tempo.beats % 4) < 0.01)) {
+					~varRequests[i] = false;
+					{ if(~varButtons[i].notNil) { ~varButtons[i].value = 0 } }.defer;
 
-				step = 0; // Reset normal rhythm index for after the variation
+					step = 0; // Reset normal rhythm index for after the variation
 
-				~variations.wrapAt(i).choose.do({ |vDelta|
-					if(vDelta > 0 && ~mutes[i].not) {
-						jT = ~humanizeTime[i].rand2;
-						jP = ~humanizePitch[i].rand2;
-						jA = ~humanizeAmp[i].rand2;
-						pbRate = (~pitches[i] + jP - 60).midiratio;
+					// Iterate through the chosen variation pattern
+					~variations.wrapAt(i).choose.do({ |vEvent|
+						var vDelta = vEvent[0];
+						var vBuf   = vEvent[1];
+						var vAmp   = vEvent[2];
 
-						s.makeBundle(s.latency + jT, {
-							Synth(\liveChannel, [
-								\buf, ~samples[~sampleIndices[i].wrap(0, ~samples.size-1)],
-								\rate, pbRate,
-								\amp, (~volumes[i] + jA).clip(0,2) * ~masterVol,
-								\rel, (vDelta.abs / ~tempo.tempo) * 0.8,
-								\peakOut, ~trackPeakBuses[i]
-							]);
-						});
-					};
-					vDelta.abs.wait;
-				});
+						if(vDelta > 0 && ~mutes[i].not) {
+							jT = ~humanizeTime[i].rand2;
+							jP = ~humanizePitch[i].rand2;
+							jA = ~humanizeAmp[i].rand2;
+							pbRate = (~pitches[i] + jP - 60).midiratio;
 
-				// After variation finishes, we "re-sync" to the loop
-				delta = currentPattern.wrapAt(step);
-			};
+							s.makeBundle(s.latency + jT, {
+								Synth(\liveChannel, [
+									// Base sample + variation offset
+									\buf, ~samples[(~sampleIndices[i] + vBuf).wrap(0, ~samples.size-1)],
+									\rate, pbRate,
+									\amp, (vAmp * ~volumes[i] + jA).clip(0,2) * ~masterVol,
+									\rel, (vDelta.abs / ~tempo.tempo) * 0.8,
+									\peakOut, ~trackPeakBuses[i]
+								]);
+							});
+						};
+						vDelta.abs.wait;
+					});
 
-			// PLAY NORMAL NOTE
-			if(delta > 0 && ~mutes[i].not) {
-				jT = ~humanizeTime[i].rand2;
-				jP = ~humanizePitch[i].rand2;
-				jA = ~humanizeAmp[i].rand2;
-				pbRate = (~pitches[i] + jP - 60).midiratio;
+					// Re-pull data for the "Normal Note" after variation finishes
+					currentEvent = ~rhythms[i].wrapAt(step);
+					delta  = currentEvent[0];
+					bufOff = currentEvent[1];
+					hitAmp = currentEvent[2];
+				};
 
-				s.makeBundle(s.latency + jT, {
-					Synth(\liveChannel, [
-						\buf, ~samples[~sampleIndices[i].wrap(0, ~samples.size-1)],
-						\rate, pbRate,
-						\amp, (~volumes[i] + jA).clip(0,2) * ~masterVol,
-						\rel, (delta.abs / ~tempo.tempo) * 0.8,
-						\peakOut, ~trackPeakBuses[i]
-					]);
-				});
-			};
+				// 3. PLAY NORMAL NOTE
+				if(delta > 0 && ~mutes[i].not) {
+					jT = ~humanizeTime[i].rand2;
+					jP = ~humanizePitch[i].rand2;
+					jA = ~humanizeAmp[i].rand2;
+					pbRate = (~pitches[i] + jP - 60).midiratio;
 
-			step = step + 1;
-			if(step >= currentPattern.size) { step = 0 };
-			delta.abs.wait;
-		}
-	}).quant = 4;
-});
+					s.makeBundle(s.latency + jT, {
+						Synth(\liveChannel, [
+							// Base sample + pattern offset
+							\buf, ~samples[(~sampleIndices[i] + bufOff).wrap(0, ~samples.size-1)],
+							\rate, pbRate,
+							\amp, (hitAmp * ~volumes[i] + jA).clip(0,2) * ~masterVol,
+							\rel, (delta.abs / ~tempo.tempo) * 0.8,
+							\peakOut, ~trackPeakBuses[i]
+						]);
+					});
+				};
+
+				step = step + 1;
+				if(step >= ~rhythms[i].size) { step = 0 };
+				delta.abs.wait;
+			}
+		}).quant = 4;
+	});
 
 	/////////////////////////////////////////////////////////////////
 	// GUI
