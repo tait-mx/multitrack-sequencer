@@ -11,7 +11,7 @@ s.waitForBoot({
 	/////////////////////////////////////////////////////////////////
 
 	var win, startBtn, tempoSlid, bpmDisplay, saveBtn, loadBtn,
-	presetNameField, presetMenu, refreshBtn, rhythmAndNames,
+	presetNameField, presetMenu, refreshBtn,
 	masterMuteBtn, masterCol, peakMeter, meterRoutine, hLayout, vRuler,
 	masterHumTime, masterHumPitch, masterHumAmp, humGroup, woodImg,
 	currentPresetName = "newPreset";
@@ -47,7 +47,7 @@ s.waitForBoot({
 	~humPitchSliders = Array.newClear(~numTracks);
 	~humAmpSliders = Array.newClear(~numTracks);
 
-	rhythmAndNames = [
+	~rhythmAndNames = [
 		["Clave4/4", [[0.75,2,1], [1,2,1], [0.7,2,1], [0.55,2,1], [1,2,1]]],
 		["ClaveMatanzas", [[0.75,2,1], [0.25,2,1], [0.75,2,1], [0.25,2,1], [0.5,2,1], [0.5,2,1], [1,2,1]]],
 		["Clave6/8", [[2/3,4,1], [3/3,4,1], [2/3,4,1], [2/3,4,1], [3/3,4,1]]],
@@ -57,11 +57,11 @@ s.waitForBoot({
 		["cascara Yuka", [[2/3,0,1], [2/3,0,1], [2/3,0,1], [1/3,0,1], [1/3,0,1], [4/3,0,1]]],
 		["cascara2 Yuka", [[2/3,0,1], [2/3,0,1], [2/3,0,1], [6/3,0,1]]],
 		["Golpe", [[1,1,0.5], [0.5,1,0.5], [0.5,3,1], [1,1,0.5], [0.5,1,0.5], [0.5,3,1]]],
-		["GolpeCol", [[2/3,1,0.5], [1/3,9,1],  [1/3,1,0.5], [1/3,3,1], [1/3,3,1], [2/3,1,0.5], [1/3,9,1], [1/3,1,0.5], [1/3,3,1], [1/3,3,1]]],
+		["GolpeCol", [[2/3,1,0.3], [1/3,9,1],  [1/3,1,0.3], [1/3,3,1], [1/3,3,1], [2/3,1,0.3], [1/3,9,1], [1/3,1,0.3], [1/3,3,1], [1/3,3,1]]],
 		["Yuka Llamador", [[-1,0,1], [-0.5,0,1], [0.5,3,1]]],
 		["Yuka Golpe", [[-1,0,1], [1,3,1]]],
-		["ShekereT", [[1.75,7,1], [0.25,8,1]]],
-		// ["ShekereA", [[-1.75,0,1], [0.25,0,1]]],
+		["Shekere4/4", [[1.75,7,1], [0.25,8,1]]],
+		["Shekere6/8", [[2/3,7,1], [1/3,8,1]]],
 		["16ths", [[0.25,0,1]]],
 		["8ths", [[0.5,0,1]]],
 		["Quarters", [[1,0,1], [1,0,1]]]
@@ -312,7 +312,7 @@ s.waitForBoot({
 		StaticText(comp, 105@20).string_("TRACK " + i).align_(\center).font_(Font(bold:true));
 		~sampleMenus[i] = PopUpMenu(comp, 105@25).items_(~sampleNames).action_({ |menu| ~sampleIndices[i] = menu.value });
 		~muteButtons[i] = Button(comp, 105@40).states_([["ON", Color.black, Color.green], ["MUTE", Color.white, Color.red]]).action_({ |b| ~mutes[i] = (b.value == 1) });
-		~rhythmMenus[i] = PopUpMenu(comp, 105@30).items_(rhythmAndNames.collect({ |item| item[0] })).action_({ |m| ~rhythms[i] = rhythmAndNames[m.value][1]; ~rhythmIndices[i] = m.value; });
+		~rhythmMenus[i] = PopUpMenu(comp, 105@30).items_(~rhythmAndNames.collect({ |item| item[0] })).action_({ |m| ~rhythms[i] = ~rhythmAndNames[m.value][1]; ~rhythmIndices[i] = m.value; });
 		~varButtons[i] = Button(comp, 105@40).states_([["VARIATION", Color.black, Color.grey(0.8)], ["QUEUED", Color.white, Color.red(0.6)]]).action_({ |b| ~varRequests[i] = (b.value == 1); });
 
 		StaticText(comp, 105@20).string_("Pitch").align_(\center);
