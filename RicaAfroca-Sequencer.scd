@@ -409,7 +409,9 @@ s.waitForBoot({
 	// ARDUINO
 	/////////////////////////////////////////////////////////////////
 
-
+(
+try {
+    // Attempt to open the port
 // 1. Identify your port (Run this line alone first to find your index)
 // SerialPort.listDevices;
 
@@ -453,6 +455,15 @@ s.waitForBoot({
         };
     };
 }.fork(AppClock);
+
+			} { |error|
+    // If opening fails, execute this instead of crashing
+    "WARNING: Arduino not found on COM3. Sequencer will run in GUI-only mode.".postln;
+    ~myPort = nil;
+};
+)
+
+
 });
 
 
