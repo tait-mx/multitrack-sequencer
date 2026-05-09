@@ -67,16 +67,39 @@ s.waitForBoot({
 		["Quarters", [[1,0,1], [1,0,1]]]
 	];
 
-	~projectPath = if(thisProcess.nowExecutingPath.notNil) { PathName(thisProcess.nowExecutingPath).pathOnly; } { Platform.userHomeDir +/+ "RicaAfroca/"; };
-	~samplePath = ~projectPath ++ "samples/";
-	~presetPath = ~projectPath ++ "sequences/";
+	/////////////////////////////////////////////////////////////////
+	// PATHS & ASSET LOADING
+	/////////////////////////////////////////////////////////////////
+
+	~projectPath = if(thisProcess.nowExecutingPath.notNil) {
+		PathName(thisProcess.nowExecutingPath).pathOnly;
+	} {
+		Platform.userHomeDir +/+ "RicaAfroca";
+	};
+
+	~samplePath = ~projectPath +/+ "samples";
+	~presetPath = ~projectPath +/+ "sequences";
+	~imagePath  = ~projectPath +/+ "images";
+
 	File.mkdir(~presetPath);
 
-	~sampleFiles = (~samplePath ++ "*.wav").pathMatch;
+	// Load Samples
+	~sampleFiles = (~samplePath +/+ "*.wav").pathMatch;
 	~sampleNames = ~sampleFiles.collect({ |path| PathName(path).fileNameWithoutExtension });
 	~samples = ~sampleFiles.collect({ |path| Buffer.read(s, path) });
 
-	if(~samples.isEmpty) { ~sampleNames = ["empty"]; ~samples = [Buffer.alloc(s, 44100, 2)]; };
+	if(~samples.isEmpty) {
+		~sampleNames = ["empty"];
+		~samples = [Buffer.alloc(s, 44100, 2)];
+	};
+
+	// Load Background Image Safely
+	if(File.exists(~imagePath +/+ "wood-size.jpg")) {
+		woodImg = Image.new(~imagePath +/+ "wood-size.jpg");
+	} {
+		"WARNING: wood-size.jpg not found in %. GUI will use default background.".format(~imagePath).postln;
+		woodImg = nil;
+	};
 
 	/////////////////////////////////////////////////////////////////
 	// FUNCTIONS
@@ -84,7 +107,7 @@ s.waitForBoot({
 
 	~saveSettings = { |name|
 		var data = Dictionary.new;
-		var path = ~presetPath ++ name ++ ".scd";
+		var path = ~presetPath +/+ (name ++ ".scd"); // Fix: Use +/+ here
 		data.put(\rhythms, ~rhythms.copy);
 		data.put(\mutes, ~mutes.copy);
 		data.put(\pitches, ~pitches.copy);
@@ -100,7 +123,7 @@ s.waitForBoot({
 	};
 
 	~loadSettings = { |name|
-		var path = ~presetPath ++ name ++ ".scd";
+		var path = ~presetPath +/+ (name ++ ".scd"); // Fix: Use +/+ here
 		var data = Object.readArchive(path);
 		if(data.notNil) {
 			currentPresetName = name;
@@ -135,14 +158,19 @@ s.waitForBoot({
 	};
 
 	~updatePresetList = {
-		var files = (~presetPath ++ "*.scd").pathMatch;
-		var names = files.collect({ |p| PathName(p).fileNameWithoutExtension });
-		var currentIndex;
-		if(names.isEmpty) { names = ["No Presets Found"] };
-		currentIndex = names.indexOfEqual(currentPresetName) ?? 0;
-		{ if(presetMenu.notNil) { presetMenu.items = names; presetMenu.value = currentIndex; } }.defer;
-	};
+    // Using +/+ ensures there is a proper slash before the search pattern
+    var files = (~presetPath +/+ "*.scd").pathMatch;
+    var names = files.collect({ |p| PathName(p).fileNameWithoutExtension });
+    var currentIndex;
 
+    if(names.isEmpty) {
+        "DEBUG: Searching in %".format(~presetPath).postln; // This will tell you where it's looking
+        names = ["No Presets Found"];
+    };
+
+    currentIndex = names.indexOfEqual(currentPresetName) ?? 0;
+    { if(presetMenu.notNil) { presetMenu.items = names; presetMenu.value = currentIndex; } }.defer;
+};
 	/////////////////////////////////////////////////////////////////
 	// SERVER SIDE
 	/////////////////////////////////////////////////////////////////
@@ -401,7 +429,19 @@ s.waitForBoot({
 	[tempoSlid, presetMenu, loadBtn, saveBtn, refreshBtn, masterMuteBtn].do(_.canFocus_(false));
 
 	~updatePresetList.value;
-	win.onClose = { meterRoutine.stop; ~numTracks.do({ |i| Tdef(("chan"++i).asSymbol).stop }) };
+
+
+
+	win.onClose = {
+    meterRoutine.stop;
+    ~serialRoutine.stop;
+
+    // Check if it exists before trying to close it
+    if(~myPort.notNil) { ~myPort.close };
+
+    ~numTracks.do({ |i| Tdef(("chan"++i).asSymbol).stop });
+    "Sequencer and Serial Port closed safely.".postln;
+};
 
 
 
@@ -453,6 +493,7 @@ try {
                 }
             }.defer;
         };
+	0.001.wait;
     };
 }.fork(AppClock);
 
@@ -462,9 +503,5 @@ try {
     ~myPort = nil;
 };
 )
-
-
 });
-
-
 )
