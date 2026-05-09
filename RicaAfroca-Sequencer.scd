@@ -57,7 +57,7 @@ s.waitForBoot({
 		["cascara Yuka", [[2/3,0,1], [2/3,0,1], [2/3,0,1], [1/3,0,1], [1/3,0,1], [4/3,0,1]]],
 		["cascara2 Yuka", [[2/3,0,1], [2/3,0,1], [2/3,0,1], [6/3,0,1]]],
 		["Golpe", [[1,1,0.5], [0.5,1,0.5], [0.5,3,1], [1,1,0.5], [0.5,1,0.5], [0.5,3,1]]],
-		["GolpeCol", [[2/3,1,0.3], [1/3,9,1],  [1/3,1,0.3], [1/3,3,1], [1/3,3,1], [2/3,1,0.3], [1/3,9,1], [1/3,1,0.3], [1/3,3,1], [1/3,3,1]]],
+		["GolpeCol", [[2/3,1,0.43], [1/3,9,1],  [1/3,1,0.43], [1/3,3,1], [1/3,3,1], [2/3,1,0.43], [1/3,9,1], [1/3,1,0.43], [1/3,3,1], [1/3,3,1]]],
 		["Yuka Llamador", [[-1,0,1], [-0.5,0,1], [0.5,3,1]]],
 		["Yuka Golpe", [[-1,0,1], [1,3,1]]],
 		["Shekere4/4", [[1.75,7,1], [0.25,8,1]]],
@@ -403,5 +403,51 @@ s.waitForBoot({
 
 	~updatePresetList.value;
 	win.onClose = { meterRoutine.stop; ~numTracks.do({ |i| Tdef(("chan"++i).asSymbol).stop }) };
+
+
+
+	/////////////////////////////////////////////////////////////////
+	// ARDUINO
+	/////////////////////////////////////////////////////////////////
+
+
+// 1. Identify your port (Run this line alone first to find your index)
+// SerialPort.listDevices;
+
+// 2. Open the port (Replace "COM3" or "/dev/ttyUSB0" with your actual port)
+~myPort = SerialPort(
+    "COM3", // EDIT THIS LINE
+    baudrate: 9600,
+    crtscts: true
+);
+
+// 3. Create a Routine to listen for incoming bytes
+~serialRoutine = {
+    var byte;
+    while { ~myPort.notNil } {
+        byte = ~myPort.read;
+        if (byte.notNil) {
+            byte = byte.asAscii;
+            {
+                case
+                { byte == $s } { startBtn.valueAction = 1 - startBtn.value }
+                { byte == $p } {
+                    var newBpm = (~tempo.tempo * 60) + 1;
+                    ~tempo.tempo = newBpm / 60;
+                    bpmDisplay.value = newBpm;
+                    tempoSlid.value = newBpm.linlin(60, 200, 0, 1);
+                }
+                { byte == $m } {
+                    var newBpm = (~tempo.tempo * 60) - 1;
+                    ~tempo.tempo = newBpm / 60;
+                    bpmDisplay.value = newBpm;
+                    tempoSlid.value = newBpm.linlin(60, 200, 0, 1);
+                }
+            }.defer;
+        };
+    };
+}.fork(AppClock);
 });
+
+
 )
