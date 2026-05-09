@@ -443,6 +443,13 @@ s.waitForBoot({
                     bpmDisplay.value = newBpm;
                     tempoSlid.value = newBpm.linlin(60, 200, 0, 1);
                 }
+                // TRIGGER VARIATION ON TRACK 5 (Index 5)
+                { byte == $v } {
+                    if(~varButtons[5].notNil) {
+                        // Toggle the button state and trigger its action
+                        ~varButtons[5].valueAction = 1 - ~varButtons[5].value;
+                    }
+                }
             }.defer;
         };
     };
