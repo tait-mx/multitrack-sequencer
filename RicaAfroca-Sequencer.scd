@@ -184,6 +184,7 @@ s.waitForBoot({
 			{
 				win.name = "RicaAfroca Sequencer Pro - Editing: " ++ name;
 				presetNameField.string = name;
+				presetMenu.value = presetMenu.items.indexOfEqual(name);
 				bpmDisplay.value = ~tempo.tempo * 60;
 				tempoSlid.value = ~tempo.tempo.linlin(1, 3.3, 0, 1);
 				~numTracks.do({ |i|
@@ -432,7 +433,14 @@ s.waitForBoot({
 	win.view.decorator.nextLine;
 	presetNameField = TextField(win, 150@40).string_(currentPresetName);
 	saveBtn = Button(win, 100@40).states_([["SAVE", Color.black, Color.yellow]]).action_({ var n = presetNameField.string.stripWhiteSpace; if(n == "") { n = currentPresetName }; ~saveSettings.value(n); currentPresetName = n; ~updatePresetList.value; });
-	presetMenu = PopUpMenu(win, 200@40).items_(["Scanning..."]);
+	presetMenu = PopUpMenu(win, 200@40)
+    .items_(["Scanning..."])
+    .action_({ |menu|
+        if(menu.item != "No Presets Found") {
+            ~loadSettings.value(menu.item);
+            ("--- Auto-loaded: " ++ menu.item).postln;
+        }
+    });
 	loadBtn = Button(win, 100@40).states_([["LOAD", Color.black, Color.cyan]]).action_({ if(presetMenu.item != "No Presets Found") { ~loadSettings.value(presetMenu.item) }; });
 	refreshBtn = Button(win, 100@40).states_([["REFRESH", Color.white, Color.grey(0.3)]]).action_({ ~updatePresetList.value });
 
