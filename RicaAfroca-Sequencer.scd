@@ -440,6 +440,19 @@ s.waitForBoot({
 
 	~updatePresetList.value;
 
+	// --- ADD THIS SECTION HERE ---
+	s.doWhenBooted({
+		// Give the GUI a tiny moment to settle, then load the preset
+		{
+			if(File.exists(~presetPath +/+ "guaguanco.scd")) {
+				"Loading startup preset: guaguanco".postln;
+				~loadSettings.value("guaguanco");
+			} {
+				"Startup preset 'guaguanco' not found. Skipping auto-load.".postln;
+			};
+		}.defer(0.5);
+	});
+
 
 
 	win.onClose = {
