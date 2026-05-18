@@ -329,7 +329,15 @@ s.waitForBoot({
 
 	// CHANGED: Expanded Window Width from 1020 to 1140 to accommodate 7 tracks comfortably
 	win = Window("RicaAfroca Sequencer Wood", Rect(50, 50, 1140, 920)).front;
-	if(woodImg.notNil) { win.view.backgroundImage_(woodImg, 10) };
+
+	if(woodImg.notNil) {
+		var backgroundCanvas = UserView(win, win.view.bounds)
+			.resize_(5) // Forzar a que se estire si la ventana cambia de tamaño
+			.drawFunc_({ |view|
+				woodImg.drawInRect(view.bounds);
+			});
+	};
+
 	win.view.decorator = FlowLayout(win.view.bounds, 15@15, 10@10);
 
 	win.view.keyDownAction_({ |view, char, modifiers, unicode, keycode|
