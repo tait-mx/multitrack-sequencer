@@ -145,27 +145,29 @@ s.waitForBoot({
 		woodImg = nil;
 	};
 
-	/////////////////////////////////////////////////////////////////
-	// FUNCTIONS
+/////////////////////////////////////////////////////////////////
+	// FUNCTIONS (CORREGIDAS Y NORMALIZADAS A ~numTracks)
 	/////////////////////////////////////////////////////////////////
 
 	~saveSettings = { |name|
 		var data = Dictionary.new;
 		var path = ~presetPath +/+ (name ++ ".scd");
-		data.put(\rhythms, ~rhythms.copy);
-		data.put(\mutes, ~mutes.copy);
-		data.put(\pitches, ~pitches.copy);
-		data.put(\bpm, ~tempo.tempo * 60);
-		data.put(\indices, ~rhythmIndices.copy);
-		data.put(\volumes, ~volumes.copy);
-		data.put(\sampleIndices, ~sampleIndices.copy);
-		data.put(\humTime, ~humanizeTime.copy);
-		data.put(\humPitch, ~humanizePitch.copy);
-		data.put(\humAmp, ~humanizeAmp.copy);
-		data.writeArchive(path);
-		("--- Saved Preset: " ++ name).postln;
-	};
 
+		// Forzamos que se guarde un arreglo del tamaño exacto actual
+		data.put(\rhythms, Array.fill(~numTracks, { |i| ~rhythms[i] }));
+		data.put(\mutes, Array.fill(~numTracks, { |i| ~mutes[i] }));
+		data.put(\pitches, Array.fill(~numTracks, { |i| ~pitches[i] }));
+		data.put(\bpm, ~tempo.tempo * 60);
+		data.put(\indices, Array.fill(~numTracks, { |i| ~rhythmIndices[i] }));
+		data.put(\volumes, Array.fill(~numTracks, { |i| ~volumes[i] }));
+		data.put(\sampleIndices, Array.fill(~numTracks, { |i| ~sampleIndices[i] }));
+		data.put(\humTime, Array.fill(~numTracks, { |i| ~humanizeTime[i] }));
+		data.put(\humPitch, Array.fill(~numTracks, { |i| ~humanizePitch[i] }));
+		data.put(\humAmp, Array.fill(~numTracks, { |i| ~humanizeAmp[i] }));
+
+		data.writeArchive(path);
+		("--- Preservado Preset Sólido de 7 Canales: " ++ name).postln;
+	};
 
 	~loadSettings = { |name|
 		var path = ~presetPath +/+ (name ++ ".scd");
@@ -173,17 +175,19 @@ s.waitForBoot({
 		if(data.notNil) {
 			currentPresetName = name;
 
-			// Load data with safe size matching or structural fallbacks
-			~rhythms = data[\rhythms].copy;
-			~mutes = data[\mutes].copy;
-			~pitches = data[\pitches].copy;
+			// Inyección segura: Si el archivo es viejo o tiene menos canales,
+			// forzamos la normalización rellenando con valores por defecto estructurados.
 			~tempo.tempo = (data[\bpm] ?? {120}) / 60;
-			~rhythmIndices = (data[\indices] ?? { Array.fill(~numTracks, {0}) }).copy;
-			~volumes = (data[\volumes] ?? { Array.fill(~numTracks, {0.7}) }).copy;
-			~sampleIndices = (data[\sampleIndices] ?? { Array.fill(~numTracks, {|i| i}) }).copy;
-			~humanizeTime = (data[\humTime] ?? { Array.fill(~numTracks, {0.0}) }).copy;
-			~humanizePitch = (data[\humPitch] ?? { Array.fill(~numTracks, {0.0}) }).copy;
-			~humanizeAmp = (data[\humAmp] ?? { Array.fill(~numTracks, {0.0}) }).copy;
+
+			~rhythms = Array.fill(~numTracks, { |i| data[\rhythms].wrapAt(i) ?? [[0.5, 0, 1], [0.5, 0, 1]] });
+			~mutes = Array.fill(~numTracks, { |i| data[\mutes].wrapAt(i) ?? false });
+			~pitches = Array.fill(~numTracks, { |i| data[\pitches].wrapAt(i) ?? 60 });
+			~rhythmIndices = Array.fill(~numTracks, { |i| data[\indices].wrapAt(i) ?? 0 });
+			~volumes = Array.fill(~numTracks, { |i| data[\volumes].wrapAt(i) ?? 0.7 });
+			~sampleIndices = Array.fill(~numTracks, { |i| data[\sampleIndices].wrapAt(i) ?? i });
+			~humanizeTime = Array.fill(~numTracks, { |i| data[\humTime].wrapAt(i) ?? 0.0 });
+			~humanizePitch = Array.fill(~numTracks, { |i| data[\humPitch].wrapAt(i) ?? 0.0 });
+			~humanizeAmp = Array.fill(~numTracks, { |i| data[\humAmp].wrapAt(i) ?? 0.0 });
 
 			{
 				win.name = "RicaAfroca Sequencer Pro - Editing: " ++ name;
@@ -193,15 +197,14 @@ s.waitForBoot({
 				tempoSlid.value = ~tempo.tempo.linlin(1, 3.3, 0, 1);
 
 				~numTracks.do({ |i|
-					// FIX: Use wrapAt or default fallbacks so old presets (size 6) don't crash track 6 (index 6)
-					~rhythmMenus[i].value = ~rhythmIndices.wrapAt(i);
-					~muteButtons[i].value = (~mutes.wrapAt(i) ?? { false }).asInteger;
-					~sampleMenus[i].value = ~sampleIndices.wrapAt(i).wrap(0, ~sampleNames.size-1);
-					~pitchSliders[i].value = ~pitches.wrapAt(i).linlin(36, 72.0, 0, 1);
-					~volSliders[i].value = ~dbSpec.unmap(~volumes.wrapAt(i).ampdb);
-					~humTimeSliders[i].value = ~humanizeTime.wrapAt(i).linlin(0, 0.08, 0, 1);
-					~humPitchSliders[i].value = ~humanizePitch.wrapAt(i).linlin(0, 1.5, 0, 1);
-					~humAmpSliders[i].value = ~humanizeAmp.wrapAt(i).linlin(0, 0.3, 0, 1);
+					~rhythmMenus[i].value = ~rhythmIndices[i];
+					~muteButtons[i].value = ~mutes[i].asInteger;
+					~sampleMenus[i].value = ~sampleIndices[i].wrap(0, ~sampleNames.size-1);
+					~pitchSliders[i].value = ~pitches[i].linlin(36, 72.0, 0, 1);
+					~volSliders[i].value = ~dbSpec.unmap(~volumes[i].ampdb);
+					~humTimeSliders[i].value = ~humanizeTime[i].linlin(0, 0.08, 0, 1);
+					~humPitchSliders[i].value = ~humanizePitch[i].linlin(0, 1.5, 0, 1);
+					~humAmpSliders[i].value = ~humanizeAmp[i].linlin(0, 0.3, 0, 1);
 				});
 			}.defer;
 		};
@@ -213,7 +216,6 @@ s.waitForBoot({
 		var currentIndex;
 
 		if(names.isEmpty) {
-			"DEBUG: Searching in %".format(~presetPath).postln;
 			names = ["No Presets Found"];
 		};
 
