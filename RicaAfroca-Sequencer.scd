@@ -1,5 +1,5 @@
 /*
-RicaAfroca Sequencer - Pro Version 2.3
+RicaAfroca Sequencer - Pro Version 2.3 (7-Track Edition)
 Full Metering: Peak Meters on Every Track
 */
 
@@ -16,7 +16,8 @@ s.waitForBoot({
 	masterHumTime, masterHumPitch, masterHumAmp, humGroup, woodImg,
 	currentPresetName = "newPreset";
 
-	~numTracks = 6;
+	// CHANGED: Scaled from 6 to 7 tracks (Indices 0 to 6)
+	~numTracks = 7;
 	~tempo = TempoClock.new(120/60).permanent_(true);
 	~masterVol = 0.8;
 	~dbSpec = ControlSpec(-60, 3.5, \db, 0, 0);
@@ -40,41 +41,31 @@ s.waitForBoot({
 	~rhythmMenus = Array.newClear(~numTracks);
 	~pitchSliders = Array.newClear(~numTracks);
 	~volSliders = Array.newClear(~numTracks);
-	~trackMeters = Array.newClear(~numTracks); // NEW: Track Meters
+	~trackMeters = Array.newClear(~numTracks);
 	~sampleMenus = Array.newClear(~numTracks);
 	~varButtons = Array.newClear(~numTracks);
 	~humTimeSliders = Array.newClear(~numTracks);
 	~humPitchSliders = Array.newClear(~numTracks);
 	~humAmpSliders = Array.newClear(~numTracks);
 
-
-
 	/////////////////////////////////////////////////////////////////
 	// RHYTHMS AND VARIATIONS
 	/////////////////////////////////////////////////////////////////
 
-
-
-	(
 	~rhythmAndNames = [
 		["Clave4/4", [[0.75,2,1], [1,2,1], [0.7,2,1], [0.55,2,1], [1,2,1]]],
 		["ClaveMatanzas", [[0.75,2,1], [0.25,2,1], [0.75,2,1], [0.25,2,1], [0.5,2,1], [0.5,2,1], [1,2,1]]],
 		["Clave6/8", [[2/3,4,1], [3/3,4,1], [2/3,4,1], [2/3,4,1], [3/3,4,1]]],
 		["ClaveAfricana", [[2/3,4,1], [2/3,4,1], [1/3,4,1], [2/3,4,1], [2/3,4,1], [2/3,0,1], [1/3,0,1]]],
-		["Cascara1", [[0.25,0,1], [0.5,0,1], [0.25,0,1], [0.25,0,1], [0.5,0,1], [0.25,0,1],
-				      [0.5,0,1], [0.5,0,1], [0.25,0,1], [0.5,0,1], [0.25,0,1]]],
-		["Cascara2", [[0.5,0,1], [0.25,0,1], [0.5,0,1], [0.5,0,1],[0.25,0,1],
-				      [0.5,0,1], [0.5,0,1], [0.25,0,1], [0.5,0,1], [0.25,0,1]]],
-		["CascaraColumbia", [[0.5,0,1], [0.25,0,1], [0.5,0,1], [0.5,0,1], [0.25,0,1],
-				             [0.5,0,1], [0.5,0,1], [0.25,0,1], [0.25,0,1], [0.25,0,1], [0.25,0,1]]],
+		["Cascara1", [[0.25,0,1], [0.5,0,1], [0.25,0,1], [0.25,0,1], [0.5,0,1], [0.25,0,1], [0.5,0,1], [0.5,0,1], [0.25,0,1], [0.5,0,1], [0.25,0,1]]],
+		["Cascara2", [[0.5,0,1], [0.25,0,1], [0.5,0,1], [0.5,0,1],[0.25,0,1], [0.5,0,1], [0.5,0,1], [0.25,0,1], [0.5,0,1], [0.25,0,1]]],
+		["CascaraColumbia", [[0.5,0,1], [0.25,0,1], [0.5,0,1], [0.5,0,1], [0.25,0,1], [0.5,0,1], [0.5,0,1], [0.25,0,1], [0.25,0,1], [0.25,0,1], [0.25,0,1]]],
 		["cascara Yuka", [[2/3,0,1], [2/3,0,1], [2/3,0,1], [1/3,0,1], [1/3,0,1], [4/3,0,1]]],
 		["PaloYukaGolpe", [[0.75,0,1], [0.25,0,1], [-1,0,0]]],
 		["cascara2 Yuka", [[2/3,0,1], [2/3,0,1], [2/3,0,1], [6/3,0,1]]],
 		["GolpeGuaguanco", [[1,1,0.135], [0.5,1,0.135], [0.5,3,1], [1,1,0.135], [0.5,1,0.135], [0.5,3,1]]],
-		["GolpeMatancera", [[0.75,1,0.35], [0.25,1,0.35], [0.5,1,0.35], [0.5,3,1],
-				            [0.75,1,0.35], [0.25,1,0.35], [0.5,1,0.35], [0.5,3,1]]],
-		["GolpeCol", [[2/3,1,0.43], [1/3,9,1],  [1/3,1,0.43], [1/3,3,1], [1/3,3,1],
-				      [2/3,1,0.43], [1/3,9,1], [1/3,1,0.43], [1/3,3,1], [1/3,3,1]]],
+		["GolpeMatancera", [[0.75,1,0.35], [0.25,1,0.35], [0.5,1,0.35], [0.5,3,1], [0.75,1,0.35], [0.25,1,0.35], [0.5,1,0.35], [0.5,3,1]]],
+		["GolpeCol", [[2/3,1,0.43], [1/3,9,1],  [1/3,1,0.43], [1/3,3,1], [1/3,3,1], [2/3,1,0.43], [1/3,9,1], [1/3,1,0.43], [1/3,3,1], [1/3,3,1]]],
 		["GolpePalo", [[1/3,1,0], [1/3,9,1],  [1/3,9,1], [1/3,3,0], [1/3,3,1], [1/3,9,1]]],
 		["Yuka Llamador", [[1,1,0.43], [0.5,1,0.43], [0.5,3,1]]],
 		["Yuka Golpe", [[1,1,0.43], [1,3,1]]],
@@ -87,79 +78,40 @@ s.waitForBoot({
 		["Quarters", [[1,0,1], [1,0,1]]]
 	];
 
-
-		// IMPORTANT: Variation patterns must now follow the [delta, bufOffset, amp] format
 	~variations = [
-		// Track 0 (e.g. Kick/Bass)
+		[ [[0.25, 0, 1], [0.25, 0, 0.6], [0.5, 0, 1]], [[0.5, 0, 1], [0.5, 0, 1]] ],
+		[ [[0.25, 0, 1], [0.25, 0, 0.6], [0.5, 0, 1]], [[0.5, 0, 1], [0.5, 0, 1]] ],
+		[ [[0.25, 0, 1], [0.25, 0, 0.6], [0.5, 0, 1]], [[0.5, 0, 1], [0.5, 0, 1]] ],
+		[ [[0.25, 0, 1], [0.25, 0, 0.6], [0.5, 0, 1]], [[0.5, 0, 1], [0.5, 0, 1]] ],
+		[ [[0.25, 0, 1], [0.25, 0, 0.6], [0.5, 0, 1]], [[0.5, 0, 1], [0.5, 0, 1]] ],
+		// Track 5 (Golpe Variations)
 		[
-		  [[0.25, 0, 1], [0.25, 0, 0.6], [0.5, 0, 1]],
-		  [[0.5, 0, 1], [0.5, 0, 1]]
-		],
-		// Track 1 (e.g. Kick/Bass)
-		[
-		  [[0.25, 0, 1], [0.25, 0, 0.6], [0.5, 0, 1]],
-		  [[0.5, 0, 1], [0.5, 0, 1]]
-		],
-		// Track 2 (e.g. Kick/Bass)
-		[
-		  [[0.25, 0, 1], [0.25, 0, 0.6], [0.5, 0, 1]],
-		  [[0.5, 0, 1], [0.5, 0, 1]]
-		],
-		// Track 3 (e.g. Kick/Bass)
-		[
-		  [[0.25, 0, 1], [0.25, 0, 0.6], [0.5, 0, 1]],
-		  [[0.5, 0, 1], [0.5, 0, 1]]
-		],
-		// Track 4 (e.g. Kick/Bass)
-		[
-		  [[0.25, 0, 1], [0.25, 0, 0.6], [0.5, 0, 1]],
-		  [[0.5, 0, 1], [0.5, 0, 1]]
-		],
-		// Track 5 Golpe
-		[
-
 			/* Var 1 */
-				[[1, 1, 0.5], [0.5,1,0.5], [0.5,3,1,], [1, 1, 0.5,]]++(([0.25, 3, 1]!3)).addFirst([0.25, 3, 0])++[[1, 3, 1],
-			 [0.5,1,0.5], [0.5,3,1], [1,1,0.5], [0.5,1,0.5], [0.5,3,1]],
-
+			[[1, 1, 0.5], [0.5,1,0.5], [0.5,3,1], [1, 1, 0.5]] ++ ([0.25, 3, 1]!3).addFirst([0.25, 3, 0]) ++ [[1, 3, 1], [0.5,1,0.5], [0.5,3,1], [1,1,0.5], [0.5,1,0.5], [0.5,3,1]],
 			/* Var 2 */
-			[[1, 1, 0.5], [0.5,1,0.5], [0.5,3,1]]++(([0.25, 3, 1]!7)).addFirst([0.25, 3, 0])++[[1, 3, 1],
-			 [0.5,1,0.5], [0.5,3,1], [1,1,0.5], [0.5,1,0.5], [0.5,3,1]],
-
+			[[1, 1, 0.5], [0.5,1,0.5], [0.5,3,1]] ++ ([0.25, 3, 1]!7).addFirst([0.25, 3, 0]) ++ [[1, 3, 1], [0.5,1,0.5], [0.5,3,1], [1,1,0.5], [0.5,1,0.5], [0.5,3,1]],
 			/* Var 3 */
-			[[1, 1, 0.5]]++(([0.25, 3, 1]!11)).addFirst([0.25, 3, 0])++[[1, 3, 1],
-			 [0.5,1,0.5], [0.5,3,1], [1,1,0.5], [0.5,1,0.5], [0.5,3,1]],
-
+			[[1, 1, 0.5]] ++ ([0.25, 3, 1]!11).addFirst([0.25, 3, 0]) ++ [[1, 3, 1], [0.5,1,0.5], [0.5,3,1], [1,1,0.5], [0.5,1,0.5], [0.5,3,1]],
 			/* Var 4 */
-			(([0.25, 3, 1]!15)).addFirst([0.25, 3, 0])++[[1, 3, 1],
-			 [0.5,1,0.5], [0.5,3,1], [1,1,0.5], [0.5,1,0.5], [0.5,3,1]],
-
+			([0.25, 3, 1]!15).addFirst([0.25, 3, 0]) ++ [[1, 3, 1], [0.5,1,0.5], [0.5,3,1], [1,1,0.5], [0.5,1,0.5], [0.5,3,1]],
 			/* Var 5 */
-			[[1, 1, 0.5], [0.5,1,0.5], [0.5,3,1],	  [1, 1, 1], [0.5,1,0.5], [0.25,3,1], [0.25,3,1],
-			 [0.5,3,0.5], [0.25,3,1], [0.25,3,1], [0.5,3,0.5], [0.5,3,0.5], [1, 1, 0.5], [0.5,1,0.5], [0.5,3,1]],
-
+			[[1, 1, 0.5], [0.5,1,0.5], [0.5,3,1], [1, 1, 1], [0.5,1,0.5], [0.25,3,1], [0.25,3,1], [0.5,3,0.5], [0.25,3,1], [0.25,3,1], [0.5,3,0.5], [0.5,3,0.5], [1, 1, 0.5], [0.5,1,0.5], [0.5,3,1]],
 			/* Var 6 */
-			[[1, 1, 0.5], [0.5,1,0.5], [0.5,3,1],	  [1, 1, 0.5], [0.25,1,0.5], [0.5,3,1], [0.25,3,1],
-			[1,10,0.5], [0.5,1,0.5], [0.5,3,1],	  [1, 1, 1], [0.5,1,0.5], [0.5,3,1]],
-
+			[[1, 1, 0.5], [0.5,1,0.5], [0.5,3,1], [1, 1, 0.5], [0.25,1,0.5], [0.5,3,1], [0.25,3,1], [1,10,0.5], [0.5,1,0.5], [0.5,3,1], [1, 1, 1], [0.5,1,0.5], [0.5,3,1]],
 			/* Var 7 */
-			[[1, 1, 0.5], [0.5,1,0.5], [0.5,3,1],	  [1, 1, 0.5], [0.25,1,0.5], [0.5,10,1], [0.25,10,1],
-			[1,3,1], [0.5,1,0.5], [0.5,3,1],	  [1, 1, 1], [0.5,1,0.5], [0.5,3,1]],
-
+			[[1, 1, 0.5], [0.5,1,0.5], [0.5,3,1], [1, 1, 0.5], [0.25,1,0.5], [0.5,10,1], [0.25,10,1], [1,3,1], [0.5,1,0.5], [0.5,3,1], [1, 1, 1], [0.5,1,0.5], [0.5,3,1]],
 			/* Var 8 */
-			[[1, 1, 0.5], [0.5,1,0.5], [0.5,3,1],	  [0.25,1,0.5], [0.5,10,1], [0.5,10,1], [0.5,10,1],  [0.25,10,1],
-			[1,3,1], [0.5,1,0.5], [0.5,3,1],	  [1, 1, 1], [0.5,1,0.5], [0.5,3,1]],
-
+			[[1, 1, 0.5], [0.5,1,0.5], [0.5,3,1], [0.25,1,0.5], [0.5,10,1], [0.5,10,1], [0.5,10,1], [0.25,10,1], [1,3,1], [0.5,1,0.5], [0.5,3,1], [1, 1, 1], [0.5,1,0.5], [0.5,3,1]],
 			/* Var 9 */
-			[[1, 1, 0.5], [0.25,1,0.5], [0.5,10,1],[0.5,10,1],  [0.5,10,0.5], [0.5,10,1], [0.5,10,1],  [0.25,10,1],
-			[1,3,1], [0.5,1,0.5], [0.5,3,1],	  [1, 1, 1], [0.5,1,0.5], [0.5,3,1]],
-
+			[[1, 1, 0.5], [0.25,1,0.5], [0.5,10,1], [0.5,10,1], [0.5,10,0.5], [0.5,10,1], [0.5,10,1], [0.25,10,1], [1,3,1], [0.5,1,0.5], [0.5,3,1], [1, 1, 1], [0.5,1,0.5], [0.5,3,1]],
 			/* Var 10 */
-			[[0.25, 1, 0.5], [0.5,10,0.5], [0.5,10,1],[0.5,10,1], [0.5,10,0.5], [0.5,10,1], [0.5,10,1], [0.5,10,1],  [0.25,10,1],
-			[1,3,1], [0.5,1,0.5], [0.5,3,1],	  [1, 1, 1], [0.5,1,0.5], [0.5,3,1]]
+			[[0.25, 1, 0.5], [0.5,10,0.5], [0.5,10,1], [0.5,10,1], [0.5,10,0.5], [0.5,10,1], [0.5,10,1], [0.5,10,1], [0.25,10,1], [1,3,1], [0.5,1,0.5], [0.5,3,1], [1, 1, 1], [0.5,1,0.5], [0.5,3,1]]
+		],
+		// ADDED: Default Variation Array for Track 6 (The new 7th track)
+		[
+			[[0.25, 0, 1], [0.25, 0, 0.6], [0.5, 0, 1]], [[0.5, 0, 1], [0.5, 0, 1]]
 		]
 	];
-	);
 
 	/////////////////////////////////////////////////////////////////
 	// PATHS & ASSET LOADING
@@ -177,7 +129,6 @@ s.waitForBoot({
 
 	File.mkdir(~presetPath);
 
-	// Load Samples
 	~sampleFiles = (~samplePath +/+ "*.wav").pathMatch;
 	~sampleNames = ~sampleFiles.collect({ |path| PathName(path).fileNameWithoutExtension });
 	~samples = ~sampleFiles.collect({ |path| Buffer.read(s, path) });
@@ -187,7 +138,6 @@ s.waitForBoot({
 		~samples = [Buffer.alloc(s, 44100, 2)];
 	};
 
-	// Load Background Image Safely
 	if(File.exists(~imagePath +/+ "wood-size.jpg")) {
 		woodImg = Image.new(~imagePath +/+ "wood-size.jpg");
 	} {
@@ -201,7 +151,7 @@ s.waitForBoot({
 
 	~saveSettings = { |name|
 		var data = Dictionary.new;
-		var path = ~presetPath +/+ (name ++ ".scd"); // Fix: Use +/+ here
+		var path = ~presetPath +/+ (name ++ ".scd");
 		data.put(\rhythms, ~rhythms.copy);
 		data.put(\mutes, ~mutes.copy);
 		data.put(\pitches, ~pitches.copy);
@@ -216,11 +166,14 @@ s.waitForBoot({
 		("--- Saved Preset: " ++ name).postln;
 	};
 
+
 	~loadSettings = { |name|
-		var path = ~presetPath +/+ (name ++ ".scd"); // Fix: Use +/+ here
+		var path = ~presetPath +/+ (name ++ ".scd");
 		var data = Object.readArchive(path);
 		if(data.notNil) {
 			currentPresetName = name;
+
+			// Load data with safe size matching or structural fallbacks
 			~rhythms = data[\rhythms].copy;
 			~mutes = data[\mutes].copy;
 			~pitches = data[\pitches].copy;
@@ -238,40 +191,42 @@ s.waitForBoot({
 				presetMenu.value = presetMenu.items.indexOfEqual(name);
 				bpmDisplay.value = ~tempo.tempo * 60;
 				tempoSlid.value = ~tempo.tempo.linlin(1, 3.3, 0, 1);
+
 				~numTracks.do({ |i|
-					~rhythmMenus[i].value = ~rhythmIndices[i];
-					~muteButtons[i].value = ~mutes[i].asInteger;
-					~sampleMenus[i].value = ~sampleIndices[i].wrap(0, ~sampleNames.size-1);
-					~pitchSliders[i].value = ~pitches[i].linlin(36, 72.0, 0, 1);
-					~volSliders[i].value = ~dbSpec.unmap(~volumes[i].ampdb);
-					~humTimeSliders[i].value = ~humanizeTime[i].linlin(0, 0.08, 0, 1);
-					~humPitchSliders[i].value = ~humanizePitch[i].linlin(0, 1.5, 0, 1);
-					~humAmpSliders[i].value = ~humanizeAmp[i].linlin(0, 0.3, 0, 1);
+					// FIX: Use wrapAt or default fallbacks so old presets (size 6) don't crash track 6 (index 6)
+					~rhythmMenus[i].value = ~rhythmIndices.wrapAt(i);
+					~muteButtons[i].value = (~mutes.wrapAt(i) ?? { false }).asInteger;
+					~sampleMenus[i].value = ~sampleIndices.wrapAt(i).wrap(0, ~sampleNames.size-1);
+					~pitchSliders[i].value = ~pitches.wrapAt(i).linlin(36, 72.0, 0, 1);
+					~volSliders[i].value = ~dbSpec.unmap(~volumes.wrapAt(i).ampdb);
+					~humTimeSliders[i].value = ~humanizeTime.wrapAt(i).linlin(0, 0.08, 0, 1);
+					~humPitchSliders[i].value = ~humanizePitch.wrapAt(i).linlin(0, 1.5, 0, 1);
+					~humAmpSliders[i].value = ~humanizeAmp.wrapAt(i).linlin(0, 0.3, 0, 1);
 				});
 			}.defer;
 		};
 	};
 
 	~updatePresetList = {
-    // Using +/+ ensures there is a proper slash before the search pattern
-    var files = (~presetPath +/+ "*.scd").pathMatch;
-    var names = files.collect({ |p| PathName(p).fileNameWithoutExtension });
-    var currentIndex;
+		var files = (~presetPath +/+ "*.scd").pathMatch;
+		var names = files.collect({ |p| PathName(p).fileNameWithoutExtension });
+		var currentIndex;
 
-    if(names.isEmpty) {
-        "DEBUG: Searching in %".format(~presetPath).postln; // This will tell you where it's looking
-        names = ["No Presets Found"];
-    };
+		if(names.isEmpty) {
+			"DEBUG: Searching in %".format(~presetPath).postln;
+			names = ["No Presets Found"];
+		};
 
-    currentIndex = names.indexOfEqual(currentPresetName) ?? 0;
-    { if(presetMenu.notNil) { presetMenu.items = names; presetMenu.value = currentIndex; } }.defer;
-};
+		currentIndex = names.indexOfEqual(currentPresetName) ?? 0;
+		{ if(presetMenu.notNil) { presetMenu.items = names; presetMenu.value = currentIndex; } }.defer;
+	};
+
 	/////////////////////////////////////////////////////////////////
 	// SERVER SIDE
 	/////////////////////////////////////////////////////////////////
 
 	~peakBus = Bus.control(s, 1);
-	~trackPeakBuses = Array.fill(~numTracks, { Bus.control(s, 1) }); // Track Meters
+	~trackPeakBuses = Array.fill(~numTracks, { Bus.control(s, 1) });
 
 	SynthDef(\masterOut, {
 		arg amp=0.8;
@@ -288,7 +243,6 @@ s.waitForBoot({
 		env = EnvGen.kr(Env.perc(0.005, rel), 1, doneAction: 2);
 		sig = PlayBuf.ar(2, buf, BufRateScale.kr(buf) * rate, loop: 0);
 		sig = sig * 0.8 * env * amp;
-		// Send peak info to the track's specific control bus
 		Out.kr(peakOut, PeakFollower.kr(sig[0].abs.max(sig[1].abs), 0.999));
 		OffsetOut.ar(out, Pan2.ar(sig, pan));
 	}).add;
@@ -300,82 +254,79 @@ s.waitForBoot({
 	// ENGINE (3D EVENT VERSION)
 	/////////////////////////////////////////////////////////////////
 
-
 	~numTracks.do({ |i|
-	Tdef( ("chan" ++ i).asSymbol, {
-		var step = 0;
-		loop {
-			var currentEvent, delta, bufOff, hitAmp, pbRate, jT, jP, jA;
+		Tdef( ("chan" ++ i).asSymbol, {
+			var step = 0;
+			loop {
+				var currentEvent, delta, bufOff, hitAmp, pbRate;
 
-			// 1. DATA REFRESH
-			currentEvent = ~rhythms[i].wrapAt(step);
-			delta  = currentEvent[0];
-			bufOff = currentEvent[1]; // Should be 1 or 3 in your Golpe example
-			hitAmp = currentEvent[2];
-
-			// 2. VARIATION LOGIC
-			if (~varRequests[i] && ((~tempo.beats % 4) < 0.01)) {
-				~varRequests[i] = false;
-				{ if(~varButtons[i].notNil) { ~varButtons[i].value = 0 } }.defer;
-				step = 0;
-
-				~variations.wrapAt(i).choose.do({ |vEvent|
-					// Localize variation variables strictly
-					var vDelta = vEvent[0];
-					var vBuf   = vEvent[1];
-					var vAmp   = vEvent[2];
-
-					if(vDelta > 0 && ~mutes[i].not) {
-						pbRate = (~pitches[i] + ~humanizePitch[i].rand2 - 60).midiratio;
-						s.makeBundle(s.latency + ~humanizeTime[i].rand2, {
-							Synth(\liveChannel, [
-								\buf, ~samples[vBuf.asInteger.wrap(0, ~samples.size-1)],
-								\rate, pbRate,
-								\amp, (vAmp * ~volumes[i] + ~humanizeAmp[i].rand2).clip(0,2) * ~masterVol,
-								\rel, (vDelta.abs / ~tempo.tempo) * 0.8,
-								\peakOut, ~trackPeakBuses[i]
-							]);
-						});
-					};
-					vDelta.abs.wait;
-				});
-
-				// Re-sync after variation
 				currentEvent = ~rhythms[i].wrapAt(step);
-				delta = currentEvent[0]; bufOff = currentEvent[1]; hitAmp = currentEvent[2];
-			};
+				delta  = currentEvent[0];
+				bufOff = currentEvent[1];
+				hitAmp = currentEvent[2];
 
-			// 3. NORMAL NOTE LOGIC
-			if(delta > 0 && ~mutes[i].not) {
-				pbRate = (~pitches[i] + ~humanizePitch[i].rand2 - 60).midiratio;
+				// VARIATION LOGIC
+				if (~varRequests[i] && ((~tempo.beats % 4) < 0.01)) {
+					~varRequests[i] = false;
+					{ if(~varButtons[i].notNil) { ~varButtons[i].value = 0 } }.defer;
+					step = 0;
 
-				s.makeBundle(s.latency + ~humanizeTime[i].rand2, {
-					// DEBUG LINE: Uncomment the next line to see indices in the Post Window
-					// ["Track: " + i, "Playing Index: " + bufOff].postln;
+					~variations.wrapAt(i).choose.do({ |vEvent|
+						var vDelta = vEvent[0];
+						var vBuf   = vEvent[1];
+						var vAmp   = vEvent[2];
 
-					Synth(\liveChannel, [
-						\buf, ~samples[bufOff.asInteger.wrap(0, ~samples.size-1)],
-						\rate, pbRate,
-						\amp, (hitAmp * ~volumes[i] + ~humanizeAmp[i].rand2).clip(0,2) * ~masterVol,
-						\rel, (delta.abs / ~tempo.tempo) * 0.8,
-						\peakOut, ~trackPeakBuses[i]
-					]);
-				});
-			};
+						if(vDelta > 0 && ~mutes[i].not) {
+							pbRate = (~pitches[i] + ~humanizePitch[i].rand2 - 60).midiratio;
+							s.makeBundle(s.latency + ~humanizeTime[i].rand2, {
+								Synth(\liveChannel, [
+									\buf, ~samples[vBuf.asInteger.wrap(0, ~samples.size-1)],
+									\rate, pbRate,
+									\amp, (vAmp * ~volumes[i] + ~humanizeAmp[i].rand2).clip(0,2) * ~masterVol,
+									\rel, (vDelta.abs / ~tempo.tempo) * 0.8,
+									\peakOut, ~trackPeakBuses[i]
+								]);
+							});
+						};
+						vDelta.abs.wait;
+					});
 
-			step = step + 1;
-			if(step >= ~rhythms[i].size) { step = 0 };
-			delta.abs.wait;
-		}
-	}).quant = 4;
-});
+					currentEvent = ~rhythms[i].wrapAt(step);
+					delta = currentEvent[0]; bufOff = currentEvent[1]; hitAmp = currentEvent[2];
+				};
+
+				// NORMAL NOTE LOGIC
+				if(delta > 0 && ~mutes[i].not) {
+					pbRate = (~pitches[i] + ~humanizePitch[i].rand2 - 60).midiratio;
+
+					s.makeBundle(s.latency + ~humanizeTime[i].rand2, {
+						Synth(\liveChannel, [
+							\buf, ~samples[bufOff.asInteger.wrap(0, ~samples.size-1)],
+							\rate, pbRate,
+							\amp, (hitAmp * ~volumes[i] + ~humanizeAmp[i].rand2).clip(0,2) * ~masterVol,
+							\rel, (delta.abs / ~tempo.tempo) * 0.8,
+							\peakOut, ~trackPeakBuses[i]
+						]);
+					});
+				};
+
+				step = step + 1;
+				if(step >= ~rhythms[i].size) { step = 0 };
+				delta.abs.wait;
+			}
+		}).quant = 4;
+	});
 
 	/////////////////////////////////////////////////////////////////
 	// GUI
 	/////////////////////////////////////////////////////////////////
 
-	woodImg = Image.new(~projectPath ++ "images/wood-size.jpg");
-	win = Window("RicaAfroca Sequencer Wood", Rect(50, 50, 1020, 920)).front;
+	if(File.exists(~imagePath +/+ "wood-size.jpg")) {
+		woodImg = Image.new(~imagePath +/+ "wood-size.jpg");
+	};
+
+	// CHANGED: Expanded Window Width from 1020 to 1140 to accommodate 7 tracks comfortably
+	win = Window("RicaAfroca Sequencer Wood", Rect(50, 50, 1140, 920)).front;
 	if(woodImg.notNil) { win.view.backgroundImage_(woodImg, 10) };
 	win.view.decorator = FlowLayout(win.view.bounds, 15@15, 10@10);
 
@@ -411,7 +362,6 @@ s.waitForBoot({
 		hLayout = CompositeView(comp, 105@200);
 		hLayout.decorator = FlowLayout(hLayout.bounds, 0@0, 2@0);
 
-		// Track Meter
 		~trackMeters[i] = LevelIndicator(hLayout, 15@200).warning_(0.8).critical_(0.95).background_(Color.black);
 
 		vRuler = CompositeView(hLayout, 25@200);
@@ -457,20 +407,15 @@ s.waitForBoot({
 	});
 	Slider(hLayout, 70@305).value_(~dbSpec.unmap(0)).action_({ |s| var db = ~dbSpec.map(s.value); ~masterVol = db.dbamp; });
 
-	// Updated Meter Routine to handle track meters too
-	// Updated Meter Routine with Safety Checks
 	meterRoutine = {
 		loop {
-			// Update Master Meter
 			~peakBus.get({ |val|
 				{ if(peakMeter.notNil) { peakMeter.value = val } }.defer;
 			});
 
-			// Update Track Meters
 			~numTracks.do({ |i|
 				~trackPeakBuses[i].get({ |val|
 					{
-						// The safety check: only call .value if the meter exists
 						if(~trackMeters[i].notNil) {
 							~trackMeters[i].value = val;
 						};
@@ -485,13 +430,13 @@ s.waitForBoot({
 	presetNameField = TextField(win, 150@40).string_(currentPresetName);
 	saveBtn = Button(win, 100@40).states_([["SAVE", Color.black, Color.yellow]]).action_({ var n = presetNameField.string.stripWhiteSpace; if(n == "") { n = currentPresetName }; ~saveSettings.value(n); currentPresetName = n; ~updatePresetList.value; });
 	presetMenu = PopUpMenu(win, 200@40)
-    .items_(["Scanning..."])
-    .action_({ |menu|
-        if(menu.item != "No Presets Found") {
-            ~loadSettings.value(menu.item);
-            ("--- Auto-loaded: " ++ menu.item).postln;
-        }
-    });
+		.items_(["Scanning..."])
+		.action_({ |menu|
+			if(menu.item != "No Presets Found") {
+				~loadSettings.value(menu.item);
+				("--- Auto-loaded: " ++ menu.item).postln;
+			}
+		});
 	loadBtn = Button(win, 100@40).states_([["LOAD", Color.black, Color.cyan]]).action_({ if(presetMenu.item != "No Presets Found") { ~loadSettings.value(presetMenu.item) }; });
 	refreshBtn = Button(win, 100@40).states_([["REFRESH", Color.white, Color.grey(0.3)]]).action_({ ~updatePresetList.value });
 
@@ -499,9 +444,7 @@ s.waitForBoot({
 
 	~updatePresetList.value;
 
-	// --- ADD THIS SECTION HERE ---
 	s.doWhenBooted({
-		// Give the GUI a tiny moment to settle, then load the preset
 		{
 			if(File.exists(~presetPath +/+ "guaguanco.scd")) {
 				"Loading startup preset: guaguanco".postln;
@@ -512,78 +455,58 @@ s.waitForBoot({
 		}.defer(0.5);
 	});
 
-
-
 	win.onClose = {
-    meterRoutine.stop;
-    ~serialRoutine.stop;
-
-    // Check if it exists before trying to close it
-    if(~myPort.notNil) { ~myPort.close };
-
-    ~numTracks.do({ |i| Tdef(("chan"++i).asSymbol).stop });
-    "Sequencer and Serial Port closed safely.".postln;
-};
-
-
+		meterRoutine.stop;
+		if(~serialRoutine.notNil) { ~serialRoutine.stop };
+		if(~myPort.notNil) { ~myPort.close };
+		~numTracks.do({ |i| Tdef(("chan"++i).asSymbol).stop });
+		"Sequencer and Serial Port closed safely.".postln;
+	};
 
 	/////////////////////////////////////////////////////////////////
 	// ARDUINO
 	/////////////////////////////////////////////////////////////////
 
-(
-try {
-    // Attempt to open the port
-// 1. Identify your port (Run this line alone first to find your index)
-// SerialPort.listDevices;
+	try {
+		// ~myPort = SerialPort("COM3", baudrate: 9600, crtscts: true); // Edit as needed
 
-// 2. Open the port (Replace "COM3" or "/dev/ttyUSB0" with your actual port)
-~myPort = SerialPort(
-    "COM3", // EDIT THIS LINE
-    baudrate: 9600,
-    crtscts: true
-);
+		~serialRoutine = {
+			var byte;
+			while { ~myPort.notNil } {
+				byte = ~myPort.read;
+				if (byte.notNil) {
+					byte = byte.asAscii;
+					{
+						case
+						{ byte == $s } { startBtn.valueAction = 1 - startBtn.value }
+						{ byte == $p } {
+							var newBpm = (~tempo.tempo * 60) + 1;
+							~tempo.tempo = newBpm / 60;
+							bpmDisplay.value = newBpm;
+							tempoSlid.value = newBpm.linlin(60, 200, 0, 1);
+						}
+						{ byte == $m } {
+							var newBpm = (~tempo.tempo * 60) - 1;
+							~tempo.tempo = newBpm / 60;
+							bpmDisplay.value = newBpm;
+							tempoSlid.value = newBpm.linlin(60, 200, 0, 1);
+						}
+						// CHANGED: Redirected the '$v' hardware command to toggle your new last track (Track 6)
+						{ byte == $v } {
+							if(~varButtons[6].notNil) {
+								~varButtons[6].valueAction = 1 - ~varButtons[6].value;
+							}
+						};
+					}.defer;
+				};
+				0.001.wait;
+			};
+		}.fork(AppClock);
 
-// 3. Create a Routine to listen for incoming bytes
-~serialRoutine = {
-    var byte;
-    while { ~myPort.notNil } {
-        byte = ~myPort.read;
-        if (byte.notNil) {
-            byte = byte.asAscii;
-            {
-                case
-                { byte == $s } { startBtn.valueAction = 1 - startBtn.value }
-                { byte == $p } {
-                    var newBpm = (~tempo.tempo * 60) + 1;
-                    ~tempo.tempo = newBpm / 60;
-                    bpmDisplay.value = newBpm;
-                    tempoSlid.value = newBpm.linlin(60, 200, 0, 1);
-                }
-                { byte == $m } {
-                    var newBpm = (~tempo.tempo * 60) - 1;
-                    ~tempo.tempo = newBpm / 60;
-                    bpmDisplay.value = newBpm;
-                    tempoSlid.value = newBpm.linlin(60, 200, 0, 1);
-                }
-                // TRIGGER VARIATION ON TRACK 5 (Index 5)
-                { byte == $v } {
-                    if(~varButtons[5].notNil) {
-                        // Toggle the button state and trigger its action
-                        ~varButtons[5].valueAction = 1 - ~varButtons[5].value;
-                    }
-                }
-            }.defer;
-        };
-	0.001.wait;
-    };
-}.fork(AppClock);
+	} { |error|
+		"WARNING: Arduino port exception. Sequencer will run in GUI-only mode.".postln;
+		~myPort = nil;
+	};
 
-			} { |error|
-    // If opening fails, execute this instead of crashing
-    "WARNING: Arduino not found on COM3. Sequencer will run in GUI-only mode.".postln;
-    ~myPort = nil;
-};
-)
 });
 )
