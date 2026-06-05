@@ -473,7 +473,11 @@ s.waitForBoot({
 	win.view.decorator.nextLine;
 
 	Button(win, 30@30).states_([["-", Color.black, Color.grey(0.8)]]).action_({ var newBpm = (~tempo.tempo * 60) - 1; ~tempo.tempo = newBpm / 60; bpmDisplay.value = newBpm; tempoSlid.value = newBpm.linlin(60, 200, 0, 1); }).canFocus_(false);
-	bpmDisplay = NumberBox(win, 60@30).value_(~tempo.tempo * 60);
+	bpmDisplay = NumberBox(win, 60@30).value_((~tempo.tempo * 60).round(0.1))
+	    .decimals_(1)
+		.background_(Color.black)
+		.normalColor_(Color.yellow)
+		.font_(Font(size: 18));
 	Button(win, 30@30).states_([["+", Color.black, Color.grey(0.8)]]).action_({ var newBpm = (~tempo.tempo * 60) + 1; ~tempo.tempo = newBpm / 60; bpmDisplay.value = newBpm; tempoSlid.value = newBpm.linlin(60, 200, 0, 1); }).canFocus_(false);
 	tempoSlid = Slider(win, 660@30).value_(~tempo.tempo.linlin(1, 3.3, 0, 1)).action_({ |s| var bpm = s.value.linlin(0, 1, 60, 200); ~tempo.tempo = bpm / 60; bpmDisplay.value = bpm; }).canFocus_(false);
 
@@ -487,7 +491,9 @@ s.waitForBoot({
 		~trackLabels[i] = TextField(comp, 105@25)
 			.string_("Track " ++ i)
 			.align_(\center)
-			.font_(Font(bold: true, size: 12))
+		.background_(Color.black)
+		.stringColor_(Color.yellow)
+			.font_(Font(size: 18))
 			.action_({ |tf|
 				// 1. Guarda el texto inmediatamente en la variable lógica si lo deseas
 				("Track " ++ i ++ " renombrado a: " ++ tf.string).postln;
@@ -512,6 +518,7 @@ s.waitForBoot({
 			.align_(\center)
 		.background_(Color.black)
 		.normalColor_(Color.yellow)
+		.font_(Font(size: 18))
 			.action_({ |nb|
 				var targetAmp = ~dbSpec.map(~dbSpec.unmap(nb.value)).dbamp;
 				~volumes[i] = targetAmp;
@@ -594,10 +601,16 @@ s.waitForBoot({
 	}.fork(AppClock);
 
 	win.view.decorator.nextLine;
-	presetNameField = TextField(win, 150@40).string_(currentPresetName);
+	presetNameField = TextField(win, 150@40).string_(currentPresetName)
+		.background_(Color.black)
+		.stringColor_(Color.yellow)
+		.font_(Font(size: 18));
 	saveBtn = Button(win, 100@40).states_([["SAVE", Color.black, Color.yellow]]).action_({ var n = presetNameField.string.stripWhiteSpace; if(n == "") { n = currentPresetName }; ~saveSettings.value(n); currentPresetName = n; ~updatePresetList.value; });
 	presetMenu = PopUpMenu(win, 200@40)
 		.items_(["Scanning..."])
+		.background_(Color.black)
+		.stringColor_(Color.yellow)
+		.font_(Font(size: 18))
 		.action_({ |menu| if(menu.item != "No Presets Found") { ~loadSettings.value(menu.item); } });
 	loadBtn = Button(win, 100@40).states_([["LOAD", Color.black, Color.cyan]]).action_({ if(presetMenu.item != "No Presets Found") { ~loadSettings.value(presetMenu.item) }; });
 	refreshBtn = Button(win, 100@40).states_([["REFRESH", Color.white, Color.grey(0.3)]]).action_({ ~updatePresetList.value });
