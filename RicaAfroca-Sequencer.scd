@@ -17,6 +17,8 @@ s.waitForBoot({
 	masterHumTime, masterHumPitch, masterHumAmp, humGroup, woodImg,
 	currentPresetName = "newPreset";
 
+	var llamadorAbiertos, lastLlamadorIdx = -1;
+
 	// CHANGED: Scaled from 6 to 7 tracks (Indices 0 to 6)
 	~numTracks = 7;
 	~tempo = TempoClock.new(120/60).permanent_(true);
@@ -54,27 +56,37 @@ s.waitForBoot({
 	/////////////////////////////////////////////////////////////////
 (
 	~rhythmAndNames = [
+
+		// Claves
 		["Clave4/4", [[0.75,2,1], [1,2,1], [0.7,2,1], [0.55,2,1], [1,2,1]]],
 		["ClaveMatanzas", [[0.75,2,1], [0.25,2,1], [0.75,2,1], [0.25,2,1], [0.5,2,1], [0.5,2,1], [1,2,1]]],
 		["Clave6/8", [[2/3,4,1], [3/3,4,1], [2/3,4,1], [2/3,4,1], [3/3,4,1]]],
 		["ClaveAfricana", [[2/3,4,1], [2/3,4,1], [1/3,4,1], [2/3,4,1], [2/3,4,1], [2/3,0,1], [1/3,0,1]]],
+
+		// Cáscaras
 		["Cascara1", [[0.25,0,1], [0.5,0,1], [0.25,0,1], [0.25,0,1], [0.5,0,1], [0.25,0,1], [0.5,0,1], [0.5,0,1], [0.25,0,1], [0.5,0,1], [0.25,0,1]]],
 		["Cascara2", [[0.5,0,1], [0.25,0,1], [0.5,0,1], [0.5,0,1],[0.25,0,1], [0.5,0,1], [0.5,0,1], [0.25,0,1], [0.5,0,1], [0.25,0,1]]],
 		["CascaraColumbia", [[0.5,0,1], [0.25,0,1], [0.5,0,1], [0.5,0,1], [0.25,0,1], [0.5,0,1], [0.5,0,1], [0.25,0,1], [0.25,0,1], [0.25,0,1], [0.25,0,1]]],
 		["cascara Yuka", [[2/3,0,1], [2/3,0,1], [2/3,0,1], [1/3,0,1], [1/3,0,1], [4/3,0,1]]],
-		["PaloYukaGolpe", [[0.75,0,1], [0.25,0,1], [-1,0,0]]],
 		["cascara2 Yuka", [[2/3,0,1], [2/3,0,1], [2/3,0,1], [6/3,0,1]]],
 
-	// Golpes
+		// Shékeres
+		["ShekereBin 1/1", [[2+1.75,7,1], [0.25,8,1]]],
+		["ShekereBin 1/2", [[1.75,7,1], [0.25,8,1]]],
+		["ShekereBin 1/4 ", [[0.75,7,1], [0.25,8,1]]],
+		["Shekere6/8", [[2/3,7,1], [1/3,8,1]]],
+
+		// Golpes
+		["PaloYukaGolpe", [[0.75,0,1], [0.25,0,1], [-1,0,0]]],
 		["GolpeGuaguanco", [[1,1,0.135], [0.5,1,0.135], [0.5,3,1], [1,1,0.135], [0.5,1,0.135], [0.5,3,1]]],
 		["GolpeMatancera", [[0.75,1,0.35], [0.25,1,0.35], [0.5,1,0.35], [0.5,3,1],
 				            [0.75,1,0.35], [0.25,1,0.35], [0.5,1,0.35], [0.5,3,1]]],
 		["GolpeCol", [[2/3,1,0.43], [1/3,9,1],  [1/3,1,0.43], [1/3,3,1], [1/3,3,1],
 				      [2/3,1,0.43], [1/3,9,1], [1/3,1,0.43], [1/3,3,1], [1/3,3,1]]],
 		["GolpePalo", [[1/3,1,0], [1/3,9,1],  [1/3,9,1], [1/3,3,0], [1/3,3,1], [1/3,9,1]]],
+		["Yuka Golpe", [[1,1,0.43], [1,3,1]]],
 
-
-	// Llamadores
+	    // Llamadores
 		["LlamadorGuaguanco", [[0.25,1,0.25], [0.25,10,0.25], [0.25,10,0.25], [0.25,1,0.25],
 			                   [0.25,1,0.25], [0.25,10,0.25], [0.25,10,0.25], [0.25,10,1],
 			                   [0.5,3,1],                   [0.25,10,0.5],[0.25,1,0.5],
@@ -84,11 +96,7 @@ s.waitForBoot({
 		["Llamador Columbia", [[2/3,1,0.43], [1/3,3,1],  [1,3,1]]],
 		["Yuka Llamador", [[1,1,0.43], [0.5,1,0.43], [0.5,3,1]]],
 
-		["Yuka Golpe", [[1,1,0.43], [1,3,1]]],
-		["ShekereBin 1/1", [[2+1.75,7,1], [0.25,8,1]]],
-		["ShekereBin 1/2", [[1.75,7,1], [0.25,8,1]]],
-		["ShekereBin 1/4 ", [[0.75,7,1], [0.25,8,1]]],
-		["Shekere6/8", [[2/3,7,1], [1/3,8,1]]],
+		// Pulsos
 		["16ths", [[0.25,0,1]]],
 		["8ths", [[0.5,0,1]]],
 		["Quarters", [[1,0,1], [1,0,1]]]
@@ -165,6 +173,21 @@ s.waitForBoot({
 		~samples = [Buffer.alloc(s, 44100, 2)];
 	};
 
+	// Cargamos todos los archivos dentro de la carpeta 'abiertos'
+~llamadorPath = ~samplePath +/+ "Llamador/abiertos/*.wav";
+llamadorAbiertos = ~llamadorPath.pathMatch.collect({ |path|
+	Buffer.read(s, path);
+});
+
+// Mensaje de confirmación en el Post Window
+if(llamadorAbiertos.size > 0) {
+	("--- Cargadas" + llamadorAbiertos.size + "muestras para Round Robin del Llamador").postln;
+} {
+	"ALERTA: No se encontraron muestras en samples/Llamador/abiertos/".postln;
+};
+
+
+	// Carga textura en la Window del secuenciador
 	if(File.exists(~imagePath +/+ "wood-size.jpg")) {
 		woodImg = Image.new(~imagePath +/+ "wood-size.jpg");
 	} {
