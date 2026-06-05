@@ -15,6 +15,8 @@ s.waitForBoot({
 	masterHumTime, masterHumPitch, masterHumAmp, humGroup, woodImg,
 	currentPresetName = "newPreset";
 
+	var masterSlid, masterDisplay;
+
 	// Variables locales para el Round Robin de todos los golpes (camelCase)
 	var llamadorAbiertos, lastLlamadorIdx = -1;
 	var llamadorSlaps, lastSlapIdx = -1;
@@ -586,6 +588,25 @@ s.waitForBoot({
 	StaticText(masterCol, 140@12).string_("Amp").font_(Font(size:8));
 	Slider(masterCol, 140@15).value_(0.0).action_({ |s| ~numTracks.do({ |i| ~humanizeAmp[i] = s.value.linlin(0, 1, 0, 0.3); {~humAmpSliders[i].value = s.value}.defer; }); });
 	StaticText(masterCol, 140@20).string_("Peak / dB / Master").align_(\center).font_(Font(size:10));
+
+	// =========================================================================
+	// NUEVO: NumberBox Maestro insertado antes del layout del slider/medidor
+	// =========================================================================
+	~masterDisplay = NumberBox(masterCol, 140@20)
+		.value_(0.0) // Corresponde al valor inicial de 0 dB que tiene tu slider abajo
+		.clipLo_(-60).clipHi_(3.5)
+		.decimals_(1)
+		.align_(\center)
+		.background_(Color.black)
+		.normalColor_(Color.yellow)
+		.action_({ |nb|
+			var targetAmp = ~dbSpec.map(~dbSpec.unmap(nb.value)).dbamp;
+			~masterVol = targetAmp; // Actualiza la amplitud del motor
+			~masterSlider.value = ~dbSpec.unmap(nb.value); // Mueve el slider físicamente
+		})
+		.canFocus_(true);
+	// =========================================================================
+
 	hLayout = CompositeView(masterCol, 140@310);
 	hLayout.decorator = FlowLayout(hLayout.bounds, 0@0, 2@0);
 	peakMeter = LevelIndicator(hLayout, 20@305).warning_(0.8).critical_(0.95).background_(Color.black);
@@ -594,7 +615,16 @@ s.waitForBoot({
 		var yPos = ~dbSpec.unmap(db);
 		StaticText(vRuler, Rect(0, (1 - yPos) * 285, 40, 20)).string_(db.asString).font_(Font(size: 10)).align_(\right).stringColor_(if(db > 0) { Color.red } { Color.white });
 	});
-	Slider(hLayout, 70@305).value_(~dbSpec.unmap(0)).action_({ |s| var db = ~dbSpec.map(s.value); ~masterVol = db.dbamp; }).canFocus_(false);
+
+	// MODIFICADO: Asignado a ~masterSlider e interactúa con el NumberBox en tiempo real
+	~masterSlider = Slider(hLayout, 70@305)
+		.value_(~dbSpec.unmap(0))
+		.action_({ |s|
+			var db = ~dbSpec.map(s.value);
+			~masterVol = db.dbamp;
+			~masterDisplay.value = db.round(0.1); // Actualiza el número amarillo al arrastrar
+		})
+		.canFocus_(false);
 
 	meterRoutine = {
 		loop {
