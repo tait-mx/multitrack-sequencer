@@ -15,7 +15,9 @@ s.waitForBoot({
 	masterHumTime, masterHumPitch, masterHumAmp, humGroup, woodImg,
 	currentPresetName = "newPreset";
 
+	// Variables locales para el Round Robin de ambos golpes
 	var llamadorAbiertos, lastLlamadorIdx = -1;
+	var llamadorSlaps, lastSlapIdx = -1;
 
 	// CHANGED: Scaled from 6 to 7 tracks (Indices 0 to 6)
 	~numTracks = 7;
@@ -54,7 +56,6 @@ s.waitForBoot({
 	/////////////////////////////////////////////////////////////////
 (
 	~rhythmAndNames = [
-
 		// Claves
 		["Clave4/4", [[0.75,2,1], [1,2,1], [0.7,2,1], [0.55,2,1], [1,2,1]]],
 		["ClaveMatanzas", [[0.75,2,1], [0.25,2,1], [0.75,2,1], [0.25,2,1], [0.5,2,1], [0.5,2,1], [1,2,1]]],
@@ -77,20 +78,14 @@ s.waitForBoot({
 		// Golpes
 		["PaloYukaGolpe", [[0.75,0,1], [0.25,0,1], [-1,0,0]]],
 		["GolpeGuaguanco", [[1,1,0.135], [0.5,1,0.135], [0.5,3,1], [1,1,0.135], [0.5,1,0.135], [0.5,3,1]]],
-		["GolpeMatancera", [[0.75,1,0.35], [0.25,1,0.35], [0.5,1,0.35], [0.5,3,1],
-				            [0.75,1,0.35], [0.25,1,0.35], [0.5,1,0.35], [0.5,3,1]]],
-		["GolpeCol", [[2/3,1,0.43], [1/3,9,1],  [1/3,1,0.43], [1/3,3,1], [1/3,3,1],
-				      [2/3,1,0.43], [1/3,9,1], [1/3,1,0.43], [1/3,3,1], [1/3,3,1]]],
+		["GolpeMatancera", [[0.75,1,0.35], [0.25,1,0.35], [0.5,1,0.35], [0.5,3,1], [0.75,1,0.35], [0.25,1,0.35], [0.5,1,0.35], [0.5,3,1]]],
+		["GolpeCol", [[2/3,1,0.43], [1/3,9,1],  [1/3,1,0.43], [1/3,3,1], [1/3,3,1], [2/3,1,0.43], [1/3,9,1], [1/3,1,0.43], [1/3,3,1], [1/3,3,1]]],
 		["GolpePalo", [[1/3,1,0], [1/3,9,1],  [1/3,9,1], [1/3,3,0], [1/3,3,1], [1/3,9,1]]],
 		["Yuka Golpe", [[1,1,0.43], [1,3,1]]],
 
-	    // Llamadores
-		["LlamadorGuaguanco", [[0.25,1,0.25], [0.25,10,0.25], [0.25,10,0.25], [0.25,1,0.25],
-			                   [0.25,1,0.25], [0.25,10,0.25], [0.25,10,0.25], [0.25,10,1],
-			                   [0.5,3,1],                   [0.25,10,0.5],[0.25,1,0.5],
-			                   [0.25,1,0.25], [0.25,10,0.25], [0.25,10,0.25], [0.25,1,0.25]]],
-		["Llamador Matancera", [[15/32, 0, 0],  [9/32, 9, 1], [8/32, 9, 1],
-				[15/32, 0, 0],  [9/32, "lla", 1], [8/32, 9, 1]]],
+		// Llamadores (ACTUALIZADO: Usando "lls" para los slaps en Matancera)
+		["LlamadorGuaguanco", [[0.25,1,0.25], [0.25,10,0.25], [0.25,10,0.25], [0.25,1,0.25], [0.25,1,0.25], [0.25,10,0.25], [0.25,10,0.25], [0.25,10,1], [0.5,3,1], [0.25,10,0.5],[0.25,1,0.5], [0.25,1,0.25], [0.25,10,0.25], [0.25,10,0.25], [0.25,1,0.25]]],
+		["Llamador Matancera", [[15/32, 0, 0],  [9/32, "lls", 1], [8/32, "lls", 1], [15/32, 0, 0],  [9/32, "lla", 1], [8/32, "lls", 1]]],
 		["Llamador Columbia", [[2/3,1,0.43], [1/3,3,1],  [1,3,1]]],
 		["Yuka Llamador", [[1,1,0.43], [0.5,1,0.43], [0.5,3,1]]],
 
@@ -144,16 +139,16 @@ s.waitForBoot({
 			[[0.25, 0, 1], [0.25, 0, 0.6], [0.5, 0, 1]], [[0.5, 0, 1], [0.5, 0, 1]]
 		]
 	];
-);
+	);
 
 	/////////////////////////////////////////////////////////////////
-	// PATHS & ASSET LOADING (RUTA ESTRICTA EN MINÚSCULAS)
+	// PATHS & ASSET LOADING (100% RELATIVAS SEGÚN TU FINDER)
 	/////////////////////////////////////////////////////////////////
 
 	~projectPath = if(thisProcess.nowExecutingPath.notNil) {
 		PathName(thisProcess.nowExecutingPath).pathOnly;
 	} {
-		Platform.userHomeDir +/+ "RicaAfroca";
+		Platform.userHomeDir +/+ "multitrack-sequencer";
 	};
 
 	~samplePath = ~projectPath +/+ "samples";
@@ -171,26 +166,40 @@ s.waitForBoot({
 		~samples = [Buffer.alloc(s, 44100, 2)];
 	};
 
-	// CORRECCIÓN FINAL: Ruta exacta en minúsculas para evitar fallos en Linux
+	// A. CARGA ROUND ROBIN: Abiertos ("lla")
 	~llamadorAbiertos = Array.new;
 	~lastLlamadorIdx = -1;
-
-	// Ruta formateada exactamente: samples/llamador/abiertos/f
-	~llamadorPath = PathName(~samplePath +/+ "llamador/abiertos/f");
+	~llamadorPath = PathName(~samplePath +/+ "llamador/abierto/f");
 
 	if(File.exists(~llamadorPath.fullPath)) {
 		var files = (~llamadorPath.fullPath +/+ "*.wav").pathMatch;
 		if(files.size > 0) {
 			~llamadorAbiertos = files.collect({ |path| Buffer.read(s, path) });
-			("--- RicaAfroca: Cargadas" + ~llamadorAbiertos.size + "muestras desde" + ~llamadorPath.fullPath + "para Round Robin (\"lla\")").postln;
+			("--- RicaAfroca: Cargadas" + ~llamadorAbiertos.size + "muestras discretas para Abiertos (\"lla\")").postln;
 		} {
-			"ALERTA RicaAfroca: No se encontraron archivos .wav en samples/llamador/abiertos/f/".postln;
+			"ALERTA RicaAfroca: No se encontraron archivos .wav en samples/llamador/abierto/f/".postln;
 		};
 	} {
-		"ALERTA RicaAfroca: El directorio samples/llamador/abiertos/f/ no existe.".postln;
+		("ALERTA RicaAfroca: El directorio relativo no existe: " ++ ~llamadorPath.fullPath).postln;
 	};
 
-	// Carga textura en la Window del secuenciador
+	// B. NUEVA CARGA ROUND ROBIN: Slaps ("lls")
+	~llamadorSlaps = Array.new;
+	~lastSlapIdx = -1;
+	~slapPath = PathName(~samplePath +/+ "llamador/slap/f");
+
+	if(File.exists(~slapPath.fullPath)) {
+		var files = (~slapPath.fullPath +/+ "*.wav").pathMatch;
+		if(files.size > 0) {
+			~llamadorSlaps = files.collect({ |path| Buffer.read(s, path) });
+			("--- RicaAfroca: Cargadas" + ~llamadorSlaps.size + "muestras discretas para Slaps (\"lls\")").postln;
+		} {
+			"ALERTA RicaAfroca: No se encontraron archivos .wav en samples/llamador/slap/f/".postln;
+		};
+	} {
+		("ALERTA RicaAfroca: El directorio relativo no existe: " ++ ~slapPath.fullPath).postln;
+	};
+
 	if(File.exists(~imagePath +/+ "wood-size.jpg")) {
 		woodImg = Image.new(~imagePath +/+ "wood-size.jpg");
 	} {
@@ -198,7 +207,53 @@ s.waitForBoot({
 		woodImg = nil;
 	};
 
-/////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////
+	// FUNCTION: SELECTOR EVOLUCIONADO DE BUFFERS (Abiertos y Slaps)
+	/////////////////////////////////////////////////////////////////
+	~getBufferForStep = { |bufVal, fallbackIdx|
+		var chosenBuffer, strVal = bufVal.asString;
+
+		case
+		// Lógica Abiertos ("lla")
+		{ strVal == "lla" } {
+			if(~llamadorAbiertos.size > 0) {
+				if(~llamadorAbiertos.size > 1) {
+					var availableIndices = (0..(~llamadorAbiertos.size - 1));
+					availableIndices.remove(~lastLlamadorIdx);
+					~lastLlamadorIdx = availableIndices.choose;
+					chosenBuffer = ~llamadorAbiertos[~lastLlamadorIdx];
+				} {
+					chosenBuffer = ~llamadorAbiertos[0];
+				};
+			} {
+				chosenBuffer = ~samples[fallbackIdx.asInteger.wrap(0, ~samples.size-1)];
+			};
+		}
+		// NUEVA Lógica Slaps ("lls")
+		{ strVal == "lls" } {
+			if(~llamadorSlaps.size > 0) {
+				if(~llamadorSlaps.size > 1) {
+					var availableIndices = (0..(~llamadorSlaps.size - 1));
+					availableIndices.remove(~lastSlapIdx);
+					~lastSlapIdx = availableIndices.choose;
+					chosenBuffer = ~llamadorSlaps[~lastSlapIdx];
+				} {
+					chosenBuffer = ~llamadorSlaps[0];
+				};
+			} {
+				// Fallback al index global si la carpeta del slap estuviera vacía
+				chosenBuffer = ~samples[fallbackIdx.asInteger.wrap(0, ~samples.size-1)];
+			};
+		}
+		// Buffers numéricos normales
+		{ true } {
+			chosenBuffer = ~samples[bufVal.asInteger.wrap(0, ~samples.size-1)];
+		};
+
+		chosenBuffer;
+	};
+
+	/////////////////////////////////////////////////////////////////
 	// FUNCTIONS (CORREGIDAS Y NORMALIZADAS A ~numTracks)
 	/////////////////////////////////////////////////////////////////
 
@@ -206,7 +261,6 @@ s.waitForBoot({
 		var data = Dictionary.new;
 		var path = ~presetPath +/+ (name ++ ".scd");
 
-		// Forzamos que se guarde un arreglo del tamaño exacto actual
 		data.put(\rhythms, Array.fill(~numTracks, { |i| ~rhythms[i] }));
 		data.put(\mutes, Array.fill(~numTracks, { |i| ~mutes[i] }));
 		data.put(\pitches, Array.fill(~numTracks, { |i| ~pitches[i] }));
@@ -227,9 +281,6 @@ s.waitForBoot({
 		var data = Object.readArchive(path);
 		if(data.notNil) {
 			currentPresetName = name;
-
-			// Inyección segura: Si el archivo es viejo o tiene menos canales,
-			// forzamos la normalización rellenando con valores por defecto estructurados.
 			~tempo.tempo = (data[\bpm] ?? {120}) / 60;
 
 			~rhythms = Array.fill(~numTracks, { |i| data[\rhythms].wrapAt(i) ?? [[0.5, 0, 1], [0.5, 0, 1]] });
@@ -306,14 +357,14 @@ s.waitForBoot({
 	Synth(\masterOut, [\amp, ~masterVol], addAction: \addAfter);
 
 	/////////////////////////////////////////////////////////////////
-	// ENGINE (3D EVENT VERSION)
+	// ENGINE (EVENT-DRIVEN MATRIX PLAYER)
 	/////////////////////////////////////////////////////////////////
 
 	~numTracks.do({ |i|
 		Tdef( ("chan" ++ i).asSymbol, {
 			var step = 0;
 			loop {
-				var currentEvent, delta, bufOff, hitAmp, pbRate;
+				var currentEvent, delta, bufOff, hitAmp, pbRate, targetBuffer;
 
 				currentEvent = ~rhythms[i].wrapAt(step);
 				delta  = currentEvent[0];
@@ -330,12 +381,17 @@ s.waitForBoot({
 						var vDelta = vEvent[0];
 						var vBuf   = vEvent[1];
 						var vAmp   = vEvent[2];
+						var vTargetBuffer;
 
 						if(vDelta > 0 && ~mutes[i].not) {
 							pbRate = (~pitches[i] + ~humanizePitch[i].rand2 - 60).midiratio;
+
+							// Resuelve dinámicamente si hay "lla" o "lls" en las variaciones
+							vTargetBuffer = ~getBufferForStep.value(vBuf, ~sampleIndices[i]);
+
 							s.makeBundle(s.latency + ~humanizeTime[i].rand2, {
 								Synth(\liveChannel, [
-									\buf, ~samples[vBuf.asInteger.wrap(0, ~samples.size-1)],
+									\buf, vTargetBuffer,
 									\rate, pbRate,
 									\amp, (vAmp * ~volumes[i] + ~humanizeAmp[i].rand2).clip(0,2) * ~masterVol,
 									\rel, (vDelta.abs / ~tempo.tempo) * 0.8,
@@ -354,9 +410,12 @@ s.waitForBoot({
 				if(delta > 0 && ~mutes[i].not) {
 					pbRate = (~pitches[i] + ~humanizePitch[i].rand2 - 60).midiratio;
 
+					// El selector ahora maneja limpiamente tanto "lla" como "lls"
+					targetBuffer = ~getBufferForStep.value(bufOff, ~sampleIndices[i]);
+
 					s.makeBundle(s.latency + ~humanizeTime[i].rand2, {
 						Synth(\liveChannel, [
-							\buf, ~samples[bufOff.asInteger.wrap(0, ~samples.size-1)],
+							\buf, targetBuffer,
 							\rate, pbRate,
 							\amp, (hitAmp * ~volumes[i] + ~humanizeAmp[i].rand2).clip(0,2) * ~masterVol,
 							\rel, (delta.abs / ~tempo.tempo) * 0.8,
@@ -380,12 +439,11 @@ s.waitForBoot({
 		woodImg = Image.new(~imagePath +/+ "wood-size.jpg");
 	};
 
-	// CHANGED: Expanded Window Width from 1020 to 1140 to accommodate 7 tracks comfortably
 	win = Window("RicaAfroca Sequencer Wood", Rect(50, 50, 1140, 920)).front;
 
 	if(woodImg.notNil) {
 		var backgroundCanvas = UserView(win, win.view.bounds)
-			.resize_(5) // Forzar a que se estire si la ventana cambia de tamaño
+			.resize_(5)
 			.drawFunc_({ |view|
 				woodImg.drawInRect(view.bounds);
 			});
@@ -399,10 +457,8 @@ s.waitForBoot({
 	});
 
 	startBtn = Button(win, 800@40).states_([["START ALL", Color.black, Color.green], ["STOP ALL", Color.white, Color.red]]).action_({ |b| ~numTracks.do({ |i| if(b.value == 1) { Tdef(("chan"++i).asSymbol).play(~tempo) } { Tdef(("chan"++i).asSymbol).stop }; }); });
-
-	startBtn.canFocus_(true); // El botón de Start SÍ debe poder tener foco
-	startBtn.focus;           // Le damos el foco inmediatamente al arrancar
-
+	startBtn.canFocus_(true);
+	startBtn.focus;
 
 	win.view.decorator.nextLine;
 
@@ -534,9 +590,8 @@ s.waitForBoot({
 	/////////////////////////////////////////////////////////////////
 	// ARDUINO
 	/////////////////////////////////////////////////////////////////
-
 	try {
-		~myPort = SerialPort("COM3", baudrate: 9600, crtscts: true); // Edit as needed
+		~myPort = SerialPort("COM3", baudrate: 9600, crtscts: true);
 
 		~serialRoutine = {
 			var byte;
@@ -559,7 +614,6 @@ s.waitForBoot({
 							bpmDisplay.value = newBpm;
 							tempoSlid.value = newBpm.linlin(60, 200, 0, 1);
 						}
-						// CHANGED: Redirected the '$v' hardware command to toggle your new last track (Track 6)
 						{ byte == $v } {
 							if(~varButtons[5].notNil) {
 								~varButtons[5].valueAction = 1 - ~varButtons[5].value;
