@@ -386,6 +386,7 @@ if(llamadorAbiertos.size > 0) {
 			.drawFunc_({ |view|
 				woodImg.drawInRect(view.bounds);
 			});
+		backgroundCanvas.canFocus_(false);
 	};
 
 	win.view.decorator = FlowLayout(win.view.bounds, 15@15, 10@10);
@@ -395,6 +396,10 @@ if(llamadorAbiertos.size > 0) {
 	});
 
 	startBtn = Button(win, 800@40).states_([["START ALL", Color.black, Color.green], ["STOP ALL", Color.white, Color.red]]).action_({ |b| ~numTracks.do({ |i| if(b.value == 1) { Tdef(("chan"++i).asSymbol).play(~tempo) } { Tdef(("chan"++i).asSymbol).stop }; }); });
+
+	startBtn.canFocus_(true); // El botón de Start SÍ debe poder tener foco
+	startBtn.focus;           // Le damos el foco inmediatamente al arrancar
+
 
 	win.view.decorator.nextLine;
 
@@ -448,10 +453,10 @@ if(llamadorAbiertos.size > 0) {
 	masterCol = CompositeView(win, 150@700).background_(Color.grey(0.6));
 	masterCol.decorator = FlowLayout(masterCol.bounds, 5@5, 5@5);
 	StaticText(masterCol, 140@20).string_("MASTER").align_(\center).font_(Font(bold:true));
-	masterMuteBtn = Button(masterCol, 140@40).states_([["MUTE ALL", Color.black, Color.yellow], ["UNMUTE ALL", Color.white, Color.red]]).action_({ |b| ~numTracks.do({ |i| ~muteButtons[i].valueAction_(b.value); }); });
+	masterMuteBtn = Button(masterCol, 140@40).states_([["MUTE ALL", Color.black, Color.yellow], ["UNMUTE ALL", Color.white, Color.red]]).action_({ |b| ~numTracks.do({ |i| ~muteButtons[i].valueAction_(b.value); }); }).canFocus_(false);
 	StaticText(masterCol, 140@15).string_("GLOBAL HUMAN").align_(\center).font_(Font(size:9, bold:true));
 	StaticText(masterCol, 140@12).string_("Time").font_(Font(size:8));
-	Slider(masterCol, 140@15).value_(0.0).action_({ |s| ~numTracks.do({ |i| ~humanizeTime[i] = s.value.linlin(0, 1, 0, 0.08); {~humTimeSliders[i].value = s.value}.defer; }); });
+	Slider(masterCol, 140@15).value_(0.0).action_({ |s| ~numTracks.do({ |i| ~humanizeTime[i] = s.value.linlin(0, 1, 0, 0.08); {~humTimeSliders[i].value = s.value}.defer; }); }).canFocus_(false);
 	StaticText(masterCol, 140@12).string_("Pitch").font_(Font(size:8));
 	Slider(masterCol, 140@15).value_(0.0).action_({ |s| ~numTracks.do({ |i| ~humanizePitch[i] = s.value.linlin(0, 1, 0, 1.5); {~humPitchSliders[i].value = s.value}.defer; }); });
 	StaticText(masterCol, 140@12).string_("Amp").font_(Font(size:8));
@@ -465,7 +470,7 @@ if(llamadorAbiertos.size > 0) {
 		var yPos = ~dbSpec.unmap(db);
 		StaticText(vRuler, Rect(0, (1 - yPos) * 285, 40, 20)).string_(db.asString).font_(Font(size: 10)).align_(\right).stringColor_(if(db > 0) { Color.red } { Color.white });
 	});
-	Slider(hLayout, 70@305).value_(~dbSpec.unmap(0)).action_({ |s| var db = ~dbSpec.map(s.value); ~masterVol = db.dbamp; });
+	Slider(hLayout, 70@305).value_(~dbSpec.unmap(0)).action_({ |s| var db = ~dbSpec.map(s.value); ~masterVol = db.dbamp; }).canFocus_(false);
 
 	meterRoutine = {
 		loop {
