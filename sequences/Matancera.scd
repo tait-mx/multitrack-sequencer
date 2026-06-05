@@ -1,17 +1,19 @@
 var o, p;
 o = [
-	Dictionary.prNew,  Array.prNew(64),  Array.prNew(6),  Array.prNew(6),  
+	Dictionary.prNew,  Array.prNew(64),  Array.prNew(7),  Array.prNew(7),  
 	Array.prNew(7),  Array.prNew(3),  Array.prNew(3),  Array.prNew(3),  
 	Array.prNew(3),  Array.prNew(3),  Array.prNew(3),  Array.prNew(3),  
-	Array.prNew(2),  Array.prNew(3),  Array.prNew(3),  Array.prNew(10),  
+	Array.prNew(10),  Array.prNew(3),  Array.prNew(3),  Array.prNew(3),  
 	Array.prNew(3),  Array.prNew(3),  Array.prNew(3),  Array.prNew(3),  
-	Array.prNew(3),  Array.prNew(3),  Array.prNew(3),  Array.prNew(3),  
+	Array.prNew(3),  Array.prNew(3),  Array.prNew(3),  Array.prNew(2),  
 	Array.prNew(3),  Array.prNew(3),  Array.prNew(2),  Array.prNew(3),  
 	Array.prNew(3),  Array.prNew(2),  Array.prNew(3),  Array.prNew(3),  
-	Array.prNew(8),  Array.prNew(3),  Array.prNew(3),  Array.prNew(3),  
+	Array.prNew(6),  Array.prNew(3),  Array.prNew(3),  Array.prNew(3),  
+	Array.prNew(3),  Array.prNew(3),  Array.prNew(3),  Array.prNew(8),  
 	Array.prNew(3),  Array.prNew(3),  Array.prNew(3),  Array.prNew(3),  
-	Array.prNew(3),  Array.prNew(6),  Array.prNew(6),  Array.prNew(6),  
-	Array.prNew(6),  Array.prNew(6),  Array.prNew(6),  Array.prNew(6)
+	Array.prNew(3),  Array.prNew(3),  Array.prNew(3),  Array.prNew(3),  
+	Array.prNew(7),  Array.prNew(7),  Array.prNew(7),  Array.prNew(7),  
+	Array.prNew(7),  Array.prNew(7),  Array.prNew(7)
 ];
 p = [
 	// Dictionary
@@ -22,23 +24,23 @@ p = [
 		nil,  nil,  nil,  nil,  
 		nil,  nil,  'mutes',  o[2],  
 		'rhythms',  o[3],  nil,  nil,  
-		'bpm',  87.429467084639,  'indices',  o[41],  
-		nil,  nil,  'humAmp',  o[42],  
+		'bpm',  87.429467084639,  'indices',  o[48],  
+		nil,  nil,  'humAmp',  o[49],  
 		nil,  nil,  nil,  nil,  
-		'pitches',  o[43],  'humTime',  o[44],  
-		nil,  nil,  'volumes',  o[45],  
+		'pitches',  o[50],  'humTime',  o[51],  
+		nil,  nil,  'volumes',  o[52],  
 		nil,  nil,  nil,  nil,  
-		'humPitch',  o[46],  nil,  nil,  
-		nil,  nil,  'sampleIndices',  o[47],  
+		'humPitch',  o[53],  nil,  nil,  
+		nil,  nil,  'sampleIndices',  o[54],  
 		nil,  nil,  nil,  nil,  
 		nil,  nil,  nil,  nil,  
 		nil,  nil,  nil,  nil ],  
 	// Array
-	2, [ false,  true,  false,  true,  
-		false,  false ],  
+	2, [ false,  false,  false,  true,  
+		true,  false,  false ],  
 	// Array
-	3, [ o[4],  o[12],  o[15],  o[26],  
-		o[29],  o[32] ],  
+	3, [ o[4],  o[12],  o[23],  o[26],  
+		o[29],  o[32],  o[39] ],  
 	// Array
 	4, [ o[5],  o[6],  o[7],  o[8],  
 		o[9],  o[10],  o[11] ],  
@@ -57,15 +59,15 @@ p = [
 	// Array
 	11, [ 1,  2,  1 ],  
 	// Array
-	12, [ o[13],  o[14] ],  
+	12, [ o[13],  o[14],  o[15],  o[16],  
+		o[17],  o[18],  o[19],  o[20],  
+		o[21],  o[22] ],  
 	// Array
 	13, [ 0.5,  0,  1 ],  
 	// Array
-	14, [ 0.5,  0,  1 ],  
+	14, [ 0.25,  0,  1 ],  
 	// Array
-	15, [ o[16],  o[17],  o[18],  o[19],  
-		o[20],  o[21],  o[22],  o[23],  
-		o[24],  o[25] ],  
+	15, [ 0.5,  0,  1 ],  
 	// Array
 	16, [ 0.5,  0,  1 ],  
 	// Array
@@ -79,19 +81,19 @@ p = [
 	// Array
 	21, [ 0.5,  0,  1 ],  
 	// Array
-	22, [ 0.5,  0,  1 ],  
+	22, [ 0.25,  0,  1 ],  
 	// Array
-	23, [ 0.25,  0,  1 ],  
+	23, [ o[24],  o[25] ],  
 	// Array
-	24, [ 0.5,  0,  1 ],  
+	24, [ 3.75,  7,  1 ],  
 	// Array
-	25, [ 0.25,  0,  1 ],  
+	25, [ 0.25,  8,  1 ],  
 	// Array
 	26, [ o[27],  o[28] ],  
 	// Array
-	27, [ 0.5,  0,  1 ],  
+	27, [ 1,  0,  1 ],  
 	// Array
-	28, [ 0.5,  0,  1 ],  
+	28, [ 1,  0,  1 ],  
 	// Array
 	29, [ o[30],  o[31] ],  
 	// Array
@@ -100,43 +102,58 @@ p = [
 	31, [ 0.25,  8,  1 ],  
 	// Array
 	32, [ o[33],  o[34],  o[35],  o[36],  
-		o[37],  o[38],  o[39],  o[40] ],  
+		o[37],  o[38] ],  
 	// Array
-	33, [ 0.75,  1,  0.35 ],  
+	33, [ 0.46875,  0,  0 ],  
 	// Array
-	34, [ 0.25,  1,  0.35 ],  
+	34, [ 0.28125,  9,  1 ],  
 	// Array
-	35, [ 0.5,  1,  0.35 ],  
+	35, [ 0.25,  9,  1 ],  
 	// Array
-	36, [ 0.5,  3,  1 ],  
+	36, [ 0.46875,  0,  0 ],  
 	// Array
-	37, [ 0.75,  1,  0.35 ],  
+	37, [ 0.28125,  3,  1 ],  
 	// Array
-	38, [ 0.25,  1,  0.35 ],  
+	38, [ 0.25,  9,  1 ],  
 	// Array
-	39, [ 0.5,  1,  0.35 ],  
+	39, [ o[40],  o[41],  o[42],  o[43],  
+		o[44],  o[45],  o[46],  o[47] ],  
 	// Array
-	40, [ 0.5,  3,  1 ],  
+	40, [ 0.75,  1,  0.35 ],  
 	// Array
-	41, [ 1,  0,  5,  0,  
-		15,  10 ],  
+	41, [ 0.25,  1,  0.35 ],  
 	// Array
-	42, [ 0.027966101694915,  0.027966101694915,  0.027966101694915,  0.027966101694915,  
-		0.027966101694915,  0.027966101694915 ],  
+	42, [ 0.5,  1,  0.35 ],  
 	// Array
-	43, [ 47.0,  60,  59.0,  60,  
-		59.0,  58.0 ],  
+	43, [ 0.5,  3,  1 ],  
 	// Array
-	44, [ 0.0088135593220339,  0.0088135593220339,  0.0088135593220339,  0.0088135593220339,  
-		0.0088135593220339,  0.0088135593220339 ],  
+	44, [ 0.75,  1,  0.35 ],  
 	// Array
-	45, [ 0.64701315794334,  0.7,  1.3648527477948,  0.7,  
-		0.7,  0.7 ],  
+	45, [ 0.25,  1,  0.35 ],  
 	// Array
-	46, [ 0.15254237288136,  0.15254237288136,  0.15254237288136,  0.15254237288136,  
-		0.15254237288136,  0.15254237288136 ],  
+	46, [ 0.5,  1,  0.35 ],  
 	// Array
-	47, [ 0,  1,  2,  3,  
-		4,  5 ]
+	47, [ 0.5,  3,  1 ],  
+	// Array
+	48, [ 1,  5,  19,  25,  
+		15,  15,  11 ],  
+	// Array
+	49, [ 0.027966101694915,  0.027966101694915,  0.027966101694915,  0.027966101694915,  
+		0.027966101694915,  0.027966101694915,  0.027966101694915 ],  
+	// Array
+	50, [ 47.0,  60,  59.0,  60,  
+		59.0,  68.0,  63.0 ],  
+	// Array
+	51, [ 0.0088135593220339,  0.0088135593220339,  0.0088135593220339,  0.0088135593220339,  
+		0.0088135593220339,  0.0088135593220339,  0.0088135593220339 ],  
+	// Array
+	52, [ 1.1057207257138,  0.7,  1.3648527477948,  1.3971321692305,  
+		0.7,  0.97957614457689,  0.97957614457689 ],  
+	// Array
+	53, [ 0.15254237288136,  0.15254237288136,  0.15254237288136,  0.15254237288136,  
+		0.15254237288136,  0.15254237288136,  0.15254237288136 ],  
+	// Array
+	54, [ 0,  1,  2,  3,  
+		4,  5,  0 ]
 ];
 prUnarchive(o,p);
