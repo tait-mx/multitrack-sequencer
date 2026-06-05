@@ -324,6 +324,7 @@ s.waitForBoot({
 
 					~pitchSliders[i].value = ~pitches[i].linlin(36, 72.0, 0, 1);
 					~volSliders[i].value = ~dbSpec.unmap(~volumes[i].ampdb);
+					~volDisplays[i].value = ~volumes[i].ampdb.round(0.1);
 					~humTimeSliders[i].value = ~humanizeTime[i].linlin(0, 0.08, 0, 1);
 					~humPitchSliders[i].value = ~humanizePitch[i].linlin(0, 1.5, 0, 1);
 					~humAmpSliders[i].value = ~humanizeAmp[i].linlin(0, 0.3, 0, 1);
@@ -510,22 +511,21 @@ s.waitForBoot({
 
 		StaticText(comp, 105@20).string_("Peak / dB").align_(\center).font_(Font(size:10));
 
-		// NEW: NumberBox para mostrar y editar el valor exacto en decibeles (dB)
+		// NumberBox digital amarillo/negro
 		~volDisplays[i] = NumberBox(comp, 105@20)
-			.value_(0.0) // Valor inicial en dB
-			.clipLo_(-60).clipHi_(3.5) // Límites estrictos según tu ~dbSpec
-			.decimals_(1) // Un decimal para precisión fina (ej: -3.5 dB)
+			.value_(0.7.ampdb.round(0.1)) // Valor inicial uniforme al evaluar
+			.clipLo_(-60).clipHi_(3.5)
+			.decimals_(1)
 			.align_(\center)
-		.background_(Color.black)
-		.normalColor_(Color.yellow)
-		.font_(Font(size: 18))
+			.background_(Color.black)
+			.normalColor_(Color.yellow)
 			.action_({ |nb|
 				var targetAmp = ~dbSpec.map(~dbSpec.unmap(nb.value)).dbamp;
 				~volumes[i] = targetAmp;
-				// Sincroniza el slider mapeando el valor
+				// Sincroniza la posición física del slider
 				~volSliders[i].value = ~dbSpec.unmap(nb.value);
 			})
-			.canFocus_(true); // Permitir foco para teclear el valor
+			.canFocus_(true);
 
 
 		hLayout = CompositeView(comp, 105@200);
@@ -542,13 +542,15 @@ s.waitForBoot({
 
 
 
-		// MODIFIED: Slider de volumen actualizado para interactuar bidireccionalmente con el NumberBox
-		~volSliders[i] = Slider(hLayout, 55@200).value_(~dbSpec.unmap(0.7.ampdb)).action_({ |s|
-			var currentDb = ~dbSpec.map(s.value);
-			~volumes[i] = currentDb.dbamp;
-			// Actualiza el NumberBox en tiempo real mientras arrastras el slider
-			~volDisplays[i].value = currentDb.round(0.1);
-		});
+		// Slider de volumen interactivo
+		~volSliders[i] = Slider(hLayout, 55@200)
+			.value_(~dbSpec.unmap(0.7.ampdb))
+			.action_({ |s|
+				var currentDb = ~dbSpec.map(s.value);
+				~volumes[i] = currentDb.dbamp;
+				// Actualiza el NumberBox en tiempo real al arrastrar
+				~volDisplays[i].value = currentDb.round(0.1);
+			});
 		~volSliders[i].canFocus_(false);
 
 
