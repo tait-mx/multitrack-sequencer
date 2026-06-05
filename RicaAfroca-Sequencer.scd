@@ -49,6 +49,7 @@ s.waitForBoot({
 	~volSliders = Array.newClear(~numTracks);
 	~trackMeters = Array.newClear(~numTracks);
 	~trackLabels = Array.newClear(~numTracks);
+	~volDisplays = Array.newClear(~numTracks);
 	~varButtons = Array.newClear(~numTracks);
 	~humTimeSliders = Array.newClear(~numTracks);
 	~humPitchSliders = Array.newClear(~numTracks);
@@ -502,6 +503,24 @@ s.waitForBoot({
 		~pitchSliders[i] = Slider(comp, 105@30).value_(0.5).action_({ |s| ~pitches[i] = s.value.linlin(0, 1, 36, 72).round; });
 
 		StaticText(comp, 105@20).string_("Peak / dB").align_(\center).font_(Font(size:10));
+
+		// NEW: NumberBox para mostrar y editar el valor exacto en decibeles (dB)
+		~volDisplays[i] = NumberBox(comp, 105@20)
+			.value_(0.0) // Valor inicial en dB
+			.clipLo_(-60).clipHi_(3.5) // Límites estrictos según tu ~dbSpec
+			.decimals_(1) // Un decimal para precisión fina (ej: -3.5 dB)
+			.align_(\center)
+		.background_(Color.black)
+		.normalColor_(Color.yellow)
+			.action_({ |nb|
+				var targetAmp = ~dbSpec.map(~dbSpec.unmap(nb.value)).dbamp;
+				~volumes[i] = targetAmp;
+				// Sincroniza el slider mapeando el valor
+				~volSliders[i].value = ~dbSpec.unmap(nb.value);
+			})
+			.canFocus_(true); // Permitir foco para teclear el valor
+
+
 		hLayout = CompositeView(comp, 105@200);
 		hLayout.decorator = FlowLayout(hLayout.bounds, 0@0, 2@0);
 
@@ -510,10 +529,23 @@ s.waitForBoot({
 		vRuler = CompositeView(hLayout, 25@200);
 		[3.5, 0, -12, -24, -40, -60].do({ |db|
 			var yPos = ~dbSpec.unmap(db);
-			StaticText(vRuler, Rect(0, (1 - yPos) * 180, 25, 20)).string_(db.asString).font_(Font(size: 7)).align_(\right).stringColor_(if(db > 0) { Color.red } { Color.white });
+			StaticText(vRuler, Rect(0, (1 - yPos) * 180, 25, 20)).string_(db.asString).font_(Font(size: 7)).align_(\right).stringColor_(if(db > 0) { Color.red } { Color.black });
 		});
 
-		~volSliders[i] = Slider(hLayout, 55@200).value_(~dbSpec.unmap(0.7.ampdb)).action_({ |s| ~volumes[i] = ~dbSpec.map(s.value).dbamp; });
+
+
+
+		// MODIFIED: Slider de volumen actualizado para interactuar bidireccionalmente con el NumberBox
+		~volSliders[i] = Slider(hLayout, 55@200).value_(~dbSpec.unmap(0.7.ampdb)).action_({ |s|
+			var currentDb = ~dbSpec.map(s.value);
+			~volumes[i] = currentDb.dbamp;
+			// Actualiza el NumberBox en tiempo real mientras arrastras el slider
+			~volDisplays[i].value = currentDb.round(0.1);
+		});
+		~volSliders[i].canFocus_(false);
+
+
+
 
 		humGroup = CompositeView(comp, 105@140).background_(Color.grey(0.6));
 		humGroup.decorator = FlowLayout(humGroup.bounds, 2@2, 2@2);
