@@ -17,12 +17,9 @@ s.waitForBoot({
 
 	var masterSlid, masterDisplay;
 
-	// Variables locales para el Round Robin de todos los golpes (camelCase)
-	var llamadorAbiertos, lastLlamadorIdx = -1;
-	var llamadorSlaps, lastSlapIdx = -1;
-	var llamadorPuntas, lastPuntaIdx = -1;
-	var llamadorCentros, lastCentroIdx = -1;
-	var llamadorTapados, lastTapadoIdx = -1;
+	// Round Robin dictionaries for all llamador dynamics
+	~llamadorSamples = Dictionary.new;
+	~llamadorLastIdx = Dictionary.new;
 
 	// Scaled from 6 to 7 tracks (Indices 0 to 6)
 	~numTracks = 7;
@@ -200,11 +197,39 @@ s.waitForBoot({
 		loadedBuffers;
 	};
 
-	~llamadorAbiertos = ~loadRoundRobinFolder.value("llamador/abierto/f", "Abiertos (\"lla\")");
-	~llamadorSlaps    = ~loadRoundRobinFolder.value("llamador/slap/f", "Slaps (\"lls\")");
-	~llamadorPuntas   = ~loadRoundRobinFolder.value("llamador/punta/f", "Puntas (\"llp\")");
-	~llamadorCentros  = ~loadRoundRobinFolder.value("llamador/centro/f", "Centros (\"llc\")");
-	~llamadorTapados  = ~loadRoundRobinFolder.value("llamador/tapado/f", "Tapados (\"llt\")");
+	// Load all llamador dynamics folders (f, mf, mp, p) for each type
+	~llamadorSamples["llaf"] = ~loadRoundRobinFolder.value("llamador/abierto/f", "llaf");
+	~llamadorSamples["llamf"] = ~loadRoundRobinFolder.value("llamador/abierto/mf", "llamf");
+	~llamadorSamples["llamp"] = ~loadRoundRobinFolder.value("llamador/abierto/mp", "llamp");
+	~llamadorSamples["llap"] = ~loadRoundRobinFolder.value("llamador/abierto/p", "llap");
+	~llamadorSamples["llsf"] = ~loadRoundRobinFolder.value("llamador/slap/f", "llsf");
+	~llamadorSamples["llsmf"] = ~loadRoundRobinFolder.value("llamador/slap/mf", "llsmf");
+	~llamadorSamples["llsmp"] = ~loadRoundRobinFolder.value("llamador/slap/mp", "llsmp");
+	~llamadorSamples["llsp"] = ~loadRoundRobinFolder.value("llamador/slap/p", "llsp");
+	~llamadorSamples["llpf"] = ~loadRoundRobinFolder.value("llamador/punta/f", "llpf");
+	~llamadorSamples["llpmf"] = ~loadRoundRobinFolder.value("llamador/punta/mf", "llpmf");
+	~llamadorSamples["llpmp"] = ~loadRoundRobinFolder.value("llamador/punta/mp", "llpmp");
+	~llamadorSamples["llpp"] = ~loadRoundRobinFolder.value("llamador/punta/p", "llpp");
+	~llamadorSamples["llcf"] = ~loadRoundRobinFolder.value("llamador/centro/f", "llcf");
+	~llamadorSamples["llcmf"] = ~loadRoundRobinFolder.value("llamador/centro/mf", "llcmf");
+	~llamadorSamples["llcmp"] = ~loadRoundRobinFolder.value("llamador/centro/mp", "llcmp");
+	~llamadorSamples["llcp"] = ~loadRoundRobinFolder.value("llamador/centro/p", "llcp");
+	~llamadorSamples["lltf"] = ~loadRoundRobinFolder.value("llamador/tapado/f", "lltf");
+	~llamadorSamples["lltmf"] = ~loadRoundRobinFolder.value("llamador/tapado/mf", "lltmf");
+	~llamadorSamples["lltmp"] = ~loadRoundRobinFolder.value("llamador/tapado/mp", "lltmp");
+	~llamadorSamples["lltp"] = ~loadRoundRobinFolder.value("llamador/tapado/p", "lltp");
+	
+	// Backward-compatible aliases (old 3-letter codes -> /f variants)
+	~llamadorSamples["lla"] = ~llamadorSamples["llaf"];
+	~llamadorSamples["lls"] = ~llamadorSamples["llsf"];
+	~llamadorSamples["llp"] = ~llamadorSamples["llpf"];
+	~llamadorSamples["llc"] = ~llamadorSamples["llcf"];
+	~llamadorSamples["llt"] = ~llamadorSamples["lltf"];
+	
+	// Initialize last index tracking
+	~llamadorSamples.keys.do({ |k|
+		~llamadorLastIdx[k] = -1;
+	});
 
 	if(File.exists(~imagePath +/+ "wood-size.jpg")) {
 		woodImg = Image.new(~imagePath +/+ "wood-size.jpg");
@@ -217,59 +242,18 @@ s.waitForBoot({
 	/////////////////////////////////////////////////////////////////
 	~getBufferForStep = { |bufVal, fallbackIdx|
 		var chosenBuffer, strVal = bufVal.asString;
+		var arr = ~llamadorSamples[strVal];
 
-		case
-		{ strVal == "lla" } {
-			if(~llamadorAbiertos.size > 0) {
-				if(~llamadorAbiertos.size > 1) {
-					var available = (0..(~llamadorAbiertos.size - 1));
-					available.remove(~lastLlamadorIdx);
-					~lastLlamadorIdx = available.choose;
-					chosenBuffer = ~llamadorAbiertos[~lastLlamadorIdx];
-				} { chosenBuffer = ~llamadorAbiertos[0] };
-			} { chosenBuffer = ~samples[fallbackIdx.asInteger.wrap(0, ~samples.size-1)] };
-		}
-		{ strVal == "lls" } {
-			if(~llamadorSlaps.size > 0) {
-				if(~llamadorSlaps.size > 1) {
-					var available = (0..(~llamadorSlaps.size - 1));
-					available.remove(~lastSlapIdx);
-					~lastSlapIdx = available.choose;
-					chosenBuffer = ~llamadorSlaps[~lastSlapIdx];
-				} { chosenBuffer = ~llamadorSlaps[0] };
-			} { chosenBuffer = ~samples[fallbackIdx.asInteger.wrap(0, ~samples.size-1)] };
-		}
-		{ strVal == "llp" } {
-			if(~llamadorPuntas.size > 0) {
-				if(~llamadorPuntas.size > 1) {
-					var available = (0..(~llamadorPuntas.size - 1));
-					available.remove(~lastPuntaIdx);
-					~lastPuntaIdx = available.choose;
-					chosenBuffer = ~llamadorPuntas[~lastPuntaIdx];
-				} { chosenBuffer = ~llamadorPuntas[0] };
-			} { chosenBuffer = ~samples[fallbackIdx.asInteger.wrap(0, ~samples.size-1)] };
-		}
-		{ strVal == "llc" } {
-			if(~llamadorCentros.size > 0) {
-				if(~llamadorCentros.size > 1) {
-					var available = (0..(~llamadorCentros.size - 1));
-					available.remove(~lastCentroIdx);
-					~lastCentroIdx = available.choose;
-					chosenBuffer = ~llamadorCentros[~lastCentroIdx];
-				} { chosenBuffer = ~llamadorCentros[0] };
-			} { chosenBuffer = ~samples[fallbackIdx.asInteger.wrap(0, ~samples.size-1)] };
-		}
-		{ strVal == "llt" } {
-			if(~llamadorTapados.size > 0) {
-				if(~llamadorTapados.size > 1) {
-					var available = (0..(~llamadorTapados.size - 1));
-					available.remove(~lastTapadoIdx);
-					~lastTapadoIdx = available.choose;
-					chosenBuffer = ~llamadorTapados[~lastTapadoIdx];
-				} { chosenBuffer = ~llamadorTapados[0] };
-			} { chosenBuffer = ~samples[fallbackIdx.asInteger.wrap(0, ~samples.size-1)] };
-		}
-		{ true } {
+		if(arr.notNil && arr.size > 0) {
+			if(arr.size > 1) {
+				var available = (0..(arr.size - 1));
+				available.remove(~llamadorLastIdx[strVal]);
+				~llamadorLastIdx[strVal] = available.choose;
+				chosenBuffer = arr[~llamadorLastIdx[strVal]];
+			} {
+				chosenBuffer = arr[0];
+			};
+		} {
 			chosenBuffer = ~samples[bufVal.asInteger.wrap(0, ~samples.size-1)];
 		};
 
