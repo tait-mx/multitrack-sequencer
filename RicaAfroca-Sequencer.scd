@@ -19,8 +19,8 @@ s.waitForBoot({
 	var masterSlid, masterDisplay;
 
 	// Round Robin dictionaries for all llamador dynamics
-	~llamadorSamples = Dictionary.new;
-	~llamadorLastIdx = Dictionary.new;
+	~samplesDictionary = Dictionary.new;
+	~samplesDictionaryLastIdx = Dictionary.new;
 
 	// Scaled from 6 to 7 tracks (Indices 0 to 6)
 	~numTracks = 7;
@@ -71,12 +71,12 @@ s.waitForBoot({
 		["Clave6/8", [[2/3,4,1], [3/3,4,1], [2/3,4,1], [2/3,4,1], [3/3,4,1]]],
 		["ClaveAfricana", [[2/3,4,1], [2/3,4,1], [1/3,4,1], [2/3,4,1], [2/3,4,1], [2/3,0,1], [1/3,0,1]]],
 
-		// Cáscaras
-		["Cascara1", [[0.25,0,1], [0.5,0,1], [0.25,0,1], [0.25,0,1], [0.5,0,1], [0.25,0,1], [0.5,0,1], [0.5,0,1], [0.25,0,1], [0.5,0,1], [0.25,0,1]]],
-		["Cascara2", [[0.5,0,1], [0.25,0,1], [0.5,0,1], [0.5,0,1],[0.25,0,1], [0.5,0,1], [0.5,0,1], [0.25,0,1], [0.5,0,1], [0.25,0,1]]],
-		["CascaraColumbia", [[0.5,0,1], [0.25,0,1], [0.5,0,1], [0.5,0,1], [0.25,0,1], [0.5,0,1], [0.5,0,1], [0.25,0,1], [0.25,0,1], [0.25,0,1], [0.25,0,1]]],
-		["cascara Yuka", [[2/3,0,1], [2/3,0,1], [2/3,0,1], [1/3,0,1], [1/3,0,1], [4/3,0,1]]],
-		["cascara2 Yuka", [[2/3,0,1], [2/3,0,1], [2/3,0,1], [6/3,0,1]]],
+		// Catas
+			["Cata1", [[0.25,"cf",1], [0.5,"cf",1], [0.25,"cf",1], [0.25,"cf",1], [0.5,"cf",1], [0.25,"cf",1], [0.5,"cf",1], [0.5,"cf",1], [0.25,"cf",1], [0.5,"cf",1], [0.25,"cf",1]]],
+		["Cata2", [[0.5,"cf",1], [0.25,"cf",1], [0.5,"cf",1], [0.5,"cf",1],[0.25,"cf",1], [0.5,"cf",1], [0.5,"cf",1], [0.25,"cf",1], [0.5,"cf",1], [0.25,"cf",1]]],
+		["CataColumbia", [[0.5,"cf",1], [0.25,"cf",1], [0.5,"cf",1], [0.5,"cf",1], [0.25,"cf",1], [0.5,"cf",1], [0.5,"cf",1], [0.25,"cf",1], [0.25,"cf",1], [0.25,"cf",1], [0.25,"cf",1]]],
+		["Cata Yuka", [[2/3,"cf",1], [2/3,"cf",1], [2/3,"cf",1], [1/3,"cf",1], [1/3,"cf",1], [4/3,"cf",1]]],
+		["Cata2 Yuka", [[2/3,"cf",1], [2/3,"cf",1], [2/3,"cf",1], [6/3,"cf",1]]],
 
 		// Shékeres
 		["ShekereBin 1/1", [[2+1.75,7,1], [0.25,8,1]]],
@@ -163,7 +163,11 @@ s.waitForBoot({
 	~projectPath = if(thisProcess.nowExecutingPath.notNil) {
 		PathName(thisProcess.nowExecutingPath).pathOnly;
 	} {
-		Platform.userHomeDir +/+ "multitrack-sequencer";
+		var p = Platform.userHomeDir +/+ "multitrack-sequencer";
+		if(File.exists(p +/+ "samples").not) {
+			p = Platform.userHomeDir +/+ "repos/multitrack-sequencer";
+		};
+		p;
 	};
 
 	~samplePath = ~projectPath +/+ "samples";
@@ -199,37 +203,43 @@ s.waitForBoot({
 	};
 
 	// Load all llamador dynamics folders (f, mf, mp, p) for each type
-	~llamadorSamples["llaf"] = ~loadRoundRobinFolder.value("llamador/abierto/f", "llaf");
-	~llamadorSamples["llamf"] = ~loadRoundRobinFolder.value("llamador/abierto/mf", "llamf");
-	~llamadorSamples["llamp"] = ~loadRoundRobinFolder.value("llamador/abierto/mp", "llamp");
-	~llamadorSamples["llap"] = ~loadRoundRobinFolder.value("llamador/abierto/p", "llap");
-	~llamadorSamples["llsf"] = ~loadRoundRobinFolder.value("llamador/slap/f", "llsf");
-	~llamadorSamples["llsmf"] = ~loadRoundRobinFolder.value("llamador/slap/mf", "llsmf");
-	~llamadorSamples["llsmp"] = ~loadRoundRobinFolder.value("llamador/slap/mp", "llsmp");
-	~llamadorSamples["llsp"] = ~loadRoundRobinFolder.value("llamador/slap/p", "llsp");
-	~llamadorSamples["llpf"] = ~loadRoundRobinFolder.value("llamador/punta/f", "llpf");
-	~llamadorSamples["llpmf"] = ~loadRoundRobinFolder.value("llamador/punta/mf", "llpmf");
-	~llamadorSamples["llpmp"] = ~loadRoundRobinFolder.value("llamador/punta/mp", "llpmp");
-	~llamadorSamples["llpp"] = ~loadRoundRobinFolder.value("llamador/punta/p", "llpp");
-	~llamadorSamples["llcf"] = ~loadRoundRobinFolder.value("llamador/centro/f", "llcf");
-	~llamadorSamples["llcmf"] = ~loadRoundRobinFolder.value("llamador/centro/mf", "llcmf");
-	~llamadorSamples["llcmp"] = ~loadRoundRobinFolder.value("llamador/centro/mp", "llcmp");
-	~llamadorSamples["llcp"] = ~loadRoundRobinFolder.value("llamador/centro/p", "llcp");
-	~llamadorSamples["lltf"] = ~loadRoundRobinFolder.value("llamador/tapado/f", "lltf");
-	~llamadorSamples["lltmf"] = ~loadRoundRobinFolder.value("llamador/tapado/mf", "lltmf");
-	~llamadorSamples["lltmp"] = ~loadRoundRobinFolder.value("llamador/tapado/mp", "lltmp");
-	~llamadorSamples["lltp"] = ~loadRoundRobinFolder.value("llamador/tapado/p", "lltp");
-	
+	~samplesDictionary["llaf"] = ~loadRoundRobinFolder.value("llamador/abierto/f", "llaf");
+	~samplesDictionary["llamf"] = ~loadRoundRobinFolder.value("llamador/abierto/mf", "llamf");
+	~samplesDictionary["llamp"] = ~loadRoundRobinFolder.value("llamador/abierto/mp", "llamp");
+	~samplesDictionary["llap"] = ~loadRoundRobinFolder.value("llamador/abierto/p", "llap");
+	~samplesDictionary["llsf"] = ~loadRoundRobinFolder.value("llamador/slap/f", "llsf");
+	~samplesDictionary["llsmf"] = ~loadRoundRobinFolder.value("llamador/slap/mf", "llsmf");
+	~samplesDictionary["llsmp"] = ~loadRoundRobinFolder.value("llamador/slap/mp", "llsmp");
+	~samplesDictionary["llsp"] = ~loadRoundRobinFolder.value("llamador/slap/p", "llsp");
+	~samplesDictionary["llpf"] = ~loadRoundRobinFolder.value("llamador/punta/f", "llpf");
+	~samplesDictionary["llpmf"] = ~loadRoundRobinFolder.value("llamador/punta/mf", "llpmf");
+	~samplesDictionary["llpmp"] = ~loadRoundRobinFolder.value("llamador/punta/mp", "llpmp");
+	~samplesDictionary["llpp"] = ~loadRoundRobinFolder.value("llamador/punta/p", "llpp");
+	~samplesDictionary["llcf"] = ~loadRoundRobinFolder.value("llamador/centro/f", "llcf");
+	~samplesDictionary["llcmf"] = ~loadRoundRobinFolder.value("llamador/centro/mf", "llcmf");
+	~samplesDictionary["llcmp"] = ~loadRoundRobinFolder.value("llamador/centro/mp", "llcmp");
+	~samplesDictionary["llcp"] = ~loadRoundRobinFolder.value("llamador/centro/p", "llcp");
+	~samplesDictionary["lltf"] = ~loadRoundRobinFolder.value("llamador/tapado/f", "lltf");
+	~samplesDictionary["lltmf"] = ~loadRoundRobinFolder.value("llamador/tapado/mf", "lltmf");
+	~samplesDictionary["lltmp"] = ~loadRoundRobinFolder.value("llamador/tapado/mp", "lltmp");
+	~samplesDictionary["lltp"] = ~loadRoundRobinFolder.value("llamador/tapado/p", "lltp");
+
 	// Backward-compatible aliases (old 3-letter codes -> /f variants)
-	~llamadorSamples["lla"] = ~llamadorSamples["llaf"];
-	~llamadorSamples["lls"] = ~llamadorSamples["llsf"];
-	~llamadorSamples["llp"] = ~llamadorSamples["llpf"];
-	~llamadorSamples["llc"] = ~llamadorSamples["llcf"];
-	~llamadorSamples["llt"] = ~llamadorSamples["lltf"];
-	
+	~samplesDictionary["lla"] = ~samplesDictionary["llaf"];
+	~samplesDictionary["lls"] = ~samplesDictionary["llsf"];
+	~samplesDictionary["llp"] = ~samplesDictionary["llpf"];
+	~samplesDictionary["llc"] = ~samplesDictionary["llcf"];
+	~samplesDictionary["llt"] = ~samplesDictionary["lltf"];
+
+	// Load cata dynamics folders (f, mf, mp, p)
+	~samplesDictionary["cf"] = ~loadRoundRobinFolder.value("cata/f", "cf");
+	~samplesDictionary["cmf"] = ~loadRoundRobinFolder.value("cata/mf", "cmf");
+	~samplesDictionary["cmp"] = ~loadRoundRobinFolder.value("cata/mp", "cmp");
+	~samplesDictionary["cp"] = ~loadRoundRobinFolder.value("cata/p", "cp");
+
 	// Initialize last index tracking
-	~llamadorSamples.keys.do({ |k|
-		~llamadorLastIdx[k] = -1;
+	~samplesDictionary.keys.do({ |k|
+		~samplesDictionaryLastIdx[k] = -1;
 	});
 
 	if(File.exists(~imagePath +/+ "wood-size.jpg")) {
@@ -243,14 +253,14 @@ s.waitForBoot({
 	/////////////////////////////////////////////////////////////////
 	~getBufferForStep = { |bufVal, fallbackIdx|
 		var chosenBuffer, strVal = bufVal.asString;
-		var arr = ~llamadorSamples[strVal];
+		var arr = ~samplesDictionary[strVal];
 
 		if(arr.notNil and: { arr.size > 0 }) {
 			if(arr.size > 1) {
 				var available = (0..(arr.size - 1));
-				available.remove(~llamadorLastIdx[strVal]);
-				~llamadorLastIdx[strVal] = available.choose;
-				chosenBuffer = arr[~llamadorLastIdx[strVal]];
+				available.remove(~samplesDictionaryLastIdx[strVal]);
+				~samplesDictionaryLastIdx[strVal] = available.choose;
+				chosenBuffer = arr[~samplesDictionaryLastIdx[strVal]];
 			} {
 				chosenBuffer = arr[0];
 			};
