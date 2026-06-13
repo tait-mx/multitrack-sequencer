@@ -610,7 +610,11 @@ s.waitForBoot({
 		} {
 			~choirTriggerBtn = Button(comp, 105@40).states_([["CHORUS", Color.black, Color.grey(0.8)], ["ON", Color.white, Color.green]]).action_({ |b|
 				if(b.value == 1) {
-					Tdef(\chan7).reset.play(~tempo, quant: 4);
+					if(startBtn.value == 1) {
+						Tdef(\chan7).reset.play(~tempo, quant: 4);
+					} {
+						b.value = 0;
+					};
 				} {
 					Tdef(\chan7).stop;
 					if(~choirSynth.notNil) { ~choirSynth.free; ~choirSynth = nil };
