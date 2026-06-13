@@ -3,7 +3,7 @@
 RicaAfroca Sequencer - Pro Version 2.5 (8-Track Edition, Track 7 Choir)
 */
 (
- 
+
 // Auto-close previous GUI on re-execute
 Window.allWindows.do({ |w| if(w.name.contains("RicaAfroca")) { w.close } });
 ~numTracks.do({ |i| try { Tdef(("chan"++i).asSymbol).stop } });
@@ -675,7 +675,7 @@ s.waitForBoot({
 	masterCol = CompositeView(win, 150@700).background_(Color.grey(0.6));
 	masterCol.decorator = FlowLayout(masterCol.bounds, 5@5, 5@5);
 	StaticText(masterCol, 140@25).string_("MASTER").align_(\center).font_(Font(bold:true));
-	masterMuteBtn = Button(masterCol, 140@40).states_([["MUTE ALL", Color.black, Color.yellow], ["UNMUTE ALL", Color.white, Color.red]]).action_({ |b| ~numTracks.do({ |i| ~muteButtons[i].valueAction_(b.value); }); }).canFocus_(false);
+	masterMuteBtn = Button(masterCol, 140@40).states_([["ON", Color.black, Color.green], ["UNMUTE ALL", Color.white, Color.red]]).action_({ |b| ~numTracks.do({ |i| ~muteButtons[i].valueAction_(b.value); }); }).canFocus_(false);
 	StaticText(masterCol, 140@15).string_("GLOBAL HUMAN").align_(\center).font_(Font(size:9, bold:true));
 	StaticText(masterCol, 140@12).string_("Time").font_(Font(size:8));
 	Slider(masterCol, 140@15).value_(0.0).action_({ |s| ~numTracks.do({ |i| ~humanizeTime[i] = s.value.linlin(0, 1, 0, 0.08); if(~humTimeSliders[i].notNil) { {~humTimeSliders[i].value = s.value}.defer }; }); }).canFocus_(false);
