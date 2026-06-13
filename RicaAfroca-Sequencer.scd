@@ -130,8 +130,8 @@ s.waitForBoot({
 		["Quarters", [[1,0,1], [1,0,1]]],
 
 		// Chorus (tempo-synced time-stretched loop)
-		["Coro1", [[2,0,0],[30,"c1TJ",1]]],
-		["Coro2", [[2,0,0],[30,"c1TJ",1]]]
+		["Coro1", [[2,0,0],[30,"c1TJ",1],[32,0,0]]],
+		["Coro2", [[2,0,0],[30,"c1TJ",1],[32,0,0]]]
 	];
 
 	~variations = [
@@ -565,7 +565,7 @@ s.waitForBoot({
 		if(keycode == 32) { startBtn.valueAction = 1 - startBtn.value };
 	});
 
-	startBtn = Button(win, 800@40).states_([["START ALL", Color.black, Color.green], ["STOP ALL", Color.white, Color.red]]).action_({ |b| if(b.value == 1) { ~numTracks.do({ |i| Tdef(("chan"++i).asSymbol).play(~tempo) }) } { ~numTracks.do({ |i| Tdef(("chan"++i).asSymbol).stop }); if(~chorusGroup.notNil) { ~chorusGroup.freeAll } }; });
+	startBtn = Button(win, 800@40).states_([["START ALL", Color.black, Color.green], ["STOP ALL", Color.white, Color.red]]).action_({ |b| if(b.value == 1) { ~numTracks.do({ |i| if(i != 7) { Tdef(("chan"++i).asSymbol).play(~tempo) } }) } { ~numTracks.do({ |i| Tdef(("chan"++i).asSymbol).stop }); if(~chorusGroup.notNil) { ~chorusGroup.freeAll }; if(~choirTriggerBtn.notNil) { ~choirTriggerBtn.value = 0 } }; });
 	startBtn.canFocus_(true);
 	startBtn.focus;
 
@@ -608,7 +608,15 @@ s.waitForBoot({
 			StaticText(comp, 105@20).string_("Pitch").align_(\center);
 			~pitchSliders[i] = Slider(comp, 105@30).value_(0.5).action_({ |s| ~pitches[i] = s.value.linlin(0, 1, 36, 72).round; });
 		} {
-			UserView(comp, 105@100).canFocus_(false);
+			~choirTriggerBtn = Button(comp, 105@40).states_([["CHORUS", Color.black, Color.grey(0.8)], ["ON", Color.white, Color.green]]).action_({ |b|
+				if(b.value == 1) {
+					Tdef(\chan7).reset.play(~tempo, quant: 4);
+				} {
+					Tdef(\chan7).stop;
+					if(~choirSynth.notNil) { ~choirSynth.free; ~choirSynth = nil };
+				};
+			});
+			UserView(comp, 105@55).canFocus_(false);
 		};
 
 		StaticText(comp, 105@20).string_("Peak / dB").align_(\center).font_(Font(size:10));
@@ -676,7 +684,7 @@ s.waitForBoot({
 
 		// Se remueven focos innecesarios excepto para las cajas de texto que sí requieren tipeo
 		if(i == 7) {
-			[~muteButtons[i], ~rhythmMenus[i], ~volSliders[i]].do(_.canFocus_(false));
+			[~muteButtons[i], ~rhythmMenus[i], ~volSliders[i], ~choirTriggerBtn].do(_.canFocus_(false));
 		} {
 			[~muteButtons[i], ~rhythmMenus[i], ~varButtons[i], ~pitchSliders[i], ~volSliders[i], ~humTimeSliders[i], ~humPitchSliders[i], ~humAmpSliders[i]].do(_.canFocus_(false));
 		};
