@@ -1,6 +1,6 @@
 
 /*
-RicaAfroca Sequencer - Pro Version 2.5 (7-Track Edition)
+RicaAfroca Sequencer - Pro Version 2.5 (8-Track Edition, Track 7 Choir)
 */
 (
 
@@ -22,8 +22,8 @@ s.waitForBoot({
 	~samplesDictionary = Dictionary.new;
 	~samplesDictionaryLastIdx = Dictionary.new;
 
-	// Scaled from 6 to 7 tracks (Indices 0 to 6)
-	~numTracks = 7;
+	// Scaled from 7 to 8 tracks (Indices 0 to 7, track 7 is dedicated choir)
+	~numTracks = 8;
 	~tempo = TempoClock.new(120/60).permanent_(true);
 	~masterVol = 0.8;
 	~dbSpec = ControlSpec(-60, 3.5, \db, 0, 0);
@@ -32,8 +32,10 @@ s.waitForBoot({
 	~chorusRefBpm = 105;
 
 	// Logic arrays
-	~rhythmIndices = Array.fill(~numTracks, { 0 });
-	~rhythms = Array.fill(~numTracks, { [[0.5, 0, 1], [0.5, 0, 1]] });
+	~rhythmIndices = Array.fill(~numTracks, { |i| if(i == 7) { 28 } { 0 } });
+	~rhythms = Array.fill(~numTracks, { |i|
+		if(i == 7) { [[2,0,0],[30,"c1TJ",1]] } { [[0.5, 0, 1], [0.5, 0, 1]] }
+	});
 	~mutes = Array.fill(~numTracks, { false });
 	~pitches = Array.fill(~numTracks, { 60 });
 	~volumes = Array.fill(~numTracks, { 0.7 });
@@ -58,6 +60,7 @@ s.waitForBoot({
 	~humTimeSliders = Array.newClear(~numTracks);
 	~humPitchSliders = Array.newClear(~numTracks);
 	~humAmpSliders = Array.newClear(~numTracks);
+	~choirSynth = nil;
 
 	/////////////////////////////////////////////////////////////////
 	// RHYTHMS AND VARIATIONS
@@ -160,6 +163,10 @@ s.waitForBoot({
 			 [1,3,1], [0.5,1,0.5], [0.5,3,1], [1, 1, 1], [0.5,1,0.5], [0.5,3,1]]
 		],
 		// Default Variation Array for Track 6
+		[
+			[[0.25, 0, 1], [0.25, 0, 0.6], [0.5, 0, 1]], [[0.5, 0, 1], [0.5, 0, 1]]
+		],
+		// Track 7 (Choir) — no variations
 		[
 			[[0.25, 0, 1], [0.25, 0, 0.6], [0.5, 0, 1]], [[0.5, 0, 1], [0.5, 0, 1]]
 		]
@@ -315,7 +322,7 @@ s.waitForBoot({
 		data.put(\trackNames, Array.fill(~numTracks, { |i| ~trackLabels[i].string }));
 
 		data.writeArchive(path);
-		("--- Preservado Preset Sólido de 7 Canales: " ++ name).postln;
+		("--- Preservado Preset Sólido de 8 Canales: " ++ name).postln;
 	};
 
 	~loadSettings = { |name|
@@ -353,12 +360,14 @@ s.waitForBoot({
 						~trackLabels[i].string = "Track " ++ i;
 					};
 
-					~pitchSliders[i].value = ~pitches[i].linlin(36, 72.0, 0, 1);
+					if(i != 7) {
+						~pitchSliders[i].value = ~pitches[i].linlin(36, 72.0, 0, 1);
+						~humTimeSliders[i].value = ~humanizeTime[i].linlin(0, 0.08, 0, 1);
+						~humPitchSliders[i].value = ~humanizePitch[i].linlin(0, 1.5, 0, 1);
+						~humAmpSliders[i].value = ~humanizeAmp[i].linlin(0, 0.3, 0, 1);
+					};
 					~volSliders[i].value = ~dbSpec.unmap(~volumes[i].ampdb);
 					~volDisplays[i].value = ~volumes[i].ampdb.round(0.1);
-					~humTimeSliders[i].value = ~humanizeTime[i].linlin(0, 0.08, 0, 1);
-					~humPitchSliders[i].value = ~humanizePitch[i].linlin(0, 1.5, 0, 1);
-					~humAmpSliders[i].value = ~humanizeAmp[i].linlin(0, 0.3, 0, 1);
 				});
 			}.defer;
 		};
@@ -449,10 +458,13 @@ s.waitForBoot({
 							var isChorus = (vBuf.asString == "c1TJ");
 							if(isChorus) {
 								s.makeBundle(s.latency + ~humanizeTime[i].rand2, {
-									Synth(\chorusChannel, [\buf, ~chorusBuffer,
+									var synth;
+									if(i == 7 && ~choirSynth.notNil) { ~choirSynth.free };
+									synth = Synth(\chorusChannel, [\buf, ~chorusBuffer,
 										\amp, (vAmp * ~volumes[i] + ~humanizeAmp[i].rand2).clip(0,2) * ~masterVol,
 										\peakOut, ~trackPeakBuses[i],
 									], ~chorusGroup, \addToHead);
+									if(i == 7) { ~choirSynth = synth };
 								});
 							} {
 								pbRate = (~pitches[i] + ~humanizePitch[i].rand2 - 60).midiratio;
@@ -481,10 +493,13 @@ s.waitForBoot({
 					var isChorus = (bufOff.asString == "c1TJ");
 					if(isChorus) {
 					s.makeBundle(s.latency + ~humanizeTime[i].rand2, {
-						Synth(\chorusChannel, [\buf, ~chorusBuffer,
+						var synth;
+						if(i == 7 && ~choirSynth.notNil) { ~choirSynth.free };
+						synth = Synth(\chorusChannel, [\buf, ~chorusBuffer,
 							\amp, (hitAmp * ~volumes[i] + ~humanizeAmp[i].rand2).clip(0,2) * ~masterVol,
 							\peakOut, ~trackPeakBuses[i],
 						], ~chorusGroup, \addToHead);
+						if(i == 7) { ~choirSynth = synth };
 					});
 					} {
 						pbRate = (~pitches[i] + ~humanizePitch[i].rand2 - 60).midiratio;
@@ -517,7 +532,7 @@ s.waitForBoot({
 		woodImg = Image.new(~imagePath +/+ "wood-size.jpg");
 	};
 
-	win = Window("RicaAfroca Sequencer Wood", Rect(50, 50, 1140, 920)).front;
+	win = Window("RicaAfroca Sequencer Wood", Rect(50, 50, 1260, 920)).front;
 
 	if(woodImg.notNil) {
 		var backgroundCanvas = UserView(win, win.view.bounds)
@@ -555,7 +570,7 @@ s.waitForBoot({
 
 		// TextField interactivo con desenfoque automático al presionar Enter
 		~trackLabels[i] = TextField(comp, 105@25)
-			.string_("Track " ++ i)
+			.string_(if(i == 7) { "Choir" } { "Track " ++ i })
 			.align_(\center)
 		.background_(Color.black)
 		.stringColor_(Color.yellow)
@@ -567,12 +582,14 @@ s.waitForBoot({
 				// 2. Le quita el foco al TextField devolviéndoselo al botón START ALL
 				if(startBtn.notNil) { startBtn.focus };
 			});
-		~muteButtons[i] = Button(comp, 105@40).states_([["ON", Color.black, Color.green], ["MUTE", Color.white, Color.red]]).action_({ |b| ~mutes[i] = (b.value == 1) });
+		~muteButtons[i] = Button(comp, 105@40).states_([["ON", Color.black, Color.green], ["MUTE", Color.white, Color.red]]).action_({ |b| ~mutes[i] = (b.value == 1); if(i == 7 && ~choirSynth.notNil) { ~choirSynth.set(\amp, if(b.value == 1) { 0 } { (~volumes[i] * ~masterVol).clip(0,2) }) }; });
 		~rhythmMenus[i] = PopUpMenu(comp, 105@30).items_(~rhythmAndNames.collect({ |item| item[0] })).action_({ |m| ~rhythms[i] = ~rhythmAndNames[m.value][1]; ~rhythmIndices[i] = m.value; });
-		~varButtons[i] = Button(comp, 105@40).states_([["VARIATION", Color.black, Color.grey(0.8)], ["QUEUED", Color.white, Color.red(0.6)]]).action_({ |b| ~varRequests[i] = (b.value == 1); });
+		if(i != 7) {
+			~varButtons[i] = Button(comp, 105@40).states_([["VARIATION", Color.black, Color.grey(0.8)], ["QUEUED", Color.white, Color.red(0.6)]]).action_({ |b| ~varRequests[i] = (b.value == 1); });
 
-		StaticText(comp, 105@20).string_("Pitch").align_(\center);
-		~pitchSliders[i] = Slider(comp, 105@30).value_(0.5).action_({ |s| ~pitches[i] = s.value.linlin(0, 1, 36, 72).round; });
+			StaticText(comp, 105@20).string_("Pitch").align_(\center);
+			~pitchSliders[i] = Slider(comp, 105@30).value_(0.5).action_({ |s| ~pitches[i] = s.value.linlin(0, 1, 36, 72).round; });
+		};
 
 		StaticText(comp, 105@20).string_("Peak / dB").align_(\center).font_(Font(size:10));
 
@@ -589,6 +606,7 @@ s.waitForBoot({
 				~volumes[i] = targetAmp;
 				// Sincroniza la posición física del slider
 				~volSliders[i].value = ~dbSpec.unmap(nb.value);
+				if(i == 7 && ~choirSynth.notNil) { ~choirSynth.set(\amp, (targetAmp * ~masterVol).clip(0,2)) };
 			})
 			.canFocus_(true);
 
@@ -615,24 +633,31 @@ s.waitForBoot({
 				~volumes[i] = currentDb.dbamp;
 				// Actualiza el NumberBox en tiempo real al arrastrar
 				~volDisplays[i].value = currentDb.round(0.1);
+				if(i == 7 && ~choirSynth.notNil) { ~choirSynth.set(\amp, (~volumes[i] * ~masterVol).clip(0,2)) };
 			});
 		~volSliders[i].canFocus_(false);
 
 
 
 
-		humGroup = CompositeView(comp, 105@140).background_(Color.grey(0.6));
-		humGroup.decorator = FlowLayout(humGroup.bounds, 2@2, 2@2);
-		StaticText(humGroup, 100@15).string_("HUMANIZATION").align_(\center).font_(Font(size:9, bold:true));
-		StaticText(humGroup, 40@15).string_("Time").font_(Font(size:9));
-		~humTimeSliders[i] = Slider(humGroup, 55@15).value_(0.0).action_({ |s| ~humanizeTime[i] = s.value.linlin(0, 1, 0, 0.08); });
-		StaticText(humGroup, 40@15).string_("Pitch").font_(Font(size:9));
-		~humPitchSliders[i] = Slider(humGroup, 55@15).value_(0.0).action_({ |s| ~humanizePitch[i] = s.value.linlin(0, 1, 0, 1.5); });
-		StaticText(humGroup, 40@15).string_("Amp").font_(Font(size:9));
-		~humAmpSliders[i] = Slider(humGroup, 55@15).value_(0.0).action_({ |s| ~humanizeAmp[i] = s.value.linlin(0, 1, 0, 0.3); });
+		if(i != 7) {
+			humGroup = CompositeView(comp, 105@140).background_(Color.grey(0.6));
+			humGroup.decorator = FlowLayout(humGroup.bounds, 2@2, 2@2);
+			StaticText(humGroup, 100@15).string_("HUMANIZATION").align_(\center).font_(Font(size:9, bold:true));
+			StaticText(humGroup, 40@15).string_("Time").font_(Font(size:9));
+			~humTimeSliders[i] = Slider(humGroup, 55@15).value_(0.0).action_({ |s| ~humanizeTime[i] = s.value.linlin(0, 1, 0, 0.08); });
+			StaticText(humGroup, 40@15).string_("Pitch").font_(Font(size:9));
+			~humPitchSliders[i] = Slider(humGroup, 55@15).value_(0.0).action_({ |s| ~humanizePitch[i] = s.value.linlin(0, 1, 0, 1.5); });
+			StaticText(humGroup, 40@15).string_("Amp").font_(Font(size:9));
+			~humAmpSliders[i] = Slider(humGroup, 55@15).value_(0.0).action_({ |s| ~humanizeAmp[i] = s.value.linlin(0, 1, 0, 0.3); });
+		};
 
 		// Se remueven focos innecesarios excepto para las cajas de texto que sí requieren tipeo
-		[~muteButtons[i], ~rhythmMenus[i], ~varButtons[i], ~pitchSliders[i], ~volSliders[i], ~humTimeSliders[i], ~humPitchSliders[i], ~humAmpSliders[i]].do(_.canFocus_(false));
+		if(i == 7) {
+			[~muteButtons[i], ~rhythmMenus[i], ~volSliders[i]].do(_.canFocus_(false));
+		} {
+			[~muteButtons[i], ~rhythmMenus[i], ~varButtons[i], ~pitchSliders[i], ~volSliders[i], ~humTimeSliders[i], ~humPitchSliders[i], ~humAmpSliders[i]].do(_.canFocus_(false));
+		};
 	});
 
 	masterCol = CompositeView(win, 150@700).background_(Color.grey(0.6));
@@ -641,11 +666,11 @@ s.waitForBoot({
 	masterMuteBtn = Button(masterCol, 140@40).states_([["MUTE ALL", Color.black, Color.yellow], ["UNMUTE ALL", Color.white, Color.red]]).action_({ |b| ~numTracks.do({ |i| ~muteButtons[i].valueAction_(b.value); }); }).canFocus_(false);
 	StaticText(masterCol, 140@15).string_("GLOBAL HUMAN").align_(\center).font_(Font(size:9, bold:true));
 	StaticText(masterCol, 140@12).string_("Time").font_(Font(size:8));
-	Slider(masterCol, 140@15).value_(0.0).action_({ |s| ~numTracks.do({ |i| ~humanizeTime[i] = s.value.linlin(0, 1, 0, 0.08); {~humTimeSliders[i].value = s.value}.defer; }); }).canFocus_(false);
+	Slider(masterCol, 140@15).value_(0.0).action_({ |s| ~numTracks.do({ |i| ~humanizeTime[i] = s.value.linlin(0, 1, 0, 0.08); if(~humTimeSliders[i].notNil) { {~humTimeSliders[i].value = s.value}.defer }; }); }).canFocus_(false);
 	StaticText(masterCol, 140@12).string_("Pitch").font_(Font(size:8));
-	Slider(masterCol, 140@15).value_(0.0).action_({ |s| ~numTracks.do({ |i| ~humanizePitch[i] = s.value.linlin(0, 1, 0, 1.5); {~humPitchSliders[i].value = s.value}.defer; }); });
+	Slider(masterCol, 140@15).value_(0.0).action_({ |s| ~numTracks.do({ |i| ~humanizePitch[i] = s.value.linlin(0, 1, 0, 1.5); if(~humPitchSliders[i].notNil) { {~humPitchSliders[i].value = s.value}.defer }; }); });
 	StaticText(masterCol, 140@12).string_("Amp").font_(Font(size:8));
-	Slider(masterCol, 140@15).value_(0.0).action_({ |s| ~numTracks.do({ |i| ~humanizeAmp[i] = s.value.linlin(0, 1, 0, 0.3); {~humAmpSliders[i].value = s.value}.defer; }); });
+	Slider(masterCol, 140@15).value_(0.0).action_({ |s| ~numTracks.do({ |i| ~humanizeAmp[i] = s.value.linlin(0, 1, 0, 0.3); if(~humAmpSliders[i].notNil) { {~humAmpSliders[i].value = s.value}.defer }; }); });
 	StaticText(masterCol, 140@20).string_("Peak / dB / Master").align_(\center).font_(Font(size:10));
 
 	// =========================================================================
@@ -662,6 +687,7 @@ s.waitForBoot({
 			var targetAmp = ~dbSpec.map(~dbSpec.unmap(nb.value)).dbamp;
 			~masterVol = targetAmp; // Actualiza la amplitud del motor
 			~masterSlider.value = ~dbSpec.unmap(nb.value); // Mueve el slider físicamente
+			if(~choirSynth.notNil) { ~choirSynth.set(\amp, (~volumes[7] * ~masterVol).clip(0,2)) };
 		})
 		.canFocus_(true);
 	// =========================================================================
@@ -682,6 +708,7 @@ s.waitForBoot({
 			var db = ~dbSpec.map(s.value);
 			~masterVol = db.dbamp;
 			~masterDisplay.value = db.round(0.1); // Actualiza el número amarillo al arrastrar
+			if(~choirSynth.notNil) { ~choirSynth.set(\amp, (~volumes[7] * ~masterVol).clip(0,2)) };
 		})
 		.canFocus_(false);
 
