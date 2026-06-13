@@ -3,6 +3,13 @@
 RicaAfroca Sequencer - Pro Version 2.5 (8-Track Edition, Track 7 Choir)
 */
 (
+ 
+// Auto-close previous GUI on re-execute
+Window.allWindows.do({ |w| if(w.name.contains("RicaAfroca")) { w.close } });
+~numTracks.do({ |i| try { Tdef(("chan"++i).asSymbol).stop } });
+try { ~chorusGroup.free };
+try { ~myPort.close };
+try { ~serialRoutine.stop };
 
 s.waitForBoot({
 
@@ -533,6 +540,7 @@ s.waitForBoot({
 	};
 
 	win = Window("RicaAfroca Sequencer Wood", Rect(50, 50, 1260, 920)).front;
+	~mainWindow = win;
 
 	if(woodImg.notNil) {
 		var backgroundCanvas = UserView(win, win.view.bounds)
