@@ -28,6 +28,9 @@ s.waitForBoot({
 	~masterVol = 0.8;
 	~dbSpec = ControlSpec(-60, 3.5, \db, 0, 0);
 
+	// Original BPM of the chorus sample (adjust if playback is off-tempo at 105 BPM)
+	~chorusRefBpm = 105;
+
 	// Logic arrays
 	~rhythmIndices = Array.fill(~numTracks, { 0 });
 	~rhythms = Array.fill(~numTracks, { [[0.5, 0, 1], [0.5, 0, 1]] });
@@ -35,6 +38,7 @@ s.waitForBoot({
 	~pitches = Array.fill(~numTracks, { 60 });
 	~volumes = Array.fill(~numTracks, { 0.7 });
 	~sampleIndices = Array.fill(~numTracks, { |i| i });
+
 	~varRequests = Array.fill(~numTracks, { false });
 
 	// Humanize Logic Arrays
@@ -109,7 +113,11 @@ s.waitForBoot({
 		// Pulsos
 		["16ths", [[0.25,0,1]]],
 		["8ths", [[0.5,0,1]]],
-		["Quarters", [[1,0,1], [1,0,1]]]
+		["Quarters", [[1,0,1], [1,0,1]]],
+
+		// Chorus (tempo-synced time-stretched loop)
+		["Coro1", [[2,0,0],[30,"c1TJ",1]]],
+		["Coro2", [[2,0,0],[30,"c1TJ",1]]]
 	];
 
 	~variations = [
@@ -238,6 +246,18 @@ s.waitForBoot({
 	~samplesDictionary["cmp"] = ~loadRoundRobinFolder.value("cata/mp", "cmp");
 	~samplesDictionary["cp"] = ~loadRoundRobinFolder.value("cata/p", "cp");
 
+	// Chorus sample for time-stretched playback (tempo-synced without pitch change)
+	~chorusFile = ~samplePath +/+ "coro/coro1-TaJose-105bpm.wav";
+	if(File.exists(~chorusFile)) {
+		~chorusBuffer = Buffer.readChannel(s, ~chorusFile, 0, -1, [0]);
+		~samplesDictionary["c1TJ"] = [~chorusBuffer];
+		("--- RicaAfroca: Cargado chorus sample desde " ++ ~chorusFile).postln;
+	} {
+		"--- RicaAfroca: coro1-TaJose-105bpm.wav no encontrado en samples/coro/, usando buffer silencioso.".postln;
+		~chorusBuffer = Buffer.alloc(s, 44100, 1);
+		~samplesDictionary["c1TJ"] = [~chorusBuffer];
+	};
+
 	// Initialize last index tracking
 	~samplesDictionary.keys.do({ |k|
 		~samplesDictionaryLastIdx[k] = -1;
@@ -361,6 +381,9 @@ s.waitForBoot({
 
 	~peakBus = Bus.control(s, 1);
 	~trackPeakBuses = Array.fill(~numTracks, { Bus.control(s, 1) });
+	~tempoRatioBus = Bus.control(s, 1);
+	~tempoRatioBus.set(120 / ~chorusRefBpm);
+	~chorusGroup = Group.new(s);
 
 	SynthDef(\masterOut, {
 		arg amp=0.8;
@@ -378,6 +401,17 @@ s.waitForBoot({
 		sig = PlayBuf.ar(1, buf, BufRateScale.kr(buf) * rate, loop: 0);
 		sig = sig * 0.8 * env * amp;
 		Out.kr(peakOut, PeakFollower.kr(sig.abs.max(sig.abs), 0.999));
+		OffsetOut.ar(out, Pan2.ar(sig, pan));
+	}).add;
+
+	SynthDef(\chorusChannel, {
+		arg out=0, buf=0, amp=0.5, pan=0, peakOut;
+		var sig;
+
+		sig = PlayBuf.ar(1, buf, BufRateScale.kr(buf), doneAction: 2);
+		sig = sig * amp;
+
+		Out.kr(peakOut, PeakFollower.kr(sig.abs, 0.999));
 		OffsetOut.ar(out, Pan2.ar(sig, pan));
 	}).add;
 
@@ -412,18 +446,28 @@ s.waitForBoot({
 						var vTargetBuffer;
 
 						if(vDelta > 0 && ~mutes[i].not) {
-							pbRate = (~pitches[i] + ~humanizePitch[i].rand2 - 60).midiratio;
-							vTargetBuffer = ~getBufferForStep.value(vBuf, ~sampleIndices[i]);
+							var isChorus = (vBuf.asString == "c1TJ");
+							if(isChorus) {
+								s.makeBundle(s.latency + ~humanizeTime[i].rand2, {
+									Synth(\chorusChannel, [\buf, ~chorusBuffer,
+										\amp, (vAmp * ~volumes[i] + ~humanizeAmp[i].rand2).clip(0,2) * ~masterVol,
+										\peakOut, ~trackPeakBuses[i],
+									], ~chorusGroup, \addToHead);
+								});
+							} {
+								pbRate = (~pitches[i] + ~humanizePitch[i].rand2 - 60).midiratio;
+								vTargetBuffer = ~getBufferForStep.value(vBuf, ~sampleIndices[i]);
 
-							s.makeBundle(s.latency + ~humanizeTime[i].rand2, {
-								Synth(\liveChannel, [
-									\buf, vTargetBuffer,
-									\rate, pbRate,
-									\amp, (vAmp * ~volumes[i] + ~humanizeAmp[i].rand2).clip(0,2) * ~masterVol,
-									\rel, (vDelta.abs / ~tempo.tempo) * 0.8,
-									\peakOut, ~trackPeakBuses[i]
-								]);
-							});
+								s.makeBundle(s.latency + ~humanizeTime[i].rand2, {
+									Synth(\liveChannel, [
+										\buf, vTargetBuffer,
+										\rate, pbRate,
+										\amp, (vAmp * ~volumes[i] + ~humanizeAmp[i].rand2).clip(0,2) * ~masterVol,
+										\rel, (vDelta.abs / ~tempo.tempo) * 0.8,
+										\peakOut, ~trackPeakBuses[i]
+									]);
+								});
+							};
 						};
 						vDelta.abs.wait;
 					});
@@ -434,18 +478,28 @@ s.waitForBoot({
 
 				// NORMAL NOTE LOGIC
 				if(delta > 0 && ~mutes[i].not) {
-					pbRate = (~pitches[i] + ~humanizePitch[i].rand2 - 60).midiratio;
-					targetBuffer = ~getBufferForStep.value(bufOff, ~sampleIndices[i]);
-
+					var isChorus = (bufOff.asString == "c1TJ");
+					if(isChorus) {
 					s.makeBundle(s.latency + ~humanizeTime[i].rand2, {
-						Synth(\liveChannel, [
-							\buf, targetBuffer,
-							\rate, pbRate,
+						Synth(\chorusChannel, [\buf, ~chorusBuffer,
 							\amp, (hitAmp * ~volumes[i] + ~humanizeAmp[i].rand2).clip(0,2) * ~masterVol,
-							\rel, (delta.abs / ~tempo.tempo) * 0.8,
-							\peakOut, ~trackPeakBuses[i]
-						]);
+							\peakOut, ~trackPeakBuses[i],
+						], ~chorusGroup, \addToHead);
 					});
+					} {
+						pbRate = (~pitches[i] + ~humanizePitch[i].rand2 - 60).midiratio;
+						targetBuffer = ~getBufferForStep.value(bufOff, ~sampleIndices[i]);
+
+						s.makeBundle(s.latency + ~humanizeTime[i].rand2, {
+							Synth(\liveChannel, [
+								\buf, targetBuffer,
+								\rate, pbRate,
+								\amp, (hitAmp * ~volumes[i] + ~humanizeAmp[i].rand2).clip(0,2) * ~masterVol,
+								\rel, (delta.abs / ~tempo.tempo) * 0.8,
+								\peakOut, ~trackPeakBuses[i]
+							]);
+						});
+					};
 				};
 
 				step = step + 1;
@@ -478,20 +532,20 @@ s.waitForBoot({
 		if(keycode == 32) { startBtn.valueAction = 1 - startBtn.value };
 	});
 
-	startBtn = Button(win, 800@40).states_([["START ALL", Color.black, Color.green], ["STOP ALL", Color.white, Color.red]]).action_({ |b| ~numTracks.do({ |i| if(b.value == 1) { Tdef(("chan"++i).asSymbol).play(~tempo) } { Tdef(("chan"++i).asSymbol).stop }; }); });
+	startBtn = Button(win, 800@40).states_([["START ALL", Color.black, Color.green], ["STOP ALL", Color.white, Color.red]]).action_({ |b| if(b.value == 1) { ~numTracks.do({ |i| Tdef(("chan"++i).asSymbol).play(~tempo) }) } { ~numTracks.do({ |i| Tdef(("chan"++i).asSymbol).stop }); if(~chorusGroup.notNil) { ~chorusGroup.freeAll } }; });
 	startBtn.canFocus_(true);
 	startBtn.focus;
 
 	win.view.decorator.nextLine;
 
-	Button(win, 30@30).states_([["-", Color.black, Color.grey(0.8)]]).action_({ var newBpm = (~tempo.tempo * 60) - 1; ~tempo.tempo = newBpm / 60; bpmDisplay.value = newBpm; tempoSlid.value = newBpm.linlin(60, 200, 0, 1); }).canFocus_(false);
+	Button(win, 30@30).states_([["-", Color.black, Color.grey(0.8)]]).action_({ var newBpm = (~tempo.tempo * 60) - 1; ~tempo.tempo = newBpm / 60; bpmDisplay.value = newBpm; tempoSlid.value = newBpm.linlin(60, 200, 0, 1); ~tempoRatioBus.set(newBpm / ~chorusRefBpm); }).canFocus_(false);
 	bpmDisplay = NumberBox(win, 60@30).value_((~tempo.tempo * 60).round(0.1))
 	    .decimals_(1)
 		.background_(Color.black)
 		.normalColor_(Color.yellow)
 		.font_(Font(size: 18));
-	Button(win, 30@30).states_([["+", Color.black, Color.grey(0.8)]]).action_({ var newBpm = (~tempo.tempo * 60) + 1; ~tempo.tempo = newBpm / 60; bpmDisplay.value = newBpm; tempoSlid.value = newBpm.linlin(60, 200, 0, 1); }).canFocus_(false);
-	tempoSlid = Slider(win, 660@30).value_(~tempo.tempo.linlin(1, 3.3, 0, 1)).action_({ |s| var bpm = s.value.linlin(0, 1, 60, 200); ~tempo.tempo = bpm / 60; bpmDisplay.value = bpm; }).canFocus_(false);
+	Button(win, 30@30).states_([["+", Color.black, Color.grey(0.8)]]).action_({ var newBpm = (~tempo.tempo * 60) + 1; ~tempo.tempo = newBpm / 60; bpmDisplay.value = newBpm; tempoSlid.value = newBpm.linlin(60, 200, 0, 1); ~tempoRatioBus.set(newBpm / ~chorusRefBpm); }).canFocus_(false);
+	tempoSlid = Slider(win, 660@30).value_(~tempo.tempo.linlin(1, 3.3, 0, 1)).action_({ |s| var bpm = s.value.linlin(0, 1, 60, 200); ~tempo.tempo = bpm / 60; bpmDisplay.value = bpm; ~tempoRatioBus.set(bpm / ~chorusRefBpm); }).canFocus_(false);
 
 	win.view.decorator.nextLine;
 
@@ -670,6 +724,7 @@ s.waitForBoot({
 		meterRoutine.stop;
 		if(~serialRoutine.notNil) { ~serialRoutine.stop };
 		if(~myPort.notNil) { ~myPort.close };
+		if(~chorusGroup.notNil) { ~chorusGroup.free };
 		~numTracks.do({ |i| Tdef(("chan"++i).asSymbol).stop });
 		"Sequencer and Serial Port closed safely.".postln;
 	};
@@ -688,8 +743,8 @@ s.waitForBoot({
 					{
 						case
 						{ byte == $s } { startBtn.valueAction = 1 - startBtn.value }
-						{ byte == $p } { var newBpm = (~tempo.tempo * 60) + 1; ~tempo.tempo = newBpm / 60; bpmDisplay.value = newBpm; tempoSlid.value = newBpm.linlin(60, 200, 0, 1); }
-						{ byte == $m } { var newBpm = (~tempo.tempo * 60) - 1; ~tempo.tempo = newBpm / 60; bpmDisplay.value = newBpm; tempoSlid.value = newBpm.linlin(60, 200, 0, 1); }
+						{ byte == $p } { var newBpm = (~tempo.tempo * 60) + 1; ~tempo.tempo = newBpm / 60; bpmDisplay.value = newBpm; tempoSlid.value = newBpm.linlin(60, 200, 0, 1); ~tempoRatioBus.set(newBpm / ~chorusRefBpm); }
+						{ byte == $m } { var newBpm = (~tempo.tempo * 60) - 1; ~tempo.tempo = newBpm / 60; bpmDisplay.value = newBpm; tempoSlid.value = newBpm.linlin(60, 200, 0, 1); ~tempoRatioBus.set(newBpm / ~chorusRefBpm); }
 						{ byte == $v } { if(~varButtons[5].notNil) { ~varButtons[5].valueAction = 1 - ~varButtons[5].value; } };
 					}.defer;
 				};
