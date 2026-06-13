@@ -342,6 +342,7 @@ s.waitForBoot({
 		if(data.notNil) {
 			currentPresetName = name;
 			~tempo.tempo = (data[\bpm] ?? {120}) / 60;
+			~tempoRatioBus.set((data[\bpm] ?? {120}) / ~chorusRefBpm);
 
 			~rhythms = Array.fill(~numTracks, { |i| data[\rhythms].wrapAt(i) ?? [[0.5, 0, 1], [0.5, 0, 1]] });
 			~mutes = Array.fill(~numTracks, { |i| data[\mutes].wrapAt(i) ?? false });
@@ -425,10 +426,13 @@ s.waitForBoot({
 	}).add;
 
 	SynthDef(\chorusChannel, {
-		arg out=0, buf=0, amp=0.5, pan=0, peakOut;
-		var sig;
+		arg out=0, buf=0, amp=0.5, pan=0, peakOut, tempoRatioBus;
+		var sig, rate, pitched;
 
-		sig = PlayBuf.ar(1, buf, BufRateScale.kr(buf), doneAction: 2);
+		rate = In.kr(tempoRatioBus, 1);
+		sig = PlayBuf.ar(1, buf, BufRateScale.kr(buf) * rate, doneAction: 2);
+		pitched = PitchShift.ar(sig, 0.2, rate.reciprocal, 0, 0.001);
+		sig = Select.ar((rate - 1).abs > 0.001, [sig, pitched]);
 		sig = sig * amp;
 
 		Out.kr(peakOut, PeakFollower.kr(sig.abs, 0.999));
@@ -474,6 +478,7 @@ s.waitForBoot({
 									synth = Synth(\chorusChannel, [\buf, ~chorusBuffer,
 										\amp, (vAmp * ~volumes[i] + ~humanizeAmp[i].rand2).clip(0,2) * ~masterVol,
 										\peakOut, ~trackPeakBuses[i],
+										\tempoRatioBus, ~tempoRatioBus,
 									], ~chorusGroup, \addToHead);
 									if(i == 7) { ~choirSynth = synth };
 								});
@@ -509,6 +514,7 @@ s.waitForBoot({
 						synth = Synth(\chorusChannel, [\buf, ~chorusBuffer,
 							\amp, (hitAmp * ~volumes[i] + ~humanizeAmp[i].rand2).clip(0,2) * ~masterVol,
 							\peakOut, ~trackPeakBuses[i],
+							\tempoRatioBus, ~tempoRatioBus,
 						], ~chorusGroup, \addToHead);
 						if(i == 7) { ~choirSynth = synth };
 					});
