@@ -589,6 +589,8 @@ s.waitForBoot({
 
 			StaticText(comp, 105@20).string_("Pitch").align_(\center);
 			~pitchSliders[i] = Slider(comp, 105@30).value_(0.5).action_({ |s| ~pitches[i] = s.value.linlin(0, 1, 36, 72).round; });
+		} {
+			UserView(comp, 105@100).canFocus_(false);
 		};
 
 		StaticText(comp, 105@20).string_("Peak / dB").align_(\center).font_(Font(size:10));
@@ -650,6 +652,8 @@ s.waitForBoot({
 			~humPitchSliders[i] = Slider(humGroup, 55@15).value_(0.0).action_({ |s| ~humanizePitch[i] = s.value.linlin(0, 1, 0, 1.5); });
 			StaticText(humGroup, 40@15).string_("Amp").font_(Font(size:9));
 			~humAmpSliders[i] = Slider(humGroup, 55@15).value_(0.0).action_({ |s| ~humanizeAmp[i] = s.value.linlin(0, 1, 0, 0.3); });
+		} {
+			UserView(comp, 105@140).canFocus_(false);
 		};
 
 		// Se remueven focos innecesarios excepto para las cajas de texto que sí requieren tipeo
@@ -662,7 +666,7 @@ s.waitForBoot({
 
 	masterCol = CompositeView(win, 150@700).background_(Color.grey(0.6));
 	masterCol.decorator = FlowLayout(masterCol.bounds, 5@5, 5@5);
-	StaticText(masterCol, 140@20).string_("MASTER").align_(\center).font_(Font(bold:true));
+	StaticText(masterCol, 140@25).string_("MASTER").align_(\center).font_(Font(bold:true));
 	masterMuteBtn = Button(masterCol, 140@40).states_([["MUTE ALL", Color.black, Color.yellow], ["UNMUTE ALL", Color.white, Color.red]]).action_({ |b| ~numTracks.do({ |i| ~muteButtons[i].valueAction_(b.value); }); }).canFocus_(false);
 	StaticText(masterCol, 140@15).string_("GLOBAL HUMAN").align_(\center).font_(Font(size:9, bold:true));
 	StaticText(masterCol, 140@12).string_("Time").font_(Font(size:8));
@@ -671,6 +675,7 @@ s.waitForBoot({
 	Slider(masterCol, 140@15).value_(0.0).action_({ |s| ~numTracks.do({ |i| ~humanizePitch[i] = s.value.linlin(0, 1, 0, 1.5); if(~humPitchSliders[i].notNil) { {~humPitchSliders[i].value = s.value}.defer }; }); });
 	StaticText(masterCol, 140@12).string_("Amp").font_(Font(size:8));
 	Slider(masterCol, 140@15).value_(0.0).action_({ |s| ~numTracks.do({ |i| ~humanizeAmp[i] = s.value.linlin(0, 1, 0, 0.3); if(~humAmpSliders[i].notNil) { {~humAmpSliders[i].value = s.value}.defer }; }); });
+	UserView(masterCol, 140@4).canFocus_(false);
 	StaticText(masterCol, 140@20).string_("Peak / dB / Master").align_(\center).font_(Font(size:10));
 
 	// =========================================================================
