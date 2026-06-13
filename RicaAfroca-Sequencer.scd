@@ -10,6 +10,10 @@ Window.allWindows.do({ |w| if(w.name.contains("RicaAfroca")) { w.close } });
 try { ~chorusGroup.free };
 try { ~myPort.close };
 try { ~serialRoutine.stop };
+// Free all previously loaded buffers to avoid memory exhaustion
+try { ~samples.do(_.free) };
+try { ~chorusBuffer.free };
+try { ~samplesDictionary.do(_.do(_.free)) };
 
 s.waitForBoot({
 
@@ -674,7 +678,7 @@ s.waitForBoot({
 
 	masterCol = CompositeView(win, 150@700).background_(Color.grey(0.6));
 	masterCol.decorator = FlowLayout(masterCol.bounds, 5@5, 5@5);
-	StaticText(masterCol, 140@25).string_("MASTER").align_(\center).font_(Font(bold:true));
+	TextField(masterCol, 140@25).string_("MASTER").align_(\center).background_(Color.black).stringColor_(Color.yellow).font_(Font(size:18)).canFocus_(false);
 	masterMuteBtn = Button(masterCol, 140@40).states_([["ON", Color.black, Color.green], ["UNMUTE ALL", Color.white, Color.red]]).action_({ |b| ~numTracks.do({ |i| ~muteButtons[i].valueAction_(b.value); }); }).canFocus_(false);
 	StaticText(masterCol, 140@15).string_("GLOBAL HUMAN").align_(\center).font_(Font(size:9, bold:true));
 	StaticText(masterCol, 140@12).string_("Time").font_(Font(size:8));
