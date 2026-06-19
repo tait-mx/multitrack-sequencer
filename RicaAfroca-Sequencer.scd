@@ -1,8 +1,13 @@
 
 /*
 RicaAfroca Sequencer - Pro Version 2.5 (8-Track Edition, Track 7 Choir)
+Bigger master humanize
+Arduino retry connect from GUI
 */
 (
+	
+// Kill any lingering server instances to avoid UDP port conflicts
+Server.killAll;
 
 // Auto-close previous GUI on re-execute
 Window.allWindows.do({ |w| if(w.name.contains("RicaAfroca")) { w.close } });
