@@ -229,7 +229,6 @@ s.waitForBoot({
 			var files = (folderPath.fullPath +/+ "*.wav").pathMatch;
 			if(files.size > 0) {
 				loadedBuffers = files.collect({ |path| Buffer.read(s, path) });
-				("--- RicaAfroca: Cargadas" + loadedBuffers.size + "muestras para" + logLabel).postln;
 			} {
 				("ALERTA RicaAfroca: Sin archivos .wav en:" + folderPath.fullPath).postln;
 			};
@@ -282,12 +281,10 @@ s.waitForBoot({
 			var key = ("c" ++ (idx+1) ++ "TJ");
 			var buf = Buffer.readChannel(s, path, 0, -1, [0]);
 			~samplesDictionary[key] = [buf];
-			("--- RicaAfroca: Cargado " ++ key ++ " desde " ++ PathName(path).fileNameWithoutExtension).postln;
 		});
 	} {
 		"--- RicaAfroca: No se encontraron .wav en samples/coro/taJose105bpm/, usando buffer silencioso.".postln;
 	};
-	("--- RicaAfroca: Cargados" + ~chorusFiles.size + "chorus samples").postln;
 
 	// Initialize last index tracking
 	~samplesDictionary.keys.do({ |k|
