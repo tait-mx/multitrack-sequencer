@@ -275,7 +275,7 @@ s.waitForBoot({
 	~samplesDictionary["cp"] = ~loadRoundRobinFolder.value("cata/p", "cp");
 
 	// Load each chorus sample with its own key (c1TJ..c8TJ)
-	~chorusFolder = ~samplePath +/+ "coro/taJose150bpm";
+	~chorusFolder = ~samplePath +/+ "coro/taJose105bpm";
 	~chorusFiles = (~chorusFolder +/+ "*.wav").pathMatch.sort;
 	if(~chorusFiles.size > 0) {
 		~chorusFiles.do({ |path, idx|
@@ -285,7 +285,7 @@ s.waitForBoot({
 			("--- RicaAfroca: Cargado " ++ key ++ " desde " ++ PathName(path).fileNameWithoutExtension).postln;
 		});
 	} {
-		"--- RicaAfroca: No se encontraron .wav en samples/coro/taJose150bpm/, usando buffer silencioso.".postln;
+		"--- RicaAfroca: No se encontraron .wav en samples/coro/taJose105bpm/, usando buffer silencioso.".postln;
 	};
 	("--- RicaAfroca: Cargados" + ~chorusFiles.size + "chorus samples").postln;
 
