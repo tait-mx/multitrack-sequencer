@@ -77,7 +77,6 @@ s.waitForBoot({
 	~humPitchSliders = Array.newClear(~numTracks);
 	~humAmpSliders = Array.newClear(~numTracks);
 	~choirSynth = nil;
-	~choirTaskRef = nil;
 	~currentChorusIndex = 0;
 	~chorusBuffers = [];
 
@@ -443,7 +442,7 @@ s.waitForBoot({
 		var sig, rate, pitched;
 
 		rate = In.kr(tempoRatioBus, 1);
-		sig = PlayBuf.ar(1, buf, BufRateScale.kr(buf) * rate, loop: 1);
+		sig = PlayBuf.ar(1, buf, BufRateScale.kr(buf) * rate, doneAction: 2);
 		pitched = PitchShift.ar(sig, 0.2, rate.reciprocal, 0, 0.001);
 		sig = Select.ar((rate - 1).abs > 0.001, [sig, pitched]);
 		sig = sig * amp;
@@ -578,7 +577,7 @@ s.waitForBoot({
 		if(keycode == 32) { startBtn.valueAction = 1 - startBtn.value };
 	});
 
-	startBtn = Button(win, 800@40).states_([["START ALL", Color.black, Color.green], ["STOP ALL", Color.white, Color.red]]).action_({ |b| if(b.value == 1) { ~numTracks.do({ |i| if(i != 7) { Tdef(("chan"++i).asSymbol).play(~tempo) } }) } { ~numTracks.do({ |i| Tdef(("chan"++i).asSymbol).stop }); if(~chorusGroup.notNil) { ~chorusGroup.freeAll }; if(~choirTaskRef.notNil) { ~tempo.stop(~choirTaskRef); ~choirTaskRef = nil }; ~choirSynth = nil; if(~choirTriggerBtn.notNil) { ~choirTriggerBtn.value = 0 } }; });
+	startBtn = Button(win, 800@40).states_([["START ALL", Color.black, Color.green], ["STOP ALL", Color.white, Color.red]]).action_({ |b| if(b.value == 1) { ~numTracks.do({ |i| if(i != 7) { Tdef(("chan"++i).asSymbol).play(~tempo) } }) } { ~numTracks.do({ |i| Tdef(("chan"++i).asSymbol).stop }); if(~chorusGroup.notNil) { ~chorusGroup.freeAll }; ~choirSynth = nil; if(~choirTriggerBtn.notNil) { ~choirTriggerBtn.value = 0 } }; });
 	startBtn.canFocus_(true);
 	startBtn.focus;
 
@@ -627,26 +626,12 @@ s.waitForBoot({
 						"CHORUS: Cannot start while sequencer is stopped. Press START ALL first.".postln;
 						b.value = 0;
 					} {
-						// Cancel any pending scheduled chorus
-						if(~choirTaskRef.notNil) { ~tempo.stop(~choirTaskRef); ~choirTaskRef = nil };
-						// Free current synth if any
-						if(~choirSynth.notNil) { ~choirSynth.free; ~choirSynth = nil };
-						// Schedule chorus to start on next bar boundary
-						~choirTaskRef = ~tempo.schedAbs(~tempo.nextBar, {
-							~choirSynth = Synth(\chorusChannel, [
-								\buf, ~chorusBuffers[~currentChorusIndex],
-								\amp, (~volumes[7] * ~masterVol).clip(0,2),
-								\peakOut, ~trackPeakBuses[7],
-								\tempoRatioBus, ~tempoRatioBus,
-							], ~chorusGroup, \addToHead);
-							~choirTaskRef = nil;
-							nil;
-						});
+						Tdef(\chan7).reset.play(~tempo, quant: 4);
 					};
 				} {
-					// Cancel any pending scheduled chorus
-					if(~choirTaskRef.notNil) { ~tempo.stop(~choirTaskRef); ~choirTaskRef = nil };
-					if(~choirSynth.notNil) { ~choirSynth.free; ~choirSynth = nil };
+					Tdef(\chan7).stop;
+					if(~chorusGroup.notNil) { ~chorusGroup.freeAll };
+					~choirSynth = nil;
 				};
 			});
 			~chorusIdxDisplay = StaticText(comp, 105@20).string_((~currentChorusIndex + 1).asString ++ "/" ++ ~chorusBuffers.size).align_(\center).font_(Font(size: 14, bold: true));
@@ -821,7 +806,6 @@ s.waitForBoot({
 		if(~serialRoutine.notNil) { ~serialRoutine.stop };
 		if(~myPort.notNil) { ~myPort.close };
 		if(~chorusGroup.notNil) { ~chorusGroup.free };
-		if(~choirTaskRef.notNil) { ~tempo.stop(~choirTaskRef); ~choirTaskRef = nil };
 		~numTracks.do({ |i| Tdef(("chan"++i).asSymbol).stop });
 		"Sequencer and Serial Port closed safely.".postln;
 	};
