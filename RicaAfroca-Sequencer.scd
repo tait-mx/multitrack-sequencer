@@ -5,7 +5,7 @@ Bigger master humanize
 Arduino retry connect from GUI
 */
 (
-	
+
 // Kill any lingering server instances to avoid UDP port conflicts
 Server.killAll;
 
@@ -17,7 +17,6 @@ try { ~myPort.close };
 try { ~serialRoutine.stop };
 // Free all previously loaded buffers to avoid memory exhaustion
 try { ~samples.do(_.free) };
-try { ~chorusBuffers.do(_.free) };
 try { ~samplesDictionary.do(_.do(_.free)) };
 
 s.waitForBoot({
@@ -77,8 +76,6 @@ s.waitForBoot({
 	~humPitchSliders = Array.newClear(~numTracks);
 	~humAmpSliders = Array.newClear(~numTracks);
 	~choirSynth = nil;
-	~currentChorusIndex = 0;
-	~chorusBuffers = [];
 
 	/////////////////////////////////////////////////////////////////
 	// RHYTHMS AND VARIATIONS
@@ -138,7 +135,13 @@ s.waitForBoot({
 
 		// Chorus (tempo-synced time-stretched loop)
 		["Coro1", [[2,0,0],[30,"c1TJ",1],[32,0,0]]],
-		["Coro2", [[2,0,0],[30,"c1TJ",1],[32,0,0]]]
+		["Coro2", [[8,"c2TJ",1],[8,0,0]]],
+		["Coro3", [[2,0,0],[30,"c3TJ",1],[32,0,0]]],
+		["Coro4", [[2,0,0],[30,"c4TJ",1],[32,0,0]]],
+		["Coro5", [[2,0,0],[30,"c5TJ",1],[32,0,0]]],
+		["Coro6", [[2,0,0],[30,"c6TJ",1],[32,0,0]]],
+		["Coro7", [[2,0,0],[30,"c7TJ",1],[32,0,0]]],
+		["Coro8", [[2,0,0],[30,"c8TJ",1],[32,0,0]]]
 	];
 
 	~variations = [
@@ -271,22 +274,20 @@ s.waitForBoot({
 	~samplesDictionary["cmp"] = ~loadRoundRobinFolder.value("cata/mp", "cmp");
 	~samplesDictionary["cp"] = ~loadRoundRobinFolder.value("cata/p", "cp");
 
-	// Load all chorus samples from taJose150bpm folder
+	// Load each chorus sample with its own key (c1TJ..c8TJ)
 	~chorusFolder = ~samplePath +/+ "coro/taJose150bpm";
 	~chorusFiles = (~chorusFolder +/+ "*.wav").pathMatch.sort;
 	if(~chorusFiles.size > 0) {
-		~chorusBuffers = ~chorusFiles.collect({ |path|
+		~chorusFiles.do({ |path, idx|
+			var key = ("c" ++ (idx+1) ++ "TJ");
 			var buf = Buffer.readChannel(s, path, 0, -1, [0]);
-			("--- RicaAfroca: Cargado chorus " ++ PathName(path).fileNameWithoutExtension).postln;
-			buf;
+			~samplesDictionary[key] = [buf];
+			("--- RicaAfroca: Cargado " ++ key ++ " desde " ++ PathName(path).fileNameWithoutExtension).postln;
 		});
-		~samplesDictionary["c1TJ"] = ~chorusBuffers;
-		("--- RicaAfroca: Cargados" + ~chorusBuffers.size + "chorus samples desde taJose150bpm").postln;
 	} {
 		"--- RicaAfroca: No se encontraron .wav en samples/coro/taJose150bpm/, usando buffer silencioso.".postln;
-		~chorusBuffers = [Buffer.alloc(s, 44100, 1)];
-		~samplesDictionary["c1TJ"] = ~chorusBuffers;
 	};
+	("--- RicaAfroca: Cargados" + ~chorusFiles.size + "chorus samples").postln;
 
 	// Initialize last index tracking
 	~samplesDictionary.keys.do({ |k|
@@ -482,12 +483,12 @@ s.waitForBoot({
 						var vTargetBuffer;
 
 						if(vDelta > 0 && ~mutes[i].not) {
-							var isChorus = (vBuf.asString == "c1TJ");
+							var isChorus = (vBuf.asString.at(0) == $c) && vBuf.asString.endsWith("TJ");
 							if(isChorus) {
 								s.makeBundle(s.latency + ~humanizeTime[i].rand2, {
 									var synth;
 									if(i == 7 && ~choirSynth.notNil) { ~choirSynth.free };
-									synth = Synth(\chorusChannel, [\buf, ~chorusBuffers[~currentChorusIndex],
+									synth = Synth(\chorusChannel, [\buf, ~getBufferForStep.value(vBuf, ~sampleIndices[i]),
 										\amp, (vAmp * ~volumes[i] + ~humanizeAmp[i].rand2).clip(0,2) * ~masterVol,
 										\peakOut, ~trackPeakBuses[i],
 										\tempoRatioBus, ~tempoRatioBus,
@@ -518,12 +519,12 @@ s.waitForBoot({
 
 				// NORMAL NOTE LOGIC
 				if(delta > 0 && ~mutes[i].not) {
-					var isChorus = (bufOff.asString == "c1TJ");
+					var isChorus = (bufOff.asString.at(0) == $c) && bufOff.asString.endsWith("TJ");
 					if(isChorus) {
 					s.makeBundle(s.latency + ~humanizeTime[i].rand2, {
 						var synth;
 						if(i == 7 && ~choirSynth.notNil) { ~choirSynth.free };
-						synth = Synth(\chorusChannel, [\buf, ~chorusBuffers[~currentChorusIndex],
+						synth = Synth(\chorusChannel, [\buf, ~getBufferForStep.value(bufOff, ~sampleIndices[i]),
 							\amp, (hitAmp * ~volumes[i] + ~humanizeAmp[i].rand2).clip(0,2) * ~masterVol,
 							\peakOut, ~trackPeakBuses[i],
 							\tempoRatioBus, ~tempoRatioBus,
@@ -634,11 +635,16 @@ s.waitForBoot({
 					~choirSynth = nil;
 				};
 			});
-			~chorusIdxDisplay = StaticText(comp, 105@20).string_((~currentChorusIndex + 1).asString ++ "/" ++ ~chorusBuffers.size).align_(\center).font_(Font(size: 14, bold: true));
+			~chorusPatternDisplay = StaticText(comp, 105@20).string_(~rhythmAndNames[~rhythmIndices[7]][0]).align_(\center).font_(Font(size: 14, bold: true));
 			~nextChorusBtn = Button(comp, 105@30).states_([["NEXT", Color.black, Color.grey(0.8)]]).action_({
-				~currentChorusIndex = (~currentChorusIndex + 1) % ~chorusBuffers.size;
-				~chorusIdxDisplay.string = (~currentChorusIndex + 1).asString ++ "/" ++ ~chorusBuffers.size;
-				("Chorus sample " ++ (~currentChorusIndex + 1) ++ "/" ++ ~chorusBuffers.size).postln;
+				var firstCoro = 28, numCoros = 8;
+				var next = if(~rhythmIndices[7] >= firstCoro && ~rhythmIndices[7] < (firstCoro + numCoros - 1)) {
+					~rhythmIndices[7] + 1
+				} {
+					firstCoro
+				};
+				~rhythmMenus[7].valueAction = next;
+				~chorusPatternDisplay.string = ~rhythmAndNames[next][0];
 			});
 		};
 
