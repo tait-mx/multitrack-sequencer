@@ -443,7 +443,7 @@ s.waitForBoot({
 		var sig, rate, pitched;
 
 		rate = In.kr(tempoRatioBus, 1);
-		sig = PlayBuf.ar(1, buf, BufRateScale.kr(buf) * rate, doneAction: 2);
+		sig = PlayBuf.ar(1, buf, BufRateScale.kr(buf) * rate, loop: 1);
 		pitched = PitchShift.ar(sig, 0.2, rate.reciprocal, 0, 0.001);
 		sig = Select.ar((rate - 1).abs > 0.001, [sig, pitched]);
 		sig = sig * amp;
