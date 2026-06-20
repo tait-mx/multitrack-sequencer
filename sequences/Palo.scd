@@ -8,10 +8,10 @@ o = [
 	"llaf",  Array.prNew(3),  "llsmp",  Array.prNew(3),  
 	"llsmp",  Array.prNew(4),  Array.prNew(3),  Array.prNew(3),  
 	"lltmp",  Array.prNew(3),  Array.prNew(3),  "llaf",  
-	Array.prNew(3),  Array.prNew(3),  Array.prNew(3),  "c1TJ",  
+	Array.prNew(3),  Array.prNew(3),  Array.prNew(3),  "c3TJ",  
 	Array.prNew(3),  Array.prNew(8),  Array.prNew(8),  "Campana",  
 	"Track 1",  "Shekere",  "",  "",  
-	"Track 5",  "Track 6",  "CORO",  Array.prNew(8),  
+	"Llamador",  "Golpe",  "CORO",  Array.prNew(8),  
 	Array.prNew(8),  Array.prNew(8),  Array.prNew(8),  Array.prNew(8),  
 	Array.prNew(8)
 ];
@@ -93,12 +93,12 @@ p = [
 	// Array
 	33, [ 2,  0,  0 ],  
 	// Array
-	34, [ 30,  o[35],  1 ],  
+	34, [ 6,  o[35],  1 ],  
 	// Array
-	36, [ 32,  0,  0 ],  
+	36, [ 8,  0,  0 ],  
 	// Array
 	37, [ 3,  27,  13,  0,  
-		0,  23,  18,  28 ],  
+		0,  23,  18,  30 ],  
 	// Array
 	38, [ o[39],  o[40],  o[41],  o[42],  
 		o[43],  o[44],  o[45],  o[46] ],  
@@ -113,7 +113,7 @@ p = [
 		0.012203389830508,  0.012203389830508,  0.012203389830508,  0.012203389830508 ],  
 	// Array
 	50, [ 0.95258224244061,  1.4962356560944,  0.92596587739714,  1.4962356560944,  
-		0.71496983465007,  1.006947583806,  0.97957614457689,  1.006947583806 ],  
+		0.71496983465007,  1.006947583806,  0.97957614457689,  0.78632434519213 ],  
 	// Array
 	51, [ 0.18181818181818,  0,  0.5,  0,  
 		0,  0,  0,  0.18181818181818 ],  
