@@ -134,14 +134,14 @@ s.waitForBoot({
 		["Quarters", [[1,0,1], [1,0,1]]],
 
 		// Chorus (tempo-synced time-stretched loop)
-		["Coro1", [[2,0,0],[30,"c1TJ",1],[32,0,0]]],
-		["Coro2", [[8,"c2TJ",1],[8,0,0]]],
-		["Coro3", [[2,0,0],[30,"c3TJ",1],[32,0,0]]],
-		["Coro4", [[2,0,0],[30,"c4TJ",1],[32,0,0]]],
-		["Coro5", [[2,0,0],[30,"c5TJ",1],[32,0,0]]],
-		["Coro6", [[2,0,0],[30,"c6TJ",1],[32,0,0]]],
-		["Coro7", [[2,0,0],[30,"c7TJ",1],[32,0,0]]],
-		["Coro8", [[2,0,0],[30,"c8TJ",1],[32,0,0]]]
+		["Coro1", [[2,0,0],[30,"c1TJ",1],[32,0,0]]], // Caminando yo venía
+		["Coro2", [[16,"c2TJ",1],[16,0,0]]],         // Estoy llamando un congo pa bailar bembé
+		["Coro3", [[2,0,0],[6,"c3TJ",1],[8,0,0]]],   // Llámalo con la tumba llámalo Ta José
+		["Coro4", [[2,0,0],[6,"c4TJ",1],[8,0,0]]],   // Eh eh Ta José todos me llaman Ta José
+		["Coro5", [[2,0,0],[6,"c5TJ",1]]],           // Wao wao wao Ta José (8-beat loop)
+		["Coro6", [[2,0,0],[30,"c6TJ",1]]],          // Sálvalo Ta José sálvalo
+		["Coro7", [[2,0,0],[6,"c7TJ",1]]],           // Vence batalla Ta José
+		["Coro8", [[2,0,0],[6,"c8TJ",1]]]            // Arriba nganga Ta José
 	];
 
 	~variations = [
@@ -443,7 +443,7 @@ s.waitForBoot({
 		var sig, rate, pitched;
 
 		rate = In.kr(tempoRatioBus, 1);
-		sig = PlayBuf.ar(1, buf, BufRateScale.kr(buf) * rate, doneAction: 2);
+		sig = PlayBuf.ar(1, buf, BufRateScale.kr(buf) * rate);
 		pitched = PitchShift.ar(sig, 0.2, rate.reciprocal, 0, 0.001);
 		sig = Select.ar((rate - 1).abs > 0.001, [sig, pitched]);
 		sig = sig * amp;
