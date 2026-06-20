@@ -17,7 +17,7 @@ try { ~myPort.close };
 try { ~serialRoutine.stop };
 // Free all previously loaded buffers to avoid memory exhaustion
 try { ~samples.do(_.free) };
-try { ~chorusBuffer.free };
+try { ~chorusBuffers.do(_.free) };
 try { ~samplesDictionary.do(_.do(_.free)) };
 
 s.waitForBoot({
@@ -77,6 +77,8 @@ s.waitForBoot({
 	~humPitchSliders = Array.newClear(~numTracks);
 	~humAmpSliders = Array.newClear(~numTracks);
 	~choirSynth = nil;
+	~currentChorusIndex = 0;
+	~chorusBuffers = [];
 
 	/////////////////////////////////////////////////////////////////
 	// RHYTHMS AND VARIATIONS
@@ -269,16 +271,21 @@ s.waitForBoot({
 	~samplesDictionary["cmp"] = ~loadRoundRobinFolder.value("cata/mp", "cmp");
 	~samplesDictionary["cp"] = ~loadRoundRobinFolder.value("cata/p", "cp");
 
-	// Chorus sample for time-stretched playback (tempo-synced without pitch change)
-	~chorusFile = ~samplePath +/+ "coro/coro1-TaJose-105bpm.wav";
-	if(File.exists(~chorusFile)) {
-		~chorusBuffer = Buffer.readChannel(s, ~chorusFile, 0, -1, [0]);
-		~samplesDictionary["c1TJ"] = [~chorusBuffer];
-		("--- RicaAfroca: Cargado chorus sample desde " ++ ~chorusFile).postln;
+	// Load all chorus samples from taJose150bpm folder
+	~chorusFolder = ~samplePath +/+ "coro/taJose150bpm";
+	~chorusFiles = (~chorusFolder +/+ "*.wav").pathMatch.sort;
+	if(~chorusFiles.size > 0) {
+		~chorusBuffers = ~chorusFiles.collect({ |path|
+			var buf = Buffer.readChannel(s, path, 0, -1, [0]);
+			("--- RicaAfroca: Cargado chorus " ++ PathName(path).fileNameWithoutExtension).postln;
+			buf;
+		});
+		~samplesDictionary["c1TJ"] = ~chorusBuffers;
+		("--- RicaAfroca: Cargados" + ~chorusBuffers.size + "chorus samples desde taJose150bpm").postln;
 	} {
-		"--- RicaAfroca: coro1-TaJose-105bpm.wav no encontrado en samples/coro/, usando buffer silencioso.".postln;
-		~chorusBuffer = Buffer.alloc(s, 44100, 1);
-		~samplesDictionary["c1TJ"] = [~chorusBuffer];
+		"--- RicaAfroca: No se encontraron .wav en samples/coro/taJose150bpm/, usando buffer silencioso.".postln;
+		~chorusBuffers = [Buffer.alloc(s, 44100, 1)];
+		~samplesDictionary["c1TJ"] = ~chorusBuffers;
 	};
 
 	// Initialize last index tracking
@@ -480,7 +487,7 @@ s.waitForBoot({
 								s.makeBundle(s.latency + ~humanizeTime[i].rand2, {
 									var synth;
 									if(i == 7 && ~choirSynth.notNil) { ~choirSynth.free };
-									synth = Synth(\chorusChannel, [\buf, ~chorusBuffer,
+									synth = Synth(\chorusChannel, [\buf, ~chorusBuffers[~currentChorusIndex],
 										\amp, (vAmp * ~volumes[i] + ~humanizeAmp[i].rand2).clip(0,2) * ~masterVol,
 										\peakOut, ~trackPeakBuses[i],
 										\tempoRatioBus, ~tempoRatioBus,
@@ -516,7 +523,7 @@ s.waitForBoot({
 					s.makeBundle(s.latency + ~humanizeTime[i].rand2, {
 						var synth;
 						if(i == 7 && ~choirSynth.notNil) { ~choirSynth.free };
-						synth = Synth(\chorusChannel, [\buf, ~chorusBuffer,
+						synth = Synth(\chorusChannel, [\buf, ~chorusBuffers[~currentChorusIndex],
 							\amp, (hitAmp * ~volumes[i] + ~humanizeAmp[i].rand2).clip(0,2) * ~masterVol,
 							\peakOut, ~trackPeakBuses[i],
 							\tempoRatioBus, ~tempoRatioBus,
@@ -570,7 +577,7 @@ s.waitForBoot({
 		if(keycode == 32) { startBtn.valueAction = 1 - startBtn.value };
 	});
 
-	startBtn = Button(win, 800@40).states_([["START ALL", Color.black, Color.green], ["STOP ALL", Color.white, Color.red]]).action_({ |b| if(b.value == 1) { ~numTracks.do({ |i| if(i != 7) { Tdef(("chan"++i).asSymbol).play(~tempo) } }) } { ~numTracks.do({ |i| Tdef(("chan"++i).asSymbol).stop }); if(~chorusGroup.notNil) { ~chorusGroup.freeAll }; if(~choirTriggerBtn.notNil) { ~choirTriggerBtn.value = 0 } }; });
+	startBtn = Button(win, 800@40).states_([["START ALL", Color.black, Color.green], ["STOP ALL", Color.white, Color.red]]).action_({ |b| if(b.value == 1) { ~numTracks.do({ |i| if(i != 7) { Tdef(("chan"++i).asSymbol).play(~tempo) } }) } { ~numTracks.do({ |i| Tdef(("chan"++i).asSymbol).stop }); if(~chorusGroup.notNil) { ~chorusGroup.freeAll }; ~choirSynth = nil; if(~choirTriggerBtn.notNil) { ~choirTriggerBtn.value = 0 } }; });
 	startBtn.canFocus_(true);
 	startBtn.focus;
 
@@ -613,19 +620,25 @@ s.waitForBoot({
 			StaticText(comp, 105@20).string_("Pitch").align_(\center);
 			~pitchSliders[i] = Slider(comp, 105@30).value_(0.5).action_({ |s| ~pitches[i] = s.value.linlin(0, 1, 36, 72).round; });
 		} {
-			~choirTriggerBtn = Button(comp, 105@40).states_([["CHORUS", Color.black, Color.grey(0.8)], ["ON", Color.white, Color.green]]).action_({ |b|
+			~choirTriggerBtn = Button(comp, 105@40).states_([["CHORUS", Color.black, Color.grey(0.8)], ["STOP", Color.white, Color.green]]).action_({ |b|
 				if(b.value == 1) {
-					if(startBtn.value == 1) {
-						Tdef(\chan7).reset.play(~tempo, quant: 4);
-					} {
-						b.value = 0;
-					};
+					if(~choirSynth.notNil) { ~choirSynth.free; ~choirSynth = nil };
+					~choirSynth = Synth(\chorusChannel, [
+						\buf, ~chorusBuffers[~currentChorusIndex],
+						\amp, (~volumes[7] * ~masterVol).clip(0,2),
+						\peakOut, ~trackPeakBuses[7],
+						\tempoRatioBus, ~tempoRatioBus,
+					], ~chorusGroup, \addToHead);
 				} {
-					Tdef(\chan7).stop;
 					if(~choirSynth.notNil) { ~choirSynth.free; ~choirSynth = nil };
 				};
 			});
-			UserView(comp, 105@55).canFocus_(false);
+			~chorusIdxDisplay = StaticText(comp, 105@20).string_((~currentChorusIndex + 1).asString ++ "/" ++ ~chorusBuffers.size).align_(\center).font_(Font(size: 14, bold: true));
+			~nextChorusBtn = Button(comp, 105@30).states_([["NEXT", Color.black, Color.grey(0.8)]]).action_({
+				~currentChorusIndex = (~currentChorusIndex + 1) % ~chorusBuffers.size;
+				~chorusIdxDisplay.string = (~currentChorusIndex + 1).asString ++ "/" ++ ~chorusBuffers.size;
+				("Chorus sample " ++ (~currentChorusIndex + 1) ++ "/" ++ ~chorusBuffers.size).postln;
+			});
 		};
 
 		StaticText(comp, 105@20).string_("Peak / dB").align_(\center).font_(Font(size:10));
@@ -693,7 +706,7 @@ s.waitForBoot({
 
 		// Se remueven focos innecesarios excepto para las cajas de texto que sí requieren tipeo
 		if(i == 7) {
-			[~muteButtons[i], ~rhythmMenus[i], ~volSliders[i], ~choirTriggerBtn].do(_.canFocus_(false));
+			[~muteButtons[i], ~rhythmMenus[i], ~volSliders[i], ~choirTriggerBtn, ~nextChorusBtn].do(_.canFocus_(false));
 		} {
 			[~muteButtons[i], ~rhythmMenus[i], ~varButtons[i], ~pitchSliders[i], ~volSliders[i], ~humTimeSliders[i], ~humPitchSliders[i], ~humAmpSliders[i]].do(_.canFocus_(false));
 		};
