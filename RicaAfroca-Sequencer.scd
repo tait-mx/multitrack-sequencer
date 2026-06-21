@@ -49,18 +49,18 @@ s.waitForBoot({
 	// Chorus patterns (separated from rhythmAndNames)
 	~chorus = [
 	["Ta Jose",
-		["Coro1", [[2,0,0],[30,"c1TJ",1],[32,0,0]]], // Caminando yo venía
-		["Coro2", [[16,"c2TJ",1],[16,0,0]]],         // Estoy llamando un congo pa bailar bembé
-		["Coro3", [[2,0,0],[6,"c3TJ",1],[8,0,0]]],   // Llámalo con la tumba llámalo Ta José
-		["Coro4", [[2,0,0],[6,"c4TJ",1],[8,0,0]]],   // Eh eh Ta José todos me llaman Ta José
-		["Coro5", [[2,0,0],[6,"c5TJ",1]]],           // Wao wao wao Ta José (8-beat loop)
-		["Coro6", [[2,0,0],[30,"c6TJ",1]]],          // Sálvalo Ta José sálvalo
-		["Coro7", [[2,0,0],[6,"c7TJ",1]]],           // Vence batalla Ta José
-		["Coro8", [[2,0,0],[6,"c8TJ",1]]]            // Arriba nganga Ta José
+		["Coro1", [[2,0,0],[30,"coro1",1],[32,0,0]]], // Caminando yo venía
+		["Coro2", [[16,"coro2",1],[16,0,0]]],         // Estoy llamando un congo pa bailar bembé
+		["Coro3", [[2,0,0],[6,"coro3",1],[8,0,0]]],   // Llámalo con la tumba llámalo Ta José
+		["Coro4", [[2,0,0],[6,"coro4",1],[8,0,0]]],   // Eh eh Ta José todos me llaman Ta José
+		["Coro5", [[2,0,0],[6,"coro5",1]]],           // Wao wao wao Ta José (8-beat loop)
+		["Coro6", [[2,0,0],[30,"coro6",1]]],          // Sálvalo Ta José sálvalo
+		["Coro7", [[2,0,0],[6,"coro7",1]]],           // Vence batalla Ta José
+		["Coro8", [[2,0,0],[6,"coro8",1]]]            // Arriba nganga Ta José
 		],
 	["Alla en los Hollos",
-		["Coro1", [[2,0,0],[30,"c1AH",1],[32,0,0]]], // Alla en los Hollos
-		["Coro2", [[16,"c2AH",1],[16,0,0]]]          // Lorenzo David
+		["Coro1", [[2,0,0],[30,"coro1",1],[32,0,0]]], // Alla en los Hollos
+		["Coro2", [[16,"coro2",1],[16,0,0]]]          // Lorenzo David
 		]
 	];
 
@@ -207,25 +207,23 @@ s.waitForBoot({
 	// Song (chorus folder) selection
 	~canciones = ~chorus.collect({ |song| song[0] });
 	~carpetasCanciones = ["taJose105bpm", "AllaEnLosHollos105bpm"];
-	~cancionPrefixes = ["TJ", "AH"];
 
 	// Function to load chorus samples from a given folder
-	~loadChorusFolder = { |folderName, prefix|
+	~loadChorusFolder = { |folderName|
 		var folderPath = ~samplePath +/+ "coro" +/+ folderName;
 		var files = (folderPath +/+ "*.wav").pathMatch.sort;
 		(1..8).do({ |i|
-			var key = ("c" ++ i ++ prefix);
+			var key = "coro" ++ i;
 			if(~samplesDictionary[key].notNil) { ~samplesDictionary[key].do(_.free) };
 		});
 		if(files.size > 0) {
 			files.do({ |path, idx|
-				var key = ("c" ++ (idx+1) ++ prefix);
-				~samplesDictionary[key] = [Buffer.readChannel(s, path, 0, -1, [0])];
+				~samplesDictionary["coro" ++ (idx+1)] = [Buffer.readChannel(s, path, 0, -1, [0])];
 			});
 		} {
 			"--- No se encontraron .wav en " ++ folderPath ++ ", usando buffer silencioso.".postln;
 			8.do({ |idx|
-				~samplesDictionary["c" ++ (idx+1) ++ prefix] = [Buffer.alloc(s, 44100, 1)];
+				~samplesDictionary["coro" ++ (idx+1)] = [Buffer.alloc(s, 44100, 1)];
 			});
 		};
 	};
@@ -244,7 +242,7 @@ s.waitForBoot({
 	~imagePath  = ~projectPath +/+ "images";
 
 	// Load initial chorus samples
-	if(~carpetasCanciones.size > 0) { ~loadChorusFolder.value(~carpetasCanciones[0], ~cancionPrefixes[0]) };
+	if(~carpetasCanciones.size > 0) { ~loadChorusFolder.value(~carpetasCanciones[0]) };
 
 	File.mkdir(~presetPath);
 
@@ -504,7 +502,7 @@ s.waitForBoot({
 						var vTargetBuffer;
 
 						if(vDelta > 0 && ~mutes[i].not) {
-							var isChorus = (vBuf.asString.at(0) == $c) && vBuf.asString.endsWith("TJ");
+							var isChorus = vBuf.asString.beginsWith("coro");
 							if(isChorus) {
 								s.makeBundle(s.latency + ~humanizeTime[i].rand2, {
 									var synth;
@@ -540,7 +538,7 @@ s.waitForBoot({
 
 				// NORMAL NOTE LOGIC
 				if(delta > 0 && ~mutes[i].not) {
-					var isChorus = (bufOff.asString.at(0) == $c) && bufOff.asString.endsWith("TJ");
+					var isChorus = bufOff.asString.beginsWith("coro");
 					if(isChorus) {
 					s.makeBundle(s.latency + ~humanizeTime[i].rand2, {
 						var synth;
@@ -658,7 +656,7 @@ s.waitForBoot({
 			});
 			~cancionMenu = PopUpMenu(comp, 105@20).items_(~canciones).action_({ |m|
 				~currentSongIdx = m.value;
-				~loadChorusFolder.value(~carpetasCanciones[m.value], ~cancionPrefixes[m.value]);
+				~loadChorusFolder.value(~carpetasCanciones[m.value]);
 				~rhythmMenus[7].items = ~chorus[~currentSongIdx].drop(1).collect({ |item| item[0] });
 				~rhythmMenus[7].valueAction = 0;
 			});

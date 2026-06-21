@@ -8,7 +8,7 @@ o = [
 	"llaf",  Array.prNew(3),  "llsmp",  Array.prNew(3),  
 	"llsmp",  Array.prNew(4),  Array.prNew(3),  Array.prNew(3),  
 	"lltmp",  Array.prNew(3),  Array.prNew(3),  "llaf",  
-	Array.prNew(3),  Array.prNew(3),  Array.prNew(3),  "c3TJ",  
+	Array.prNew(3),  Array.prNew(3),  Array.prNew(3),  "coro1",  
 	Array.prNew(3),  Array.prNew(8),  Array.prNew(8),  "Campana",  
 	"Track 1",  "Shekere",  "",  "",  
 	"Llamador",  "Golpe",  "CORO",  Array.prNew(8),  
@@ -93,12 +93,12 @@ p = [
 	// Array
 	33, [ 2,  0,  0 ],  
 	// Array
-	34, [ 6,  o[35],  1 ],  
+	34, [ 30,  o[35],  1 ],  
 	// Array
-	36, [ 8,  0,  0 ],  
+	36, [ 32,  0,  0 ],  
 	// Array
 	37, [ 3,  27,  13,  0,  
-		0,  23,  18,  30 ],  
+		0,  23,  18,  0 ],  
 	// Array
 	38, [ o[39],  o[40],  o[41],  o[42],  
 		o[43],  o[44],  o[45],  o[46] ],  
