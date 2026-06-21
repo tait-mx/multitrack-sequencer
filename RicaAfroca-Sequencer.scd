@@ -30,6 +30,7 @@ s.waitForBoot({
 	masterMuteBtn, masterCol, peakMeter, meterRoutine, hLayout, vRuler,
 	masterHumTime, masterHumPitch, masterHumAmp, humGroup, woodImg,
 	currentPresetName = "newPreset";
+	var patRefBtn;
 
 	var masterSlid, masterDisplay;
 
@@ -59,7 +60,7 @@ s.waitForBoot({
 		["Coro8", [[2,0,0],[6,"coro8",1]]]            // Arriba nganga Ta José
 		],
 	["Alla en los Hollos",
-		["Coro1", [[2,0,0],[30,"coro1",1],[32,0,0]]], // Alla en los Hollos
+		["Coro1", [[14,"coro1",1]]], // Alla en los Hollos
 		["Coro2", [[16,"coro2",1],[16,0,0]]]          // Lorenzo David
 		]
 	];
@@ -815,8 +816,18 @@ s.waitForBoot({
 		.action_({ |menu| if(menu.item != "No Presets Found") { ~loadSettings.value(menu.item); } });
 	loadBtn = Button(win, 100@40).states_([["LOAD", Color.black, Color.cyan]]).action_({ if(presetMenu.item != "No Presets Found") { ~loadSettings.value(presetMenu.item) }; });
 	refreshBtn = Button(win, 100@40).states_([["REFRESH", Color.white, Color.grey(0.3)]]).action_({ ~updatePresetList.value });
+	patRefBtn = Button(win, 105@40).states_([["PATTERNS", Color.black, Color.grey(0.8)]]).action_({
+		~numTracks.do({ |i|
+			if(i == 7) {
+				~rhythmMenus[i].items = ~chorus[~currentSongIdx].drop(1).collect({ |item| item[0] });
+			} {
+				~rhythmMenus[i].items = ~rhythmAndNames.collect({ |item| item[0] });
+			};
+			~rhythmMenus[i].valueAction = ~rhythmIndices[i];
+		});
+	});
 
-	[tempoSlid, presetMenu, loadBtn, saveBtn, refreshBtn, masterMuteBtn].do(_.canFocus_(false));
+	[tempoSlid, presetMenu, loadBtn, saveBtn, refreshBtn, patRefBtn, masterMuteBtn].do(_.canFocus_(false));
 
 	~updatePresetList.value;
 
