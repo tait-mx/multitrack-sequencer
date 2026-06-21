@@ -44,7 +44,7 @@ s.waitForBoot({
 	~masterVol = 0.8;
 	~dbSpec = ControlSpec(-60, 3.5, \db, 0, 0);
 
-	// Original BPM of the chorus sample (adjust if playback is off-tempo at 105 BPM)
+	// Original BPM of the chorus samples (per-song in ~cancionRefBpms, default 105)
 	~chorusRefBpm = 105;
 
 	// Chorus patterns (separated from rhythmAndNames)
@@ -60,8 +60,8 @@ s.waitForBoot({
 		["Coro8", [[2,0,0],[6,"coro8",1]]]            // Arriba nganga Ta José
 		],
 	["Alla en los Hollos",
-		["Coro1", [[14,"coro1",1]]], // Alla en los Hollos
-		["Coro2", [[16,"coro2",1],[16,0,0]]]          // Lorenzo David
+		["Coro1", [[88,"coro1",1]]], // Alla en los Hollos
+		["Coro2", [[16,"coro2",1]]]          // Lorenzo David
 		]
 	];
 
@@ -144,7 +144,7 @@ s.waitForBoot({
 			                   [0.75,"llap",1],[0.25,"llcp",0.3],
 			                   [0.25,"llcp",0.3], [0.25,"llpp",0.125], [0.25,"llpp",0.125], [0.25,"llcp",0.3]]],
 		["Llamador Matancera", [[15/32, 0, 0],  [9/32, "llsp", 1], [8/32, "llsp", 1],
-				                [15/32, 0, 0],  [9/32, "llap", 1], [8/32, "llsp", 1]]],
+				                [15/32, 0, 0],  [9/32, "llaf", 1], [8/32, "llsp", 1]]],
 		["Llamador Columbia", [[2/3,1,0.43], [1/3,3,1],  [1,3,1]]],
 		["Llamador Palo", [[2/3,"llaf",1.5], [1/3,"llsmp",1],  [1,"llsmp",1]]],
 		["Yuka Llamador", [[1,1,0.43], [0.5,1,0.43], [0.5,3,1]]],
@@ -207,7 +207,8 @@ s.waitForBoot({
 
 	// Song (chorus folder) selection
 	~canciones = ~chorus.collect({ |song| song[0] });
-	~carpetasCanciones = ["taJose105bpm", "AllaEnLosHollos105bpm"];
+	~carpetasCanciones = ["taJose105bpm", "AllaEnLosHollos80bpm"];
+	~cancionRefBpms = [105, 80];
 
 	// Function to load chorus samples from a given folder
 	~loadChorusFolder = { |folderName|
@@ -375,7 +376,7 @@ s.waitForBoot({
 		if(data.notNil) {
 			currentPresetName = name;
 			~tempo.tempo = (data[\bpm] ?? {120}) / 60;
-			~tempoRatioBus.set((data[\bpm] ?? {120}) / ~chorusRefBpm);
+			~tempoRatioBus.set((data[\bpm] ?? {120}) / ~cancionRefBpms[~currentSongIdx]);
 
 			~rhythms = Array.fill(~numTracks, { |i| data[\rhythms].wrapAt(i) ?? [[0.5, 0, 1], [0.5, 0, 1]] });
 			~mutes = Array.fill(~numTracks, { |i| data[\mutes].wrapAt(i) ?? false });
@@ -436,7 +437,7 @@ s.waitForBoot({
 	~peakBus = Bus.control(s, 1);
 	~trackPeakBuses = Array.fill(~numTracks, { Bus.control(s, 1) });
 	~tempoRatioBus = Bus.control(s, 1);
-	~tempoRatioBus.set(120 / ~chorusRefBpm);
+	~tempoRatioBus.set(120 / ~cancionRefBpms[~currentSongIdx]);
 	~chorusGroup = Group.new(s);
 
 	SynthDef(\masterOut, {
@@ -604,14 +605,14 @@ s.waitForBoot({
 
 	win.view.decorator.nextLine;
 
-	Button(win, 30@30).states_([["-", Color.black, Color.grey(0.8)]]).action_({ var newBpm = (~tempo.tempo * 60) - 1; ~tempo.tempo = newBpm / 60; bpmDisplay.value = newBpm; tempoSlid.value = newBpm.linlin(60, 200, 0, 1); ~tempoRatioBus.set(newBpm / ~chorusRefBpm); }).canFocus_(false);
+	Button(win, 30@30).states_([["-", Color.black, Color.grey(0.8)]]).action_({ var newBpm = (~tempo.tempo * 60) - 1; ~tempo.tempo = newBpm / 60; bpmDisplay.value = newBpm; tempoSlid.value = newBpm.linlin(60, 200, 0, 1); 	~tempoRatioBus.set(newBpm / ~cancionRefBpms[~currentSongIdx]); }).canFocus_(false);
 	bpmDisplay = NumberBox(win, 60@30).value_((~tempo.tempo * 60).round(0.1))
 	    .decimals_(1)
 		.background_(Color.black)
 		.normalColor_(Color.yellow)
 		.font_(Font(size: 18));
-	Button(win, 30@30).states_([["+", Color.black, Color.grey(0.8)]]).action_({ var newBpm = (~tempo.tempo * 60) + 1; ~tempo.tempo = newBpm / 60; bpmDisplay.value = newBpm; tempoSlid.value = newBpm.linlin(60, 200, 0, 1); ~tempoRatioBus.set(newBpm / ~chorusRefBpm); }).canFocus_(false);
-	tempoSlid = Slider(win, 660@30).value_(~tempo.tempo.linlin(1, 3.3, 0, 1)).action_({ |s| var bpm = s.value.linlin(0, 1, 60, 200); ~tempo.tempo = bpm / 60; bpmDisplay.value = bpm; ~tempoRatioBus.set(bpm / ~chorusRefBpm); }).canFocus_(false);
+	Button(win, 30@30).states_([["+", Color.black, Color.grey(0.8)]]).action_({ var newBpm = (~tempo.tempo * 60) + 1; ~tempo.tempo = newBpm / 60; bpmDisplay.value = newBpm; tempoSlid.value = newBpm.linlin(60, 200, 0, 1); ~tempoRatioBus.set(newBpm / ~cancionRefBpms[~currentSongIdx]); }).canFocus_(false);
+	tempoSlid = Slider(win, 660@30).value_(~tempo.tempo.linlin(1, 3.3, 0, 1)).action_({ |s| var bpm = s.value.linlin(0, 1, 60, 200); ~tempo.tempo = bpm / 60; bpmDisplay.value = bpm; ~tempoRatioBus.set(bpm / ~cancionRefBpms[~currentSongIdx]); }).canFocus_(false);
 
 	win.view.decorator.nextLine;
 
@@ -660,6 +661,7 @@ s.waitForBoot({
 				~loadChorusFolder.value(~carpetasCanciones[m.value]);
 				~rhythmMenus[7].items = ~chorus[~currentSongIdx].drop(1).collect({ |item| item[0] });
 				~rhythmMenus[7].valueAction = 0;
+				~tempoRatioBus.set((~tempo.tempo * 60) / ~cancionRefBpms[m.value]);
 			});
 			~nextChorusBtn = Button(comp, 105@30).states_([["NEXT", Color.black, Color.grey(0.8)]]).action_({
 				var patterns = ~chorus[~currentSongIdx].drop(1);
@@ -860,8 +862,8 @@ s.waitForBoot({
 					{
 						case
 						{ byte == $s } { startBtn.valueAction = 1 - startBtn.value }
-						{ byte == $p } { var newBpm = (~tempo.tempo * 60) + 1; ~tempo.tempo = newBpm / 60; bpmDisplay.value = newBpm; tempoSlid.value = newBpm.linlin(60, 200, 0, 1); ~tempoRatioBus.set(newBpm / ~chorusRefBpm); }
-						{ byte == $m } { var newBpm = (~tempo.tempo * 60) - 1; ~tempo.tempo = newBpm / 60; bpmDisplay.value = newBpm; tempoSlid.value = newBpm.linlin(60, 200, 0, 1); ~tempoRatioBus.set(newBpm / ~chorusRefBpm); }
+						{ byte == $p } { var newBpm = (~tempo.tempo * 60) + 1; ~tempo.tempo = newBpm / 60; bpmDisplay.value = newBpm; tempoSlid.value = newBpm.linlin(60, 200, 0, 1); ~tempoRatioBus.set(newBpm / ~cancionRefBpms[~currentSongIdx]); }
+						{ byte == $m } { var newBpm = (~tempo.tempo * 60) - 1; ~tempo.tempo = newBpm / 60; bpmDisplay.value = newBpm; tempoSlid.value = newBpm.linlin(60, 200, 0, 1); ~tempoRatioBus.set(newBpm / ~cancionRefBpms[~currentSongIdx]); }
 						{ byte == $v } { if(~varButtons[5].notNil) { ~varButtons[5].valueAction = 1 - ~varButtons[5].value; } };
 					}.defer;
 				};
