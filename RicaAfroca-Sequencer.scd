@@ -46,10 +46,30 @@ s.waitForBoot({
 	// Original BPM of the chorus sample (adjust if playback is off-tempo at 105 BPM)
 	~chorusRefBpm = 105;
 
+	// Chorus patterns (separated from rhythmAndNames)
+	~chorus = [
+	["Ta Jose",
+		["Coro1", [[2,0,0],[30,"c1TJ",1],[32,0,0]]], // Caminando yo venía
+		["Coro2", [[16,"c2TJ",1],[16,0,0]]],         // Estoy llamando un congo pa bailar bembé
+		["Coro3", [[2,0,0],[6,"c3TJ",1],[8,0,0]]],   // Llámalo con la tumba llámalo Ta José
+		["Coro4", [[2,0,0],[6,"c4TJ",1],[8,0,0]]],   // Eh eh Ta José todos me llaman Ta José
+		["Coro5", [[2,0,0],[6,"c5TJ",1]]],           // Wao wao wao Ta José (8-beat loop)
+		["Coro6", [[2,0,0],[30,"c6TJ",1]]],          // Sálvalo Ta José sálvalo
+		["Coro7", [[2,0,0],[6,"c7TJ",1]]],           // Vence batalla Ta José
+		["Coro8", [[2,0,0],[6,"c8TJ",1]]]            // Arriba nganga Ta José
+		],
+	["Alla en los Hollos",
+		["Coro1", [[2,0,0],[30,"c1AH",1],[32,0,0]]], // Alla en los Hollos
+		["Coro2", [[16,"c2AH",1],[16,0,0]]]          // Lorenzo David
+		]
+	];
+
+	~currentSongIdx = 0;
+
 	// Logic arrays
-	~rhythmIndices = Array.fill(~numTracks, { |i| if(i == 7) { 28 } { 0 } });
+	~rhythmIndices = Array.fill(~numTracks, { 0 });
 	~rhythms = Array.fill(~numTracks, { |i|
-		if(i == 7) { [[2,0,0],[30,"c1TJ",1]] } { [[0.5, 0, 1], [0.5, 0, 1]] }
+		if(i == 7) { ~chorus[0].drop(1)[0][1] } { [[0.5, 0, 1], [0.5, 0, 1]] }
 	});
 	~mutes = Array.fill(~numTracks, { false });
 	~pitches = Array.fill(~numTracks, { 60 });
@@ -131,17 +151,7 @@ s.waitForBoot({
 		// Pulsos
 		["16ths", [[0.25,0,1]]],
 		["8ths", [[0.5,0,1]]],
-		["Quarters", [[1,0,1], [1,0,1]]],
-
-		// Chorus (tempo-synced time-stretched loop)
-		["Coro1", [[2,0,0],[30,"c1TJ",1],[32,0,0]]], // Caminando yo venía
-		["Coro2", [[16,"c2TJ",1],[16,0,0]]],         // Estoy llamando un congo pa bailar bembé
-		["Coro3", [[2,0,0],[6,"c3TJ",1],[8,0,0]]],   // Llámalo con la tumba llámalo Ta José
-		["Coro4", [[2,0,0],[6,"c4TJ",1],[8,0,0]]],   // Eh eh Ta José todos me llaman Ta José
-		["Coro5", [[2,0,0],[6,"c5TJ",1]]],           // Wao wao wao Ta José (8-beat loop)
-		["Coro6", [[2,0,0],[30,"c6TJ",1]]],          // Sálvalo Ta José sálvalo
-		["Coro7", [[2,0,0],[6,"c7TJ",1]]],           // Vence batalla Ta José
-		["Coro8", [[2,0,0],[6,"c8TJ",1]]]            // Arriba nganga Ta José
+		["Quarters", [[1,0,1], [1,0,1]]]
 	];
 
 	~variations = [
@@ -193,10 +203,32 @@ s.waitForBoot({
 		]
 	];
 	);
-	/////////////////////////////////////////////////////////////////
-	// PATHS & ASSET LOADING (100% RELATIVAS)
-	/////////////////////////////////////////////////////////////////
 
+	// Song (chorus folder) selection
+	~canciones = ~chorus.collect({ |song| song[0] });
+	~carpetasCanciones = ["taJose105bpm", "AllaEnLosHollos105bpm"];
+	~cancionPrefixes = ["TJ", "AH"];
+
+	// Function to load chorus samples from a given folder
+	~loadChorusFolder = { |folderName, prefix|
+		var folderPath = ~samplePath +/+ "coro" +/+ folderName;
+		var files = (folderPath +/+ "*.wav").pathMatch.sort;
+		(1..8).do({ |i|
+			var key = ("c" ++ i ++ prefix);
+			if(~samplesDictionary[key].notNil) { ~samplesDictionary[key].do(_.free) };
+		});
+		if(files.size > 0) {
+			files.do({ |path, idx|
+				var key = ("c" ++ (idx+1) ++ prefix);
+				~samplesDictionary[key] = [Buffer.readChannel(s, path, 0, -1, [0])];
+			});
+		} {
+			"--- No se encontraron .wav en " ++ folderPath ++ ", usando buffer silencioso.".postln;
+			8.do({ |idx|
+				~samplesDictionary["c" ++ (idx+1) ++ prefix] = [Buffer.alloc(s, 44100, 1)];
+			});
+		};
+	};
 	~projectPath = if(thisProcess.nowExecutingPath.notNil) {
 		PathName(thisProcess.nowExecutingPath).pathOnly;
 	} {
@@ -210,6 +242,9 @@ s.waitForBoot({
 	~samplePath = ~projectPath +/+ "samples";
 	~presetPath = ~projectPath +/+ "sequences";
 	~imagePath  = ~projectPath +/+ "images";
+
+	// Load initial chorus samples
+	if(~carpetasCanciones.size > 0) { ~loadChorusFolder.value(~carpetasCanciones[0], ~cancionPrefixes[0]) };
 
 	File.mkdir(~presetPath);
 
@@ -273,18 +308,7 @@ s.waitForBoot({
 	~samplesDictionary["cmp"] = ~loadRoundRobinFolder.value("cata/mp", "cmp");
 	~samplesDictionary["cp"] = ~loadRoundRobinFolder.value("cata/p", "cp");
 
-	// Load each chorus sample with its own key (c1TJ..c8TJ)
-	~chorusFolder = ~samplePath +/+ "coro/taJose105bpm";
-	~chorusFiles = (~chorusFolder +/+ "*.wav").pathMatch.sort;
-	if(~chorusFiles.size > 0) {
-		~chorusFiles.do({ |path, idx|
-			var key = ("c" ++ (idx+1) ++ "TJ");
-			var buf = Buffer.readChannel(s, path, 0, -1, [0]);
-			~samplesDictionary[key] = [buf];
-		});
-	} {
-		"--- RicaAfroca: No se encontraron .wav en samples/coro/taJose105bpm/, usando buffer silencioso.".postln;
-	};
+	// Chorus samples are loaded dynamically via ~loadChorusFolder (see above)
 
 	// Initialize last index tracking
 	~samplesDictionary.keys.do({ |k|
@@ -611,7 +635,7 @@ s.waitForBoot({
 				if(startBtn.notNil) { startBtn.focus };
 			});
 		~muteButtons[i] = Button(comp, 105@40).states_([["ON", Color.black, Color.green], ["MUTE", Color.white, Color.red]]).action_({ |b| ~mutes[i] = (b.value == 1); if(i == 7 && ~choirSynth.notNil) { ~choirSynth.set(\amp, if(b.value == 1) { 0 } { (~volumes[i] * ~masterVol).clip(0,2) }) }; });
-		~rhythmMenus[i] = PopUpMenu(comp, 105@30).items_(~rhythmAndNames.collect({ |item| item[0] })).action_({ |m| ~rhythms[i] = ~rhythmAndNames[m.value][1]; ~rhythmIndices[i] = m.value; });
+		~rhythmMenus[i] = PopUpMenu(comp, 105@30).items_(if(i == 7) { ~chorus[~currentSongIdx].drop(1).collect({ |item| item[0] }) } { ~rhythmAndNames.collect({ |item| item[0] }) }).action_({ |m| ~rhythms[i] = if(i == 7) { ~chorus[~currentSongIdx].drop(1)[m.value][1] } { ~rhythmAndNames[m.value][1] }; ~rhythmIndices[i] = m.value; });
 		if(i != 7) {
 			~varButtons[i] = Button(comp, 105@40).states_([["VARIATION", Color.black, Color.grey(0.8)], ["QUEUED", Color.white, Color.red(0.6)]]).action_({ |b| ~varRequests[i] = (b.value == 1); });
 
@@ -632,16 +656,16 @@ s.waitForBoot({
 					~choirSynth = nil;
 				};
 			});
-			~chorusPatternDisplay = StaticText(comp, 105@20).string_(~rhythmAndNames[~rhythmIndices[7]][0]).align_(\center).font_(Font(size: 14, bold: true));
+			~cancionMenu = PopUpMenu(comp, 105@20).items_(~canciones).action_({ |m|
+				~currentSongIdx = m.value;
+				~loadChorusFolder.value(~carpetasCanciones[m.value], ~cancionPrefixes[m.value]);
+				~rhythmMenus[7].items = ~chorus[~currentSongIdx].drop(1).collect({ |item| item[0] });
+				~rhythmMenus[7].valueAction = 0;
+			});
 			~nextChorusBtn = Button(comp, 105@30).states_([["NEXT", Color.black, Color.grey(0.8)]]).action_({
-				var firstCoro = 28, numCoros = 8;
-				var next = if(~rhythmIndices[7] >= firstCoro && ~rhythmIndices[7] < (firstCoro + numCoros - 1)) {
-					~rhythmIndices[7] + 1
-				} {
-					firstCoro
-				};
+				var patterns = ~chorus[~currentSongIdx].drop(1);
+				var next = (~rhythmIndices[7] + 1) % patterns.size;
 				~rhythmMenus[7].valueAction = next;
-				~chorusPatternDisplay.string = ~rhythmAndNames[next][0];
 			});
 		};
 
@@ -710,7 +734,7 @@ s.waitForBoot({
 
 		// Se remueven focos innecesarios excepto para las cajas de texto que sí requieren tipeo
 		if(i == 7) {
-			[~muteButtons[i], ~rhythmMenus[i], ~volSliders[i], ~choirTriggerBtn, ~nextChorusBtn].do(_.canFocus_(false));
+			[~muteButtons[i], ~rhythmMenus[i], ~volSliders[i], ~choirTriggerBtn, ~cancionMenu, ~nextChorusBtn].do(_.canFocus_(false));
 		} {
 			[~muteButtons[i], ~rhythmMenus[i], ~varButtons[i], ~pitchSliders[i], ~volSliders[i], ~humTimeSliders[i], ~humPitchSliders[i], ~humAmpSliders[i]].do(_.canFocus_(false));
 		};
