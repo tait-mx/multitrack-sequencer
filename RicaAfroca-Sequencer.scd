@@ -405,6 +405,9 @@ s.waitForBoot({
 		// CHANGED: Captura y guarda los strings escritos en la interfaz
 		data.put(\trackNames, Array.fill(~numTracks, { |i| ~trackLabels[i].string }));
 
+		data.put(\currentSongIdx, ~currentSongIdx);
+		data.put(\chorusRefBpm, ~chorusRefBpm);
+
 		data.writeArchive(path);
 		("--- Preservado Preset Sólido de 8 Canales: " ++ name).postln;
 	};
@@ -415,7 +418,11 @@ s.waitForBoot({
 		if(data.notNil) {
 			currentPresetName = name;
 			~tempo.tempo = (data[\bpm] ?? {120}) / 60;
-			~tempoRatioBus.set((data[\bpm] ?? {120}) / ~cancionRefBpms[~currentSongIdx]);
+			if(data[\currentSongIdx].notNil) {
+				~tempoRatioBus.set((data[\bpm] ?? {120}) / (data[\chorusRefBpm] ?? ~cancionRefBpms[data[\currentSongIdx]]));
+			} {
+				~tempoRatioBus.set((data[\bpm] ?? {120}) / ~chorusRefBpm);
+			};
 
 			~rhythms = Array.fill(~numTracks, { |i| data[\rhythms].wrapAt(i) ?? [[0.5, 0, 1], [0.5, 0, 1]] });
 			~mutes = Array.fill(~numTracks, { |i| data[\mutes].wrapAt(i) ?? false });
@@ -433,6 +440,18 @@ s.waitForBoot({
 				presetMenu.value = presetMenu.items.indexOfEqual(name);
 				bpmDisplay.value = ~tempo.tempo * 60;
 				tempoSlid.value = ~tempo.tempo.linlin(1, 3.3, 0, 1);
+
+				// Restore chorus song selection (only for presets that have saved song data)
+				if(data[\currentSongIdx].notNil) {
+					~currentSongIdx = data[\currentSongIdx];
+					~chorusRefBpm = data[\chorusRefBpm] ?? ~cancionRefBpms[~currentSongIdx];
+					~loadChorusFolder.value(~carpetasCanciones[~currentSongIdx]);
+					if(~cancionMenu.notNil) {
+						~cancionMenu.value = ~currentSongIdx;
+						~rhythmMenus[7].items = ~chorus[~currentSongIdx].drop(1).collect({ |item| item[0] });
+					};
+					~tempoRatioBus.set((~tempo.tempo * 60) / ~chorusRefBpm);
+				};
 
 				~numTracks.do({ |i|
 					~rhythmMenus[i].value = ~rhythmIndices[i];
@@ -476,7 +495,8 @@ s.waitForBoot({
 	~peakBus = Bus.control(s, 1);
 	~trackPeakBuses = Array.fill(~numTracks, { Bus.control(s, 1) });
 	~tempoRatioBus = Bus.control(s, 1);
-	~tempoRatioBus.set(120 / ~cancionRefBpms[~currentSongIdx]);
+	~chorusRefBpm = ~cancionRefBpms[~currentSongIdx];
+	~tempoRatioBus.set(120 / ~chorusRefBpm);
 	~chorusGroup = Group.new(s);
 
 	SynthDef(\masterOut, {
@@ -697,10 +717,11 @@ s.waitForBoot({
 			});
 			~cancionMenu = PopUpMenu(comp, 105@20).items_(~canciones).action_({ |m|
 				~currentSongIdx = m.value;
+				~chorusRefBpm = ~cancionRefBpms[m.value];
 				~loadChorusFolder.value(~carpetasCanciones[m.value]);
 				~rhythmMenus[7].items = ~chorus[~currentSongIdx].drop(1).collect({ |item| item[0] });
 				~rhythmMenus[7].valueAction = 0;
-				~tempoRatioBus.set((~tempo.tempo * 60) / ~cancionRefBpms[m.value]);
+				~tempoRatioBus.set((~tempo.tempo * 60) / ~chorusRefBpm);
 			});
 			~nextChorusBtn = Button(comp, 105@30).states_([["NEXT", Color.black, Color.grey(0.8)]]).action_({
 				var patterns = ~chorus[~currentSongIdx].drop(1);

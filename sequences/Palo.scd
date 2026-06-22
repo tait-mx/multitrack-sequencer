@@ -17,11 +17,11 @@ o = [
 ];
 p = [
 	// Dictionary
-	0, [ array: o[1],  size: 11 ],  
+	0, [ array: o[1],  size: 13 ],  
 	// Array
 	1, [ nil,  nil,  nil,  nil,  
 		nil,  nil,  nil,  nil,  
-		nil,  nil,  nil,  nil,  
+		'chorusRefBpm',  105,  nil,  nil,  
 		nil,  nil,  'mutes',  o[2],  
 		'rhythms',  o[3],  nil,  nil,  
 		'bpm',  104.98432601881,  'indices',  o[37],  
@@ -32,7 +32,7 @@ p = [
 		nil,  nil,  nil,  nil,  
 		'humPitch',  o[51],  nil,  nil,  
 		nil,  nil,  'sampleIndices',  o[52],  
-		nil,  nil,  nil,  nil,  
+		'currentSongIdx',  0,  nil,  nil,  
 		nil,  nil,  nil,  nil,  
 		nil,  nil,  nil,  nil ],  
 	// Array
