@@ -138,6 +138,14 @@ s.waitForBoot({
 		["GolpePalo", [[1/3,1,0], [2/3,"lltmp",1],  [1/3,9,0], [2/3,"llaf",1.5]]],
 		["Yuka Golpe", [[1,1,0.43], [1,3,1]]],
 
+		// Cajon
+		["Cajon1 Yambu ", [[0.75,0,0], [0.25,"cjncmf",1], [0.5,"cjncmf",1], [0.5,"cjndf",1]]],
+		["Cajon2 Yambu ", [[0.25,0,0], [0.25,"cjndf",1], [0.25,"cjndf",1], [0.25,"cjncmf",1],
+				           [0.25,"cjncmf",1], [0.5,"cjndf",1], [0.25,"cjndf",1],
+				           [0.5,"cjndf",1], [0.25,"cjndf",1], [0.25,"cjncf",1],
+				           [0.25,"cjncmf",1], [0.5,"cjndf",1], [0.25,"cjndf",1]]],
+
+
 		// Llamadores
 		["LlamadorGuaguanco", [[0.25,"llcp",0.3], [0.25,"llpp",0.125], [0.25,"llpp",0.125], [0.25,"llcp",0.3],
 			                   [0.25,"llcp",0.3], [0.25,"llpp",0.125], [0.25,"llpp",0.125], [0.25,"lltp",0.5],
@@ -145,6 +153,8 @@ s.waitForBoot({
 			                   [0.25,"llcp",0.3], [0.25,"llpp",0.125], [0.25,"llpp",0.125], [0.25,"llcp",0.3]]],
 		["Llamador Matancera", [[15/32, 0, 0],  [9/32, "llsp", 1], [8/32, "llsp", 1],
 				                [15/32, 0, 0],  [9/32, "llaf", 1], [8/32, "llsp", 1]]],
+		["Llamador Yambu", [[0.25, 0, 0],  [0.25, "llsmp", 1],  [0.25, "llsmp", 1],  [0.25, "llsmp", 1],
+				            [0.25, 0, 0],  [0.25, "llsmp", 1],  [0.25, "llaf", 1],  [0.25, "llsmp", 1]]],
 		["Llamador Columbia", [[2/3,1,0.43], [1/3,3,1],  [1,3,1]]],
 		["Llamador Palo", [[2/3,"llaf",1.5], [1/3,"llsmp",1],  [1,"llsmp",1]]],
 		["Yuka Llamador", [[1,1,0.43], [0.5,1,0.43], [0.5,3,1]]],
@@ -302,11 +312,40 @@ s.waitForBoot({
 	~samplesDictionary["llc"] = ~samplesDictionary["llcf"];
 	~samplesDictionary["llt"] = ~samplesDictionary["lltf"];
 
+	// Backward-compatible aliases for cajon (type-only -> /f variants)
+	~samplesDictionary["cjna"] = ~samplesDictionary["cjnaf"];
+	~samplesDictionary["cjns"] = ~samplesDictionary["cjnsf"];
+	~samplesDictionary["cjnd"] = ~samplesDictionary["cjndf"];
+	~samplesDictionary["cjnc"] = ~samplesDictionary["cjncf"];
+	~samplesDictionary["cjnt"] = ~samplesDictionary["cjntf"];
+
 	// Load cata dynamics folders (f, mf, mp, p)
 	~samplesDictionary["cf"] = ~loadRoundRobinFolder.value("cata/f", "cf");
 	~samplesDictionary["cmf"] = ~loadRoundRobinFolder.value("cata/mf", "cmf");
 	~samplesDictionary["cmp"] = ~loadRoundRobinFolder.value("cata/mp", "cmp");
 	~samplesDictionary["cp"] = ~loadRoundRobinFolder.value("cata/p", "cp");
+
+	// Load all cajon dynamics folders (f, mf, mp, p) for each strike type
+	~samplesDictionary["cjnaf"] = ~loadRoundRobinFolder.value("cajon/abierto/f", "cjnaf");
+	~samplesDictionary["cjnamf"] = ~loadRoundRobinFolder.value("cajon/abierto/mf", "cjnamf");
+	~samplesDictionary["cjnamp"] = ~loadRoundRobinFolder.value("cajon/abierto/mp", "cjnamp");
+	~samplesDictionary["cjnap"] = ~loadRoundRobinFolder.value("cajon/abierto/p", "cjnap");
+	~samplesDictionary["cjnsf"] = ~loadRoundRobinFolder.value("cajon/slap/f", "cjnsf");
+	~samplesDictionary["cjnsmf"] = ~loadRoundRobinFolder.value("cajon/slap/mf", "cjnsmf");
+	~samplesDictionary["cjnsmp"] = ~loadRoundRobinFolder.value("cajon/slap/mp", "cjnsmp");
+	~samplesDictionary["cjnsp"] = ~loadRoundRobinFolder.value("cajon/slap/p", "cjnsp");
+	~samplesDictionary["cjndf"] = ~loadRoundRobinFolder.value("cajon/dedo/f", "cjndf");
+	~samplesDictionary["cjndmf"] = ~loadRoundRobinFolder.value("cajon/dedo/mf", "cjndmf");
+	~samplesDictionary["cjndmp"] = ~loadRoundRobinFolder.value("cajon/dedo/mp", "cjndmp");
+	~samplesDictionary["cjndp"] = ~loadRoundRobinFolder.value("cajon/dedo/p", "cjndp");
+	~samplesDictionary["cjncf"] = ~loadRoundRobinFolder.value("cajon/centro/f", "cjncf");
+	~samplesDictionary["cjncmf"] = ~loadRoundRobinFolder.value("cajon/centro/mf", "cjncmf");
+	~samplesDictionary["cjncmp"] = ~loadRoundRobinFolder.value("cajon/centro/mp", "cjncmp");
+	~samplesDictionary["cjncp"] = ~loadRoundRobinFolder.value("cajon/centro/p", "cjncp");
+	~samplesDictionary["cjntf"] = ~loadRoundRobinFolder.value("cajon/tapado/f", "cjntf");
+	~samplesDictionary["cjntmf"] = ~loadRoundRobinFolder.value("cajon/tapado/mf", "cjntmf");
+	~samplesDictionary["cjntmp"] = ~loadRoundRobinFolder.value("cajon/tapado/mp", "cjntmp");
+	~samplesDictionary["cjntp"] = ~loadRoundRobinFolder.value("cajon/tapado/p", "cjntp");
 
 	// Chorus samples are loaded dynamically via ~loadChorusFolder (see above)
 
