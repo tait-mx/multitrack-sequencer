@@ -749,7 +749,7 @@ s.waitForBoot({
 		].do({ |cfg|
 			var name = cfg[0], key = cfg[1], freqMin = cfg[2], freqMax = cfg[3];
 			var col, knGain, knQ, knFreq, nbGain, nbQ, nbFreq;
-			var w = 116;
+			var w = 116, nw = 70;
 
 			col = CompositeView(eqWin, (w+4)@270);
 			col.decorator = FlowLayout(col.bounds, 2@4, 2@2);
@@ -757,7 +757,7 @@ s.waitForBoot({
 			StaticText(col, w@18).string_(name).font_(Font(size: 11, bold: true)).align_(\center);
 
 			StaticText(col, w@12).string_("GAIN").font_(Font(size: 8)).align_(\center);
-			nbGain = NumberBox(col, w@18).value_(p[(key ++ "Gain").asSymbol]).decimals_(1).clipLo_(-24).clipHi_(24)
+			nbGain = NumberBox(col, nw@18).value_(p[(key ++ "Gain").asSymbol]).decimals_(1).clipLo_(-24).clipHi_(24)
 				.action_({ |nb|
 					var val = nb.value.clip(-24, 24);
 					p[(key ++ "Gain").asSymbol] = val;
@@ -776,7 +776,7 @@ s.waitForBoot({
 			UserView(col, w@4).canFocus_(false);
 
 			StaticText(col, w@12).string_("Q").font_(Font(size: 8)).align_(\center);
-			nbQ = NumberBox(col, w@18).value_(p[(key ++ "Q").asSymbol]).decimals_(2).clipLo_(0.1).clipHi_(10)
+			nbQ = NumberBox(col, nw@18).value_(p[(key ++ "Q").asSymbol]).decimals_(2).clipLo_(0.1).clipHi_(10)
 				.action_({ |nb|
 					var val = nb.value.clip(0.1, 10);
 					p[(key ++ "Q").asSymbol] = val;
@@ -795,7 +795,7 @@ s.waitForBoot({
 			UserView(col, w@4).canFocus_(false);
 
 			StaticText(col, w@12).string_("FREQ").font_(Font(size: 8)).align_(\center);
-			nbFreq = NumberBox(col, w@18).value_(p[(key ++ "Freq").asSymbol]).decimals_(1).clipLo_(freqMin).clipHi_(freqMax)
+			nbFreq = NumberBox(col, nw@18).value_(p[(key ++ "Freq").asSymbol]).decimals_(1).clipLo_(freqMin).clipHi_(freqMax)
 				.action_({ |nb|
 					var val = nb.value.clip(freqMin, freqMax);
 					p[(key ++ "Freq").asSymbol] = val;
