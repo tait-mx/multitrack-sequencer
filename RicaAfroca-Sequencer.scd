@@ -738,8 +738,9 @@ s.waitForBoot({
 			~eqWindows[trackIdx].close;
 		};
 
-		eqWin = Window(winTitle, Rect(100, 100, 520, 330)).front;
-		eqWin.view.decorator = FlowLayout(eqWin.view.bounds, 10@10, 5@5);
+		eqWin = Window(winTitle, Rect(100, 100, 540, 440)).front;
+		eqWin.view.decorator = FlowLayout(eqWin.view.bounds, 3@5, 0@5);
+		eqWin.view.background = Color.grey(0.2);
 
 		// --- Band columns ---
 		[
@@ -749,22 +750,27 @@ s.waitForBoot({
 		].do({ |cfg|
 			var name = cfg[0], key = cfg[1], freqMin = cfg[2], freqMax = cfg[3];
 			var col, knGain, knQ, knFreq, nbGain, nbQ, nbFreq;
-			var w = 116, nw = 70;
+			var w = 170, nw = 60, pad = ((w - nw) * 0.5).asInteger;
 
-			col = CompositeView(eqWin, (w+4)@270);
+			col = CompositeView(eqWin, (w+6)@372);
+			col.background = Color.grey(0.45);
+			col.decorator = FlowLayout(col.bounds, 1@1, 2@2);
+			col = CompositeView(col, (w+4)@370);
+			col.background = Color.grey(0.28);
 			col.decorator = FlowLayout(col.bounds, 2@4, 2@2);
 
-			StaticText(col, w@18).string_(name).font_(Font(size: 11, bold: true)).align_(\center);
+			StaticText(col, w@24).string_(name).font_(Font(size: 16, bold: true)).align_(\center).stringColor_(Color.white);
 
-			StaticText(col, w@12).string_("GAIN").font_(Font(size: 8)).align_(\center);
-			nbGain = NumberBox(col, nw@18).value_(p[(key ++ "Gain").asSymbol]).decimals_(1).clipLo_(-24).clipHi_(24)
+			StaticText(col, w@16).string_("GAIN").font_(Font(size: 13)).align_(\center).stringColor_(Color.white);
+			StaticText(col, pad@26).string_("");
+			nbGain = NumberBox(col, nw@26).align_(\center).font_(Font(size: 14)).normalColor_(Color.yellow).background_(Color.grey(0.18)).value_(p[(key ++ "Gain").asSymbol]).decimals_(1).clipLo_(-24).clipHi_(24)
 				.action_({ |nb|
 					var val = nb.value.clip(-24, 24);
 					p[(key ++ "Gain").asSymbol] = val;
 					knGain.value = val.linlin(-24, 24, 0, 1).clip(0, 1);
 					~eqSynths[trackIdx].set((key ++ "Gain").asSymbol, val);
 				});
-			knGain = Knob(col, w@44)
+			knGain = Knob(col, w@60)
 				.value_(p[(key ++ "Gain").asSymbol].linlin(-24, 24, 0, 1).clip(0, 1))
 				.action_({ |k|
 					var val = k.value.linlin(0, 1, -24, 24);
@@ -773,17 +779,18 @@ s.waitForBoot({
 					~eqSynths[trackIdx].set((key ++ "Gain").asSymbol, val);
 				});
 
-			UserView(col, w@4).canFocus_(false);
+			UserView(col, w@6).canFocus_(false);
 
-			StaticText(col, w@12).string_("Q").font_(Font(size: 8)).align_(\center);
-			nbQ = NumberBox(col, nw@18).value_(p[(key ++ "Q").asSymbol]).decimals_(2).clipLo_(0.1).clipHi_(10)
+			StaticText(col, w@16).string_("Q").font_(Font(size: 13)).align_(\center).stringColor_(Color.white);
+			StaticText(col, pad@26).string_("");
+			nbQ = NumberBox(col, nw@26).align_(\center).font_(Font(size: 14)).normalColor_(Color.yellow).background_(Color.grey(0.18)).value_(p[(key ++ "Q").asSymbol]).decimals_(2).clipLo_(0.1).clipHi_(10)
 				.action_({ |nb|
 					var val = nb.value.clip(0.1, 10);
 					p[(key ++ "Q").asSymbol] = val;
 					knQ.value = val.linlin(0.1, 10, 0, 1).clip(0, 1);
 					~eqSynths[trackIdx].set((key ++ "Q").asSymbol, val);
 				});
-			knQ = Knob(col, w@44)
+			knQ = Knob(col, w@60)
 				.value_(p[(key ++ "Q").asSymbol].linlin(0.1, 10, 0, 1).clip(0, 1))
 				.action_({ |k|
 					var val = k.value.linlin(0, 1, 0.1, 10);
@@ -792,17 +799,18 @@ s.waitForBoot({
 					~eqSynths[trackIdx].set((key ++ "Q").asSymbol, val);
 				});
 
-			UserView(col, w@4).canFocus_(false);
+			UserView(col, w@6).canFocus_(false);
 
-			StaticText(col, w@12).string_("FREQ").font_(Font(size: 8)).align_(\center);
-			nbFreq = NumberBox(col, nw@18).value_(p[(key ++ "Freq").asSymbol]).decimals_(1).clipLo_(freqMin).clipHi_(freqMax)
+			StaticText(col, w@16).string_("FREQ").font_(Font(size: 13)).align_(\center).stringColor_(Color.white);
+			StaticText(col, pad@26).string_("");
+			nbFreq = NumberBox(col, nw@26).align_(\center).font_(Font(size: 14)).normalColor_(Color.yellow).background_(Color.grey(0.18)).value_(p[(key ++ "Freq").asSymbol]).decimals_(1).clipLo_(freqMin).clipHi_(freqMax)
 				.action_({ |nb|
 					var val = nb.value.clip(freqMin, freqMax);
 					p[(key ++ "Freq").asSymbol] = val;
 					knFreq.value = val.linlin(freqMin, freqMax, 0, 1).clip(0, 1);
 					~eqSynths[trackIdx].set((key ++ "Freq").asSymbol, val);
 				});
-			knFreq = Knob(col, w@44)
+			knFreq = Knob(col, w@60)
 				.value_(p[(key ++ "Freq").asSymbol].linlin(freqMin, freqMax, 0, 1).clip(0, 1))
 				.action_({ |k|
 					var val = k.value.linlin(0, 1, freqMin, freqMax);
@@ -815,10 +823,10 @@ s.waitForBoot({
 		eqWin.view.decorator.nextLine;
 
 		// Bottom controls row
-		bottomRow = CompositeView(eqWin, 500@30);
-		bottomRow.decorator = FlowLayout(bottomRow.bounds, 10@0, 10@0);
+		bottomRow = CompositeView(eqWin, 520@36);
+		bottomRow.decorator = FlowLayout(bottomRow.bounds, 15@0, 15@0);
 
-		bypassBtn = Button(bottomRow, 100@28)
+		bypassBtn = Button(bottomRow, 130@32)
 			.states_([["BYPASS", Color.black, Color.green], ["BYPASSED", Color.white, Color.red]])
 			.value_(p[\bypass].asInteger)
 			.action_({ |b|
@@ -828,8 +836,8 @@ s.waitForBoot({
 				~eqButtons[trackIdx].value = b.value;
 			});
 
-		resetBtn = Button(bottomRow, 100@28)
-			.states_([["RESET", Color.black, Color.grey(0.8)]])
+		resetBtn = Button(bottomRow, 130@32)
+			.states_([["RESET", Color.white, Color.grey(0.3)]])
 			.action_({
 				p[\lowFreq] = 200; p[\lowGain] = 0; p[\lowQ] = 0.707;
 				p[\midFreq] = 1000; p[\midGain] = 0; p[\midQ] = 0.707;
