@@ -105,12 +105,15 @@ s.waitForBoot({
 			\lowFreq, 200, \lowGain, 0, \lowQ, 0.707,
 			\midFreq, 1000, \midGain, 0, \midQ, 0.707,
 			\highFreq, 5000, \highGain, 0, \highQ, 0.707,
-			\bypass, false
+			\bypass, false,
+			\gain, 0
 		])
 	});
 	~eqSynths = Array.newClear(~numTracks);
 	~eqWindows = Array.newClear(~numTracks);
 	~eqButtons = Array.newClear(~numTracks);
+	~gainKnobs = Array.newClear(~numTracks);
+	~gainNbs = Array.newClear(~numTracks);
 	~eqGroup = nil;
 
 	/////////////////////////////////////////////////////////////////
@@ -430,7 +433,7 @@ s.waitForBoot({
 			[p[\lowFreq], p[\lowGain], p[\lowQ],
 			 p[\midFreq], p[\midGain], p[\midQ],
 			 p[\highFreq], p[\highGain], p[\highQ],
-			 p[\bypass]]
+			 p[\bypass], p[\gain]]
 		}));
 
 		data.writeArchive(path);
@@ -468,6 +471,7 @@ s.waitForBoot({
 					p[\midFreq] = ep[3]; p[\midGain] = ep[4]; p[\midQ] = ep[5];
 					p[\highFreq] = ep[6]; p[\highGain] = ep[7]; p[\highQ] = ep[8];
 					p[\bypass] = if(ep[9].notNil) { ep[9] } { false };
+					p[\gain] = if(ep[10].notNil) { ep[10] } { 0 };
 				};
 			});
 
@@ -517,9 +521,12 @@ s.waitForBoot({
 							\lowFreq, p[\lowFreq], \lowGain, p[\lowGain], \lowQ, p[\lowQ],
 							\midFreq, p[\midFreq], \midGain, p[\midGain], \midQ, p[\midQ],
 							\highFreq, p[\highFreq], \highGain, p[\highGain], \highQ, p[\highQ],
-							\bypass, p[\bypass].asInteger
+							\bypass, p[\bypass].asInteger,
+							\gain, p[\gain]
 						);
 					};
+					~gainKnobs[i].value = ~eqParams[i][\gain].linlin(-12, 12, 0, 1).clip(0, 1);
+					~gainNbs[i].value = ~eqParams[i][\gain];
 				});
 			}.defer;
 		};
@@ -585,8 +592,8 @@ s.waitForBoot({
 		lowFreq=200, lowGain=0, lowQ=0.707,
 		midFreq=1000, midGain=0, midQ=0.707,
 		highFreq=5000, highGain=0, highQ=0.707,
-		bypass=0;
-		var sig = In.ar(inBus, 2);
+		bypass=0, gain=0;
+		var sig = In.ar(inBus, 2) * gain.dbamp;
 		var dry = sig;
 		sig = BLowShelf.ar(sig, lowFreq, lowQ, lowGain);
 		sig = BPeakEQ.ar(sig, midFreq, midQ, midGain);
@@ -614,7 +621,8 @@ s.waitForBoot({
 			\lowFreq, p[\lowFreq], \lowGain, p[\lowGain], \lowQ, p[\lowQ],
 			\midFreq, p[\midFreq], \midGain, p[\midGain], \midQ, p[\midQ],
 			\highFreq, p[\highFreq], \highGain, p[\highGain], \highQ, p[\highQ],
-			\bypass, p[\bypass].asInteger
+			\bypass, p[\bypass].asInteger,
+			\gain, p[\gain]
 		], ~eqGroup, \addToHead);
 	});
 
@@ -946,6 +954,27 @@ s.waitForBoot({
 					};
 				})
 				.canFocus_(false);
+
+			// Gain knob below EQ button
+			~gainKnobs[i] = Knob(comp, 105@30)
+				.value_(~eqParams[i][\gain].linlin(-12, 12, 0, 1).clip(0, 1))
+				.action_({ |k|
+					var val = k.value.linlin(0, 1, -12, 12).round(0.1);
+					~eqParams[i][\gain] = val;
+					~gainNbs[i].value = val;
+					if(~eqSynths[i].notNil) { ~eqSynths[i].set(\gain, val) };
+				});
+			~gainNbs[i] = NumberBox(comp, 105@18)
+				.value_(~eqParams[i][\gain])
+				.decimals_(1).clipLo_(-12).clipHi_(12)
+				.align_(\center).font_(Font(size: 11))
+				.normalColor_(Color.yellow).background_(Color.black)
+				.action_({ |nb|
+					var val = nb.value.clip(-12, 12);
+					~eqParams[i][\gain] = val;
+					~gainKnobs[i].value = val.linlin(-12, 12, 0, 1).clip(0, 1);
+					if(~eqSynths[i].notNil) { ~eqSynths[i].set(\gain, val) };
+				});
 		} {
 			~choirTriggerBtn = Button(comp, 105@40).states_([["CHORUS", Color.black, Color.grey(0.8)], ["STOP", Color.white, Color.green]]).action_({ |b|
 				if(b.value == 1) {
@@ -986,6 +1015,27 @@ s.waitForBoot({
 					};
 				})
 				.canFocus_(false);
+
+			// Gain knob below EQ button for choir track
+			~gainKnobs[i] = Knob(comp, 105@30)
+				.value_(~eqParams[i][\gain].linlin(-12, 12, 0, 1).clip(0, 1))
+				.action_({ |k|
+					var val = k.value.linlin(0, 1, -12, 12).round(0.1);
+					~eqParams[i][\gain] = val;
+					~gainNbs[i].value = val;
+					if(~eqSynths[i].notNil) { ~eqSynths[i].set(\gain, val) };
+				});
+			~gainNbs[i] = NumberBox(comp, 105@18)
+				.value_(~eqParams[i][\gain])
+				.decimals_(1).clipLo_(-12).clipHi_(12)
+				.align_(\center).font_(Font(size: 11))
+				.normalColor_(Color.yellow).background_(Color.black)
+				.action_({ |nb|
+					var val = nb.value.clip(-12, 12);
+					~eqParams[i][\gain] = val;
+					~gainKnobs[i].value = val.linlin(-12, 12, 0, 1).clip(0, 1);
+					if(~eqSynths[i].notNil) { ~eqSynths[i].set(\gain, val) };
+				});
 		};
 
 		StaticText(comp, 105@20).string_("Peak / dB").align_(\center).font_(Font(size:10));
