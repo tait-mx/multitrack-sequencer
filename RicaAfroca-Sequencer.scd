@@ -98,6 +98,21 @@ s.waitForBoot({
 	~humAmpSliders = Array.newClear(~numTracks);
 	~choirSynth = nil;
 
+	// EQ system variables
+	~trackAudioBuses = Array.newClear(~numTracks);
+	~eqParams = Array.fill(~numTracks, {
+		Dictionary.newFrom([
+			\lowFreq, 200, \lowGain, 0, \lowQ, 0.707,
+			\midFreq, 1000, \midGain, 0, \midQ, 0.707,
+			\highFreq, 5000, \highGain, 0, \highQ, 0.707,
+			\bypass, false
+		])
+	});
+	~eqSynths = Array.newClear(~numTracks);
+	~eqWindows = Array.newClear(~numTracks);
+	~eqButtons = Array.newClear(~numTracks);
+	~eqGroup = nil;
+
 	/////////////////////////////////////////////////////////////////
 	// RHYTHMS AND VARIATIONS
 	/////////////////////////////////////////////////////////////////
@@ -409,6 +424,15 @@ s.waitForBoot({
 		data.put(\currentSongIdx, ~currentSongIdx);
 		data.put(\chorusRefBpm, ~chorusRefBpm);
 
+		// Save EQ params
+		data.put(\eqParams, Array.fill(~numTracks, { |i|
+			var p = ~eqParams[i];
+			[p[\lowFreq], p[\lowGain], p[\lowQ],
+			 p[\midFreq], p[\midGain], p[\midQ],
+			 p[\highFreq], p[\highGain], p[\highQ],
+			 p[\bypass]]
+		}));
+
 		data.writeArchive(path);
 		("--- Preservado Preset Sólido de 8 Canales: " ++ name).postln;
 	};
@@ -434,6 +458,18 @@ s.waitForBoot({
 			~humanizeTime = Array.fill(~numTracks, { |i| data[\humTime].wrapAt(i) ?? 0.0 });
 			~humanizePitch = Array.fill(~numTracks, { |i| data[\humPitch].wrapAt(i) ?? 0.0 });
 			~humanizeAmp = Array.fill(~numTracks, { |i| data[\humAmp].wrapAt(i) ?? 0.0 });
+
+			// Load EQ params
+			~numTracks.do({ |i|
+				if(data[\eqParams].notNil) {
+					var ep = data[\eqParams].wrapAt(i);
+					var p = ~eqParams[i];
+					p[\lowFreq] = ep[0]; p[\lowGain] = ep[1]; p[\lowQ] = ep[2];
+					p[\midFreq] = ep[3]; p[\midGain] = ep[4]; p[\midQ] = ep[5];
+					p[\highFreq] = ep[6]; p[\highGain] = ep[7]; p[\highQ] = ep[8];
+					p[\bypass] = if(ep[9].notNil) { ep[9] } { false };
+				};
+			});
 
 			{
 				win.name = "RicaAfroca Sequencer Wood - Editing: " ++ name;
@@ -473,6 +509,17 @@ s.waitForBoot({
 					};
 					~volSliders[i].value = ~dbSpec.unmap(~volumes[i].ampdb);
 					~volDisplays[i].value = ~volumes[i].ampdb.round(0.1);
+
+					// Update EQ synth from loaded params
+					if(~eqSynths[i].notNil) {
+						var p = ~eqParams[i];
+						~eqSynths[i].set(
+							\lowFreq, p[\lowFreq], \lowGain, p[\lowGain], \lowQ, p[\lowQ],
+							\midFreq, p[\midFreq], \midGain, p[\midGain], \midQ, p[\midQ],
+							\highFreq, p[\highFreq], \highGain, p[\highGain], \highQ, p[\highQ],
+							\bypass, p[\bypass].asInteger
+						);
+					};
 				});
 			}.defer;
 		};
@@ -533,8 +580,46 @@ s.waitForBoot({
 		OffsetOut.ar(out, Pan2.ar(sig, pan));
 	}).add;
 
+	SynthDef(\trackEQ, {
+		arg inBus, outBus=0,
+		lowFreq=200, lowGain=0, lowQ=0.707,
+		midFreq=1000, midGain=0, midQ=0.707,
+		highFreq=5000, highGain=0, highQ=0.707,
+		bypass=0;
+		var sig = In.ar(inBus, 2);
+		var dry = sig;
+		sig = BLowShelf.ar(sig, lowFreq, lowQ, lowGain);
+		sig = BPeakEQ.ar(sig, midFreq, midQ, midGain);
+		sig = BHiShelf.ar(sig, highFreq, highQ, highGain);
+		sig = Select.ar(bypass, [sig, dry]);
+		Out.ar(outBus, sig);
+	}).add;
+
 	s.sync;
-	Synth(\masterOut, [\amp, ~masterVol], addAction: \addAfter);
+
+	// Create per-track audio busses
+	~numTracks.do({ |i|
+		~trackAudioBuses[i] = Bus.audio(s, 2);
+	});
+
+	// Create EQ group after default group
+	~eqGroup = Group.after(s.defaultGroup);
+
+	// Create per-track EQ synths
+	~numTracks.do({ |i|
+		var p = ~eqParams[i];
+		~eqSynths[i] = Synth(\trackEQ, [
+			\inBus, ~trackAudioBuses[i].index,
+			\outBus, 0,
+			\lowFreq, p[\lowFreq], \lowGain, p[\lowGain], \lowQ, p[\lowQ],
+			\midFreq, p[\midFreq], \midGain, p[\midGain], \midQ, p[\midQ],
+			\highFreq, p[\highFreq], \highGain, p[\highGain], \highQ, p[\highQ],
+			\bypass, p[\bypass].asInteger
+		], ~eqGroup, \addToHead);
+	});
+
+	// MasterOut after EQ group
+	Synth(\masterOut, [\amp, ~masterVol], ~eqGroup, \addAfter);
 
 	/////////////////////////////////////////////////////////////////
 	// ENGINE (EVENT-DRIVEN MATRIX PLAYER)
@@ -573,6 +658,7 @@ s.waitForBoot({
 										\amp, (vAmp * ~volumes[i] + ~humanizeAmp[i].rand2).clip(0,2) * ~masterVol,
 										\peakOut, ~trackPeakBuses[i],
 										\tempoRatioBus, ~tempoRatioBus,
+										\out, ~trackAudioBuses[i].index,
 									], ~chorusGroup, \addToHead);
 									if(i == 7) { ~choirSynth = synth };
 								});
@@ -587,6 +673,7 @@ s.waitForBoot({
 										\amp, (vAmp * ~volumes[i] + ~humanizeAmp[i].rand2).clip(0,2) * ~masterVol,
 										\rel, (vDelta.abs / ~tempo.tempo) * 0.8,
 										\peakOut, ~trackPeakBuses[i],
+										\out, ~trackAudioBuses[i].index,
 									]);
 								});
 							};
@@ -609,6 +696,7 @@ s.waitForBoot({
 							\amp, (hitAmp * ~volumes[i] + ~humanizeAmp[i].rand2).clip(0,2) * ~masterVol,
 							\peakOut, ~trackPeakBuses[i],
 							\tempoRatioBus, ~tempoRatioBus,
+							\out, ~trackAudioBuses[i].index,
 						], ~chorusGroup, \addToHead);
 						if(i == 7) { ~choirSynth = synth };
 					});
@@ -623,6 +711,7 @@ s.waitForBoot({
 								\amp, (hitAmp * ~volumes[i] + ~humanizeAmp[i].rand2).clip(0,2) * ~masterVol,
 								\rel, (delta.abs / ~tempo.tempo) * 0.8,
 								\peakOut, ~trackPeakBuses[i],
+								\out, ~trackAudioBuses[i].index,
 							]);
 						});
 					};
@@ -634,6 +723,261 @@ s.waitForBoot({
 			}
 		}).quant = 4;
 	});
+
+	/////////////////////////////////////////////////////////////////
+	// EQ WINDOW FUNCTION
+	/////////////////////////////////////////////////////////////////
+
+	~openEQWindow = { |trackIdx|
+		var eqWin, eqCurve, freqSliders, gainSliders, qSliders, bypassBtn, resetBtn, bottomRow, makeBandRow;
+		var p = ~eqParams[trackIdx];
+		var winTitle = "EQ - " + ~trackLabels[trackIdx].string;
+
+		// Close existing window if open
+		if(~eqWindows[trackIdx].notNil and: { ~eqWindows[trackIdx].isClosed.not }) {
+			~eqWindows[trackIdx].close;
+		};
+
+		eqWin = Window(winTitle, Rect(100, 100, 520, 420)).front;
+		eqWin.view.decorator = FlowLayout(eqWin.view.bounds, 10@10, 5@5);
+
+		// EQ curve display
+		eqCurve = UserView(eqWin, 500@200)
+			.background_(Color.grey(0.15))
+			.drawFunc_({ |view|
+				var w = view.bounds.width;
+				var h = view.bounds.height;
+				var margin = 40;
+				var drawW = w - (margin * 2);
+				var drawH = h - (margin * 2);
+				var freqMin = 20, freqMax = 20000;
+				var dbMin = -24, dbMax = 24;
+				var numPoints = 300;
+				var freqRange = freqMax / freqMin;
+				var y0 = margin + (1 - (0 - dbMin) / (dbMax - dbMin)) * drawH;
+				var points = Array.newClear(numPoints);
+				var lowGain = p[\lowGain], lowFreq = p[\lowFreq], lowQ = p[\lowQ];
+				var midGain = p[\midGain], midFreq = p[\midFreq], midQ = p[\midQ];
+				var highGain = p[\highGain], highFreq = p[\highFreq], highQ = p[\highQ];
+
+				// Background
+				Pen.fillColor = Color.grey(0.18);
+				Pen.fillRect(view.bounds);
+
+				// Grid
+				Pen.color = Color.grey(0.45);
+				// Horizontal grid lines
+				(-24..24).select({ |db| db % 6 == 0 }).do({ |db|
+					var y = margin + (1 - (db - dbMin) / (dbMax - dbMin)) * drawH;
+					Pen.line(Point(margin, y), Point(w - margin, y));
+				});
+				// Vertical grid lines (frequency markers)
+				[20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000].do({ |f|
+					var x = margin + ((f / freqMin).log / freqRange.log) * drawW;
+					Pen.line(Point(x, margin), Point(x, h - margin));
+				});
+				Pen.stroke;
+
+				// Center line at 0 dB
+				Pen.color = Color.grey(0.6);
+				Pen.line(Point(margin, y0), Point(w - margin, y0));
+				Pen.stroke;
+
+				// Labels
+				Pen.color = Color.grey(0.6);
+				Pen.font = Font(size: 8);
+				[20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000].do({ |f|
+					var x = margin + ((f / freqMin).log / freqRange.log) * drawW;
+					var label = if(f >= 1000) { (f/1000).asInteger.asString ++ "k" } { f.asString };
+					Pen.stringAtPoint(label, Point(x - 8, h - margin + 5));
+				});
+				[-24, -12, 0, 12, 24].do({ |db|
+					var y = margin + (1 - (db - dbMin) / (dbMax - dbMin)) * drawH;
+					Pen.stringAtPoint(db.asString, Point(2, y - 5));
+				});
+
+				// Compute and draw EQ curve
+
+				numPoints.do({ |j|
+					var f = freqMin * (freqRange ** (j / (numPoints - 1)));
+					var db = 0.0;
+					var ratio, nr, bell, x, y;
+
+					// Low shelf contribution
+					if(lowGain != 0) {
+						ratio = f / lowFreq;
+						db = db + (lowGain * 0.5 * (1 + tanh(2.2 * ratio.log / lowQ.max(0.1))));
+					};
+
+					// Mid peaking contribution
+					if(midGain != 0) {
+						ratio = f / midFreq;
+						nr = ratio.log / midQ.max(0.1);
+						bell = exp(-4 * nr * nr);
+						db = db + (midGain * bell);
+					};
+
+					// High shelf contribution
+					if(highGain != 0) {
+						ratio = f / highFreq;
+						db = db + (highGain * 0.5 * (1 - tanh(2.2 * ratio.log / highQ.max(0.1))));
+					};
+
+					db = db.clip(dbMin, dbMax);
+					x = margin + ((f / freqMin).log / freqRange.log) * drawW;
+					y = margin + (1 - (db - dbMin) / (dbMax - dbMin)) * drawH;
+					points[j] = Point(x, y);
+				});
+
+				// Draw filled curve
+				Pen.color = Color(0.3, 0.6, 0.9, 0.4);
+				Pen.moveTo(Point(margin, y0));
+				points.do({ |pt| Pen.lineTo(pt) });
+				Pen.lineTo(Point(w - margin, y0));
+				Pen.lineTo(Point(margin, y0));
+				Pen.fill;
+
+				// Draw curve line
+				Pen.color = Color(0.4, 0.8, 1.0);
+				Pen.width = 3;
+				Pen.moveTo(points[0]);
+				points[1..].do({ |pt| Pen.lineTo(pt) });
+				Pen.stroke;
+
+				// Bypass indicator
+				if(p[\bypass]) {
+					Pen.color = Color.red(0.8);
+					Pen.font = Font(size: 18, bold: true);
+					Pen.stringAtPoint("BYPASSED", Point(w / 2 - 45, h / 2 - 10));
+				};
+			});
+
+		// --- Band controls ---
+		// Helper to create a control row for one band
+		makeBandRow = { |bandName, dictKey, freqMin, freqMax, defaultFreq|
+			var row, freqSl, gainSl, qSl, freqDisp, gainDisp, qDisp;
+
+			row = CompositeView(eqWin, 500@30);
+			row.decorator = FlowLayout(row.bounds, 2@0, 2@0);
+
+			// Band label
+			StaticText(row, 40@28).string_(bandName).font_(Font(size: 11, bold: true)).align_(\center);
+
+			// Freq slider
+			StaticText(row, 25@28).string_("F").font_(Font(size: 8)).align_(\right);
+			freqSl = Slider(row, 80@22)
+				.value_(p[(dictKey ++ "Freq").asSymbol].linlin(freqMin, freqMax, 0, 1).clip(0, 1))
+				.action_({ |sl|
+					var val = sl.value.linlin(0, 1, freqMin, freqMax);
+					p[(dictKey ++ "Freq").asSymbol] = val;
+					freqDisp.value = val.round(1);
+					~eqSynths[trackIdx].set((dictKey ++ "Freq").asSymbol, val);
+					eqCurve.refresh;
+				});
+			freqDisp = NumberBox(row, 45@22).value_(p[(dictKey ++ "Freq").asSymbol]).decimals_(1).clipLo_(freqMin).clipHi_(freqMax)
+				.action_({ |nb|
+					var val = nb.value.clip(freqMin, freqMax);
+					p[(dictKey ++ "Freq").asSymbol] = val;
+					freqSl.value = val.linlin(freqMin, freqMax, 0, 1).clip(0, 1);
+					~eqSynths[trackIdx].set((dictKey ++ "Freq").asSymbol, val);
+					eqCurve.refresh;
+				});
+
+			// Gain slider
+			StaticText(row, 25@28).string_("G").font_(Font(size: 8)).align_(\right);
+			gainSl = Slider(row, 80@22)
+				.value_(p[(dictKey ++ "Gain").asSymbol].linlin(-24, 24, 0, 1).clip(0, 1))
+				.action_({ |sl|
+					var val = sl.value.linlin(0, 1, -24, 24);
+					p[(dictKey ++ "Gain").asSymbol] = val;
+					gainDisp.value = val.round(0.1);
+					~eqSynths[trackIdx].set((dictKey ++ "Gain").asSymbol, val);
+					eqCurve.refresh;
+				});
+			gainDisp = NumberBox(row, 45@22).value_(p[(dictKey ++ "Gain").asSymbol]).decimals_(1).clipLo_(-24).clipHi_(24)
+				.action_({ |nb|
+					var val = nb.value.clip(-24, 24);
+					p[(dictKey ++ "Gain").asSymbol] = val;
+					gainSl.value = val.linlin(-24, 24, 0, 1).clip(0, 1);
+					~eqSynths[trackIdx].set((dictKey ++ "Gain").asSymbol, val);
+					eqCurve.refresh;
+				});
+
+			// Q slider
+			StaticText(row, 25@28).string_("Q").font_(Font(size: 8)).align_(\right);
+			qSl = Slider(row, 60@22)
+				.value_(p[(dictKey ++ "Q").asSymbol].linlin(0.1, 10, 0, 1).clip(0, 1))
+				.action_({ |sl|
+					var val = sl.value.linlin(0, 1, 0.1, 10);
+					p[(dictKey ++ "Q").asSymbol] = val;
+					qDisp.value = val.round(0.01);
+					~eqSynths[trackIdx].set((dictKey ++ "Q").asSymbol, val);
+					eqCurve.refresh;
+				});
+			qDisp = NumberBox(row, 45@22).value_(p[(dictKey ++ "Q").asSymbol]).decimals_(2).clipLo_(0.1).clipHi_(10)
+				.action_({ |nb|
+					var val = nb.value.clip(0.1, 10);
+					p[(dictKey ++ "Q").asSymbol] = val;
+					qSl.value = val.linlin(0.1, 10, 0, 1).clip(0, 1);
+					~eqSynths[trackIdx].set((dictKey ++ "Q").asSymbol, val);
+					eqCurve.refresh;
+				});
+
+			[freqSl, gainSl, qSl, freqDisp, gainDisp, qDisp];
+		};
+
+		// Create 3 band rows
+		makeBandRow.value("LOW", "low", 20, 500, 200);
+		makeBandRow.value("MID", "mid", 200, 5000, 1000);
+		makeBandRow.value("HIGH", "high", 1000, 20000, 5000);
+
+		eqWin.view.decorator.nextLine;
+
+		// Bottom controls row
+		bottomRow = CompositeView(eqWin, 500@30);
+		bottomRow.decorator = FlowLayout(bottomRow.bounds, 10@0, 10@0);
+
+		bypassBtn = Button(bottomRow, 100@28)
+			.states_([["BYPASS", Color.black, Color.green], ["BYPASSED", Color.white, Color.red]])
+			.value_(p[\bypass].asInteger)
+			.action_({ |b|
+				p[\bypass] = (b.value == 1);
+				~eqSynths[trackIdx].set(\bypass, b.value);
+				eqCurve.refresh;
+				~eqButtons[trackIdx].value = b.value;
+			});
+
+		resetBtn = Button(bottomRow, 100@28)
+			.states_([["RESET", Color.black, Color.grey(0.8)]])
+			.action_({
+				p[\lowFreq] = 200; p[\lowGain] = 0; p[\lowQ] = 0.707;
+				p[\midFreq] = 1000; p[\midGain] = 0; p[\midQ] = 0.707;
+				p[\highFreq] = 5000; p[\highGain] = 0; p[\highQ] = 0.707;
+				p[\bypass] = false;
+				~eqSynths[trackIdx].set(
+					\lowFreq, 200, \lowGain, 0, \lowQ, 0.707,
+					\midFreq, 1000, \midGain, 0, \midQ, 0.707,
+					\highFreq, 5000, \highGain, 0, \highQ, 0.707,
+					\bypass, 0
+				);
+				bypassBtn.value = 0;
+				~eqButtons[trackIdx].value = 0;
+				eqCurve.refresh;
+			});
+
+		// Track label sync (update window title if track renamed)
+		~trackLabels[trackIdx].action = ~trackLabels[trackIdx].action.addFunc({
+			eqWin.name = "EQ - " + ~trackLabels[trackIdx].string;
+		});
+
+		eqWin.onClose = {
+			~eqWindows[trackIdx] = nil;
+			~eqButtons[trackIdx].value = 0;
+		};
+
+		~eqWindows[trackIdx] = eqWin;
+		~eqButtons[trackIdx].value = p[\bypass].asInteger;
+	};
 
 	/////////////////////////////////////////////////////////////////
 	// GUI
@@ -701,6 +1045,18 @@ s.waitForBoot({
 
 			StaticText(comp, 105@20).string_("Pitch").align_(\center);
 			~pitchSliders[i] = Slider(comp, 105@30).value_(0.5).action_({ |s| ~pitches[i] = s.value.linlin(0, 1, 36, 72).round; });
+
+			// EQ button below pitch slider
+			~eqButtons[i] = Button(comp, 105@20)
+				.states_([["EQ", Color.black, Color.grey(0.8)], ["EQ", Color.white, Color.blue(0.6)]])
+				.action_({ |b|
+					if(~eqWindows[i].isNil or: { ~eqWindows[i].isClosed }) {
+						~openEQWindow.value(i);
+					} {
+						~eqWindows[i].front;
+					};
+				})
+				.canFocus_(false);
 		} {
 			~choirTriggerBtn = Button(comp, 105@40).states_([["CHORUS", Color.black, Color.grey(0.8)], ["STOP", Color.white, Color.green]]).action_({ |b|
 				if(b.value == 1) {
@@ -730,6 +1086,17 @@ s.waitForBoot({
 				~rhythmMenus[7].valueAction = next;
 			});
 
+			// EQ button below NEXT for choir track
+			~eqButtons[i] = Button(comp, 105@20)
+				.states_([["EQ", Color.black, Color.grey(0.8)], ["EQ", Color.white, Color.blue(0.6)]])
+				.action_({ |b|
+					if(~eqWindows[i].isNil or: { ~eqWindows[i].isClosed }) {
+						~openEQWindow.value(i);
+					} {
+						~eqWindows[i].front;
+					};
+				})
+				.canFocus_(false);
 		};
 
 		StaticText(comp, 105@20).string_("Peak / dB").align_(\center).font_(Font(size:10));
@@ -906,6 +1273,11 @@ s.waitForBoot({
 		if(~serialRoutine.notNil) { ~serialRoutine.stop };
 		if(~myPort.notNil) { ~myPort.close };
 		if(~chorusGroup.notNil) { ~chorusGroup.free };
+		// Cleanup EQ resources
+		~eqWindows.do({ |w| if(w.notNil and: { w.isClosed.not }) { w.close } });
+		~eqSynths.do(_.free);
+		~trackAudioBuses.do(_.free);
+		if(~eqGroup.notNil) { ~eqGroup.free };
 		~numTracks.do({ |i| Tdef(("chan"++i).asSymbol).stop });
 		"Sequencer and Serial Port closed safely.".postln;
 	};
