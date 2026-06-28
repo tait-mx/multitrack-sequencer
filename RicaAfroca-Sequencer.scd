@@ -738,10 +738,10 @@ s.waitForBoot({
 			~eqWindows[trackIdx].close;
 		};
 
-		eqWin = Window(winTitle, Rect(100, 100, 520, 290)).front;
+		eqWin = Window(winTitle, Rect(100, 100, 520, 330)).front;
 		eqWin.view.decorator = FlowLayout(eqWin.view.bounds, 10@10, 5@5);
 
-		// --- Band columns (Gain top, Q middle, Freq bottom) ---
+		// --- Band columns ---
 		[
 			["LOW", "low", 20, 500],
 			["MID", "mid", 200, 5000],
@@ -749,20 +749,22 @@ s.waitForBoot({
 		].do({ |cfg|
 			var name = cfg[0], key = cfg[1], freqMin = cfg[2], freqMax = cfg[3];
 			var col, knGain, knQ, knFreq, nbGain, nbQ, nbFreq;
+			var w = 116;
 
-			col = CompositeView(eqWin, 155@230);
+			col = CompositeView(eqWin, (w+4)@270);
 			col.decorator = FlowLayout(col.bounds, 2@4, 2@2);
 
-			StaticText(col, 151@18).string_(name).font_(Font(size: 11, bold: true)).align_(\center);
+			StaticText(col, w@18).string_(name).font_(Font(size: 11, bold: true)).align_(\center);
 
-			nbGain = NumberBox(col, 151@18).value_(p[(key ++ "Gain").asSymbol]).decimals_(1).clipLo_(-24).clipHi_(24)
+			StaticText(col, w@12).string_("GAIN").font_(Font(size: 8)).align_(\center);
+			nbGain = NumberBox(col, w@18).value_(p[(key ++ "Gain").asSymbol]).decimals_(1).clipLo_(-24).clipHi_(24)
 				.action_({ |nb|
 					var val = nb.value.clip(-24, 24);
 					p[(key ++ "Gain").asSymbol] = val;
 					knGain.value = val.linlin(-24, 24, 0, 1).clip(0, 1);
 					~eqSynths[trackIdx].set((key ++ "Gain").asSymbol, val);
 				});
-			knGain = Knob(col, 151@38)
+			knGain = Knob(col, w@44)
 				.value_(p[(key ++ "Gain").asSymbol].linlin(-24, 24, 0, 1).clip(0, 1))
 				.action_({ |k|
 					var val = k.value.linlin(0, 1, -24, 24);
@@ -771,16 +773,17 @@ s.waitForBoot({
 					~eqSynths[trackIdx].set((key ++ "Gain").asSymbol, val);
 				});
 
-			UserView(col, 151@4).canFocus_(false);
+			UserView(col, w@4).canFocus_(false);
 
-			nbQ = NumberBox(col, 151@18).value_(p[(key ++ "Q").asSymbol]).decimals_(2).clipLo_(0.1).clipHi_(10)
+			StaticText(col, w@12).string_("Q").font_(Font(size: 8)).align_(\center);
+			nbQ = NumberBox(col, w@18).value_(p[(key ++ "Q").asSymbol]).decimals_(2).clipLo_(0.1).clipHi_(10)
 				.action_({ |nb|
 					var val = nb.value.clip(0.1, 10);
 					p[(key ++ "Q").asSymbol] = val;
 					knQ.value = val.linlin(0.1, 10, 0, 1).clip(0, 1);
 					~eqSynths[trackIdx].set((key ++ "Q").asSymbol, val);
 				});
-			knQ = Knob(col, 151@38)
+			knQ = Knob(col, w@44)
 				.value_(p[(key ++ "Q").asSymbol].linlin(0.1, 10, 0, 1).clip(0, 1))
 				.action_({ |k|
 					var val = k.value.linlin(0, 1, 0.1, 10);
@@ -789,16 +792,17 @@ s.waitForBoot({
 					~eqSynths[trackIdx].set((key ++ "Q").asSymbol, val);
 				});
 
-			UserView(col, 151@4).canFocus_(false);
+			UserView(col, w@4).canFocus_(false);
 
-			nbFreq = NumberBox(col, 151@18).value_(p[(key ++ "Freq").asSymbol]).decimals_(1).clipLo_(freqMin).clipHi_(freqMax)
+			StaticText(col, w@12).string_("FREQ").font_(Font(size: 8)).align_(\center);
+			nbFreq = NumberBox(col, w@18).value_(p[(key ++ "Freq").asSymbol]).decimals_(1).clipLo_(freqMin).clipHi_(freqMax)
 				.action_({ |nb|
 					var val = nb.value.clip(freqMin, freqMax);
 					p[(key ++ "Freq").asSymbol] = val;
 					knFreq.value = val.linlin(freqMin, freqMax, 0, 1).clip(0, 1);
 					~eqSynths[trackIdx].set((key ++ "Freq").asSymbol, val);
 				});
-			knFreq = Knob(col, 151@38)
+			knFreq = Knob(col, w@44)
 				.value_(p[(key ++ "Freq").asSymbol].linlin(freqMin, freqMax, 0, 1).clip(0, 1))
 				.action_({ |k|
 					var val = k.value.linlin(0, 1, freqMin, freqMax);
