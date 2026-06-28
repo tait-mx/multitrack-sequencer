@@ -729,7 +729,7 @@ s.waitForBoot({
 	/////////////////////////////////////////////////////////////////
 
 	~openEQWindow = { |trackIdx|
-		var eqWin, eqCurve, freqSliders, gainSliders, qSliders, bypassBtn, resetBtn, bottomRow, makeBandRow;
+		var eqWin, freqSliders, gainSliders, qSliders, bypassBtn, resetBtn, bottomRow, makeBandRow;
 		var p = ~eqParams[trackIdx];
 		var winTitle = "EQ - " + ~trackLabels[trackIdx].string;
 
@@ -738,119 +738,8 @@ s.waitForBoot({
 			~eqWindows[trackIdx].close;
 		};
 
-		eqWin = Window(winTitle, Rect(100, 100, 520, 420)).front;
+		eqWin = Window(winTitle, Rect(100, 100, 520, 220)).front;
 		eqWin.view.decorator = FlowLayout(eqWin.view.bounds, 10@10, 5@5);
-
-		// EQ curve display
-		eqCurve = UserView(eqWin, 500@200)
-			.background_(Color.grey(0.15))
-			.drawFunc_({ |view|
-				var w = view.bounds.width;
-				var h = view.bounds.height;
-				var margin = 40;
-				var drawW = w - (margin * 2);
-				var drawH = h - (margin * 2);
-				var freqMin = 20, freqMax = 20000;
-				var dbMin = -24, dbMax = 24;
-				var numPoints = 300;
-				var freqRange = freqMax / freqMin;
-				var y0 = margin + (1 - (0 - dbMin) / (dbMax - dbMin)) * drawH;
-				var points = Array.newClear(numPoints);
-				var lowGain = p[\lowGain], lowFreq = p[\lowFreq], lowQ = p[\lowQ];
-				var midGain = p[\midGain], midFreq = p[\midFreq], midQ = p[\midQ];
-				var highGain = p[\highGain], highFreq = p[\highFreq], highQ = p[\highQ];
-
-				// Background
-				Pen.fillColor = Color.grey(0.18);
-				Pen.fillRect(view.bounds);
-
-				// Grid
-				Pen.color = Color.grey(0.45);
-				// Horizontal grid lines
-				(-24..24).select({ |db| db % 6 == 0 }).do({ |db|
-					var y = margin + (1 - (db - dbMin) / (dbMax - dbMin)) * drawH;
-					Pen.line(Point(margin, y), Point(w - margin, y));
-				});
-				// Vertical grid lines (frequency markers)
-				[20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000].do({ |f|
-					var x = margin + ((f / freqMin).log / freqRange.log) * drawW;
-					Pen.line(Point(x, margin), Point(x, h - margin));
-				});
-				Pen.stroke;
-
-				// Center line at 0 dB
-				Pen.color = Color.grey(0.6);
-				Pen.line(Point(margin, y0), Point(w - margin, y0));
-				Pen.stroke;
-
-				// Labels
-				Pen.color = Color.grey(0.6);
-				Pen.font = Font(size: 8);
-				[20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000].do({ |f|
-					var x = margin + ((f / freqMin).log / freqRange.log) * drawW;
-					var label = if(f >= 1000) { (f/1000).asInteger.asString ++ "k" } { f.asString };
-					Pen.stringAtPoint(label, Point(x - 8, h - margin + 5));
-				});
-				[-24, -12, 0, 12, 24].do({ |db|
-					var y = margin + (1 - (db - dbMin) / (dbMax - dbMin)) * drawH;
-					Pen.stringAtPoint(db.asString, Point(2, y - 5));
-				});
-
-				// Compute and draw EQ curve
-
-				numPoints.do({ |j|
-					var f = freqMin * (freqRange ** (j / (numPoints - 1)));
-					var db = 0.0;
-					var ratio, nr, bell, x, y;
-
-					// Low shelf contribution
-					if(lowGain != 0) {
-						ratio = f / lowFreq;
-						db = db + (lowGain * 0.5 * (1 + tanh(2.2 * ratio.log / lowQ.max(0.1))));
-					};
-
-					// Mid peaking contribution
-					if(midGain != 0) {
-						ratio = f / midFreq;
-						nr = ratio.log / midQ.max(0.1);
-						bell = exp(-4 * nr * nr);
-						db = db + (midGain * bell);
-					};
-
-					// High shelf contribution
-					if(highGain != 0) {
-						ratio = f / highFreq;
-						db = db + (highGain * 0.5 * (1 - tanh(2.2 * ratio.log / highQ.max(0.1))));
-					};
-
-					db = db.clip(dbMin, dbMax);
-					x = margin + ((f / freqMin).log / freqRange.log) * drawW;
-					y = margin + (1 - (db - dbMin) / (dbMax - dbMin)) * drawH;
-					points[j] = Point(x, y);
-				});
-
-				// Draw filled curve
-				Pen.color = Color(0.3, 0.6, 0.9, 0.4);
-				Pen.moveTo(Point(margin, y0));
-				points.do({ |pt| Pen.lineTo(pt) });
-				Pen.lineTo(Point(w - margin, y0));
-				Pen.lineTo(Point(margin, y0));
-				Pen.fill;
-
-				// Draw curve line
-				Pen.color = Color(0.4, 0.8, 1.0);
-				Pen.width = 3;
-				Pen.moveTo(points[0]);
-				points[1..].do({ |pt| Pen.lineTo(pt) });
-				Pen.stroke;
-
-				// Bypass indicator
-				if(p[\bypass]) {
-					Pen.color = Color.red(0.8);
-					Pen.font = Font(size: 18, bold: true);
-					Pen.stringAtPoint("BYPASSED", Point(w / 2 - 45, h / 2 - 10));
-				};
-			});
 
 		// --- Band controls ---
 		// Helper to create a control row for one band
@@ -872,7 +761,7 @@ s.waitForBoot({
 					p[(dictKey ++ "Freq").asSymbol] = val;
 					freqDisp.value = val.round(1);
 					~eqSynths[trackIdx].set((dictKey ++ "Freq").asSymbol, val);
-					eqCurve.refresh;
+	
 				});
 			freqDisp = NumberBox(row, 45@22).value_(p[(dictKey ++ "Freq").asSymbol]).decimals_(1).clipLo_(freqMin).clipHi_(freqMax)
 				.action_({ |nb|
@@ -880,7 +769,7 @@ s.waitForBoot({
 					p[(dictKey ++ "Freq").asSymbol] = val;
 					freqSl.value = val.linlin(freqMin, freqMax, 0, 1).clip(0, 1);
 					~eqSynths[trackIdx].set((dictKey ++ "Freq").asSymbol, val);
-					eqCurve.refresh;
+	
 				});
 
 			// Gain slider
@@ -892,7 +781,7 @@ s.waitForBoot({
 					p[(dictKey ++ "Gain").asSymbol] = val;
 					gainDisp.value = val.round(0.1);
 					~eqSynths[trackIdx].set((dictKey ++ "Gain").asSymbol, val);
-					eqCurve.refresh;
+	
 				});
 			gainDisp = NumberBox(row, 45@22).value_(p[(dictKey ++ "Gain").asSymbol]).decimals_(1).clipLo_(-24).clipHi_(24)
 				.action_({ |nb|
@@ -900,7 +789,7 @@ s.waitForBoot({
 					p[(dictKey ++ "Gain").asSymbol] = val;
 					gainSl.value = val.linlin(-24, 24, 0, 1).clip(0, 1);
 					~eqSynths[trackIdx].set((dictKey ++ "Gain").asSymbol, val);
-					eqCurve.refresh;
+	
 				});
 
 			// Q slider
@@ -912,7 +801,7 @@ s.waitForBoot({
 					p[(dictKey ++ "Q").asSymbol] = val;
 					qDisp.value = val.round(0.01);
 					~eqSynths[trackIdx].set((dictKey ++ "Q").asSymbol, val);
-					eqCurve.refresh;
+	
 				});
 			qDisp = NumberBox(row, 45@22).value_(p[(dictKey ++ "Q").asSymbol]).decimals_(2).clipLo_(0.1).clipHi_(10)
 				.action_({ |nb|
@@ -920,7 +809,7 @@ s.waitForBoot({
 					p[(dictKey ++ "Q").asSymbol] = val;
 					qSl.value = val.linlin(0.1, 10, 0, 1).clip(0, 1);
 					~eqSynths[trackIdx].set((dictKey ++ "Q").asSymbol, val);
-					eqCurve.refresh;
+	
 				});
 
 			[freqSl, gainSl, qSl, freqDisp, gainDisp, qDisp];
@@ -943,7 +832,7 @@ s.waitForBoot({
 			.action_({ |b|
 				p[\bypass] = (b.value == 1);
 				~eqSynths[trackIdx].set(\bypass, b.value);
-				eqCurve.refresh;
+
 				~eqButtons[trackIdx].value = b.value;
 			});
 
@@ -962,7 +851,7 @@ s.waitForBoot({
 				);
 				bypassBtn.value = 0;
 				~eqButtons[trackIdx].value = 0;
-				eqCurve.refresh;
+
 			});
 
 		// Track label sync (update window title if track renamed)
