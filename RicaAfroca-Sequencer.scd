@@ -729,7 +729,7 @@ s.waitForBoot({
 	/////////////////////////////////////////////////////////////////
 
 	~openEQWindow = { |trackIdx|
-		var eqWin, freqSliders, gainSliders, qSliders, bypassBtn, resetBtn, bottomRow, makeBandRow;
+		var eqWin, bypassBtn, resetBtn, bottomRow;
 		var p = ~eqParams[trackIdx];
 		var winTitle = "EQ - " + ~trackLabels[trackIdx].string;
 
@@ -738,87 +738,75 @@ s.waitForBoot({
 			~eqWindows[trackIdx].close;
 		};
 
-		eqWin = Window(winTitle, Rect(100, 100, 520, 220)).front;
+		eqWin = Window(winTitle, Rect(100, 100, 520, 290)).front;
 		eqWin.view.decorator = FlowLayout(eqWin.view.bounds, 10@10, 5@5);
 
-		// --- Band controls ---
-		// Helper to create a control row for one band
-		makeBandRow = { |bandName, dictKey, freqMin, freqMax, defaultFreq|
-			var row, freqSl, gainSl, qSl, freqDisp, gainDisp, qDisp;
+		// --- Band columns (Gain top, Q middle, Freq bottom) ---
+		[
+			["LOW", "low", 20, 500],
+			["MID", "mid", 200, 5000],
+			["HIGH", "high", 1000, 20000]
+		].do({ |cfg|
+			var name = cfg[0], key = cfg[1], freqMin = cfg[2], freqMax = cfg[3];
+			var col, knGain, knQ, knFreq, nbGain, nbQ, nbFreq;
 
-			row = CompositeView(eqWin, 500@30);
-			row.decorator = FlowLayout(row.bounds, 2@0, 2@0);
+			col = CompositeView(eqWin, 155@230);
+			col.decorator = FlowLayout(col.bounds, 2@4, 2@2);
 
-			// Band label
-			StaticText(row, 40@28).string_(bandName).font_(Font(size: 11, bold: true)).align_(\center);
+			StaticText(col, 151@18).string_(name).font_(Font(size: 11, bold: true)).align_(\center);
 
-			// Freq slider
-			StaticText(row, 25@28).string_("F").font_(Font(size: 8)).align_(\right);
-			freqSl = Slider(row, 80@22)
-				.value_(p[(dictKey ++ "Freq").asSymbol].linlin(freqMin, freqMax, 0, 1).clip(0, 1))
-				.action_({ |sl|
-					var val = sl.value.linlin(0, 1, freqMin, freqMax);
-					p[(dictKey ++ "Freq").asSymbol] = val;
-					freqDisp.value = val.round(1);
-					~eqSynths[trackIdx].set((dictKey ++ "Freq").asSymbol, val);
-	
-				});
-			freqDisp = NumberBox(row, 45@22).value_(p[(dictKey ++ "Freq").asSymbol]).decimals_(1).clipLo_(freqMin).clipHi_(freqMax)
-				.action_({ |nb|
-					var val = nb.value.clip(freqMin, freqMax);
-					p[(dictKey ++ "Freq").asSymbol] = val;
-					freqSl.value = val.linlin(freqMin, freqMax, 0, 1).clip(0, 1);
-					~eqSynths[trackIdx].set((dictKey ++ "Freq").asSymbol, val);
-	
-				});
-
-			// Gain slider
-			StaticText(row, 25@28).string_("G").font_(Font(size: 8)).align_(\right);
-			gainSl = Slider(row, 80@22)
-				.value_(p[(dictKey ++ "Gain").asSymbol].linlin(-24, 24, 0, 1).clip(0, 1))
-				.action_({ |sl|
-					var val = sl.value.linlin(0, 1, -24, 24);
-					p[(dictKey ++ "Gain").asSymbol] = val;
-					gainDisp.value = val.round(0.1);
-					~eqSynths[trackIdx].set((dictKey ++ "Gain").asSymbol, val);
-	
-				});
-			gainDisp = NumberBox(row, 45@22).value_(p[(dictKey ++ "Gain").asSymbol]).decimals_(1).clipLo_(-24).clipHi_(24)
+			nbGain = NumberBox(col, 151@18).value_(p[(key ++ "Gain").asSymbol]).decimals_(1).clipLo_(-24).clipHi_(24)
 				.action_({ |nb|
 					var val = nb.value.clip(-24, 24);
-					p[(dictKey ++ "Gain").asSymbol] = val;
-					gainSl.value = val.linlin(-24, 24, 0, 1).clip(0, 1);
-					~eqSynths[trackIdx].set((dictKey ++ "Gain").asSymbol, val);
-	
+					p[(key ++ "Gain").asSymbol] = val;
+					knGain.value = val.linlin(-24, 24, 0, 1).clip(0, 1);
+					~eqSynths[trackIdx].set((key ++ "Gain").asSymbol, val);
+				});
+			knGain = Knob(col, 151@38)
+				.value_(p[(key ++ "Gain").asSymbol].linlin(-24, 24, 0, 1).clip(0, 1))
+				.action_({ |k|
+					var val = k.value.linlin(0, 1, -24, 24);
+					p[(key ++ "Gain").asSymbol] = val;
+					nbGain.value = val.round(0.1);
+					~eqSynths[trackIdx].set((key ++ "Gain").asSymbol, val);
 				});
 
-			// Q slider
-			StaticText(row, 25@28).string_("Q").font_(Font(size: 8)).align_(\right);
-			qSl = Slider(row, 60@22)
-				.value_(p[(dictKey ++ "Q").asSymbol].linlin(0.1, 10, 0, 1).clip(0, 1))
-				.action_({ |sl|
-					var val = sl.value.linlin(0, 1, 0.1, 10);
-					p[(dictKey ++ "Q").asSymbol] = val;
-					qDisp.value = val.round(0.01);
-					~eqSynths[trackIdx].set((dictKey ++ "Q").asSymbol, val);
-	
-				});
-			qDisp = NumberBox(row, 45@22).value_(p[(dictKey ++ "Q").asSymbol]).decimals_(2).clipLo_(0.1).clipHi_(10)
+			UserView(col, 151@4).canFocus_(false);
+
+			nbQ = NumberBox(col, 151@18).value_(p[(key ++ "Q").asSymbol]).decimals_(2).clipLo_(0.1).clipHi_(10)
 				.action_({ |nb|
 					var val = nb.value.clip(0.1, 10);
-					p[(dictKey ++ "Q").asSymbol] = val;
-					qSl.value = val.linlin(0.1, 10, 0, 1).clip(0, 1);
-					~eqSynths[trackIdx].set((dictKey ++ "Q").asSymbol, val);
-	
+					p[(key ++ "Q").asSymbol] = val;
+					knQ.value = val.linlin(0.1, 10, 0, 1).clip(0, 1);
+					~eqSynths[trackIdx].set((key ++ "Q").asSymbol, val);
+				});
+			knQ = Knob(col, 151@38)
+				.value_(p[(key ++ "Q").asSymbol].linlin(0.1, 10, 0, 1).clip(0, 1))
+				.action_({ |k|
+					var val = k.value.linlin(0, 1, 0.1, 10);
+					p[(key ++ "Q").asSymbol] = val;
+					nbQ.value = val.round(0.01);
+					~eqSynths[trackIdx].set((key ++ "Q").asSymbol, val);
 				});
 
-			[freqSl, gainSl, qSl, freqDisp, gainDisp, qDisp];
-		};
+			UserView(col, 151@4).canFocus_(false);
 
-		// Create 3 band rows
-		makeBandRow.value("LOW", "low", 20, 500, 200);
-		makeBandRow.value("MID", "mid", 200, 5000, 1000);
-		makeBandRow.value("HIGH", "high", 1000, 20000, 5000);
+			nbFreq = NumberBox(col, 151@18).value_(p[(key ++ "Freq").asSymbol]).decimals_(1).clipLo_(freqMin).clipHi_(freqMax)
+				.action_({ |nb|
+					var val = nb.value.clip(freqMin, freqMax);
+					p[(key ++ "Freq").asSymbol] = val;
+					knFreq.value = val.linlin(freqMin, freqMax, 0, 1).clip(0, 1);
+					~eqSynths[trackIdx].set((key ++ "Freq").asSymbol, val);
+				});
+			knFreq = Knob(col, 151@38)
+				.value_(p[(key ++ "Freq").asSymbol].linlin(freqMin, freqMax, 0, 1).clip(0, 1))
+				.action_({ |k|
+					var val = k.value.linlin(0, 1, freqMin, freqMax);
+					p[(key ++ "Freq").asSymbol] = val;
+					nbFreq.value = val.round(1);
+					~eqSynths[trackIdx].set((key ++ "Freq").asSymbol, val);
+				});
+		});
 
 		eqWin.view.decorator.nextLine;
 
