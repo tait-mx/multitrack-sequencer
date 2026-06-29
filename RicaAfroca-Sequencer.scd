@@ -507,7 +507,7 @@ s.waitForBoot({
 				if(data[\currentSongIdx].notNil) {
 					~currentSongIdx = data[\currentSongIdx];
 					if(~currentSongIdx >= 0) {
-						~chorusRefBpm = data[\chorusRefBpm] ?? ~cancionRefBpms[~currentSongIdx];
+						~chorusRefBpm = data[\chorusRefBpm] ?? (~cancionRefBpms[~currentSongIdx] ?? ~chorusRefBpm ?? 105);
 						~loadChorusFolder.value(~carpetasCanciones[~currentSongIdx]);
 						~tempoRatioBus.set((~tempo.tempo * 60) / ~chorusRefBpm);
 					};
@@ -578,7 +578,7 @@ s.waitForBoot({
 	~peakBus = Bus.control(s, 1);
 	~trackPeakBuses = Array.fill(~numTracks, { Bus.control(s, 1) });
 	~tempoRatioBus = Bus.control(s, 1);
-	~chorusRefBpm = ~cancionRefBpms[~currentSongIdx];
+	~chorusRefBpm = (~cancionRefBpms[~currentSongIdx] ?? ~chorusRefBpm ?? 105);
 	~tempoRatioBus.set(120 / ~chorusRefBpm);
 	~chorusGroup = Group.new(s);
 
@@ -956,14 +956,14 @@ s.waitForBoot({
 
 	win.view.decorator.nextLine;
 
-	Button(win, 30@30).states_([["-", Color.black, Color.grey(0.8)]]).action_({ var newBpm = (~tempo.tempo * 60) - 0.5; ~tempo.tempo = newBpm / 60; bpmDisplay.value = newBpm; tempoSlid.value = newBpm.linlin(60, 200, 0, 1); 	~tempoRatioBus.set(newBpm / ~cancionRefBpms[~currentSongIdx]); }).canFocus_(false);
+	Button(win, 30@30).states_([["-", Color.black, Color.grey(0.8)]]).action_({ var newBpm = (~tempo.tempo * 60) - 0.5; ~tempo.tempo = newBpm / 60; bpmDisplay.value = newBpm; tempoSlid.value = newBpm.linlin(60, 200, 0, 1); 	~tempoRatioBus.set(newBpm / (~cancionRefBpms[~currentSongIdx] ?? ~chorusRefBpm ?? 105)); }).canFocus_(false);
 	bpmDisplay = NumberBox(win, 60@30).value_((~tempo.tempo * 60).round(0.1))
 	    .decimals_(1)
 		.background_(Color.black)
 		.normalColor_(Color.yellow)
 		.font_(Font(size: 18));
-	Button(win, 30@30).states_([["+", Color.black, Color.grey(0.8)]]).action_({ var newBpm = (~tempo.tempo * 60) + 0.5; ~tempo.tempo = newBpm / 60; bpmDisplay.value = newBpm; tempoSlid.value = newBpm.linlin(60, 200, 0, 1); ~tempoRatioBus.set(newBpm / ~cancionRefBpms[~currentSongIdx]); }).canFocus_(false);
-	tempoSlid = Slider(win, 660@30).value_(~tempo.tempo.linlin(1, 3.3, 0, 1)).action_({ |s| var bpm = s.value.linlin(0, 1, 60, 200); ~tempo.tempo = bpm / 60; bpmDisplay.value = bpm; ~tempoRatioBus.set(bpm / ~cancionRefBpms[~currentSongIdx]); }).canFocus_(false);
+	Button(win, 30@30).states_([["+", Color.black, Color.grey(0.8)]]).action_({ var newBpm = (~tempo.tempo * 60) + 0.5; ~tempo.tempo = newBpm / 60; bpmDisplay.value = newBpm; tempoSlid.value = newBpm.linlin(60, 200, 0, 1); ~tempoRatioBus.set(newBpm / (~cancionRefBpms[~currentSongIdx] ?? ~chorusRefBpm ?? 105)); }).canFocus_(false);
+	tempoSlid = Slider(win, 660@30).value_(~tempo.tempo.linlin(1, 3.3, 0, 1)).action_({ |s| var bpm = s.value.linlin(0, 1, 60, 200); ~tempo.tempo = bpm / 60; bpmDisplay.value = bpm; ~tempoRatioBus.set(bpm / (~cancionRefBpms[~currentSongIdx] ?? ~chorusRefBpm ?? 105)); }).canFocus_(false);
 
 	win.view.decorator.nextLine;
 
@@ -1351,8 +1351,8 @@ s.waitForBoot({
 					{
 						case
 						{ byte == $s } { startBtn.valueAction = 1 - startBtn.value }
-						{ byte == $p } { var newBpm = (~tempo.tempo * 60) + 0.5; ~tempo.tempo = newBpm / 60; bpmDisplay.value = newBpm; tempoSlid.value = newBpm.linlin(60, 200, 0, 1); ~tempoRatioBus.set(newBpm / ~cancionRefBpms[~currentSongIdx]); }
-						{ byte == $m } { var newBpm = (~tempo.tempo * 60) - 0.5; ~tempo.tempo = newBpm / 60; bpmDisplay.value = newBpm; tempoSlid.value = newBpm.linlin(60, 200, 0, 1); ~tempoRatioBus.set(newBpm / ~cancionRefBpms[~currentSongIdx]); }
+						{ byte == $p } { var newBpm = (~tempo.tempo * 60) + 0.5; ~tempo.tempo = newBpm / 60; bpmDisplay.value = newBpm; tempoSlid.value = newBpm.linlin(60, 200, 0, 1); ~tempoRatioBus.set(newBpm / (~cancionRefBpms[~currentSongIdx] ?? ~chorusRefBpm ?? 105)); }
+						{ byte == $m } { var newBpm = (~tempo.tempo * 60) - 0.5; ~tempo.tempo = newBpm / 60; bpmDisplay.value = newBpm; tempoSlid.value = newBpm.linlin(60, 200, 0, 1); ~tempoRatioBus.set(newBpm / (~cancionRefBpms[~currentSongIdx] ?? ~chorusRefBpm ?? 105)); }
 						{ byte == $v } { if(~seccionBtn.notNil) { ~seccionBtn.valueAction = 1 - ~seccionBtn.value; } };
 					}.defer;
 				};
