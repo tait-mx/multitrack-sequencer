@@ -1353,7 +1353,7 @@ s.waitForBoot({
 						{ byte == $s } { startBtn.valueAction = 1 - startBtn.value }
 						{ byte == $p } { var newBpm = (~tempo.tempo * 60) + 0.5; ~tempo.tempo = newBpm / 60; bpmDisplay.value = newBpm; tempoSlid.value = newBpm.linlin(60, 200, 0, 1); ~tempoRatioBus.set(newBpm / ~cancionRefBpms[~currentSongIdx]); }
 						{ byte == $m } { var newBpm = (~tempo.tempo * 60) - 0.5; ~tempo.tempo = newBpm / 60; bpmDisplay.value = newBpm; tempoSlid.value = newBpm.linlin(60, 200, 0, 1); ~tempoRatioBus.set(newBpm / ~cancionRefBpms[~currentSongIdx]); }
-						{ byte == $v } { if(~varButtons[5].notNil) { ~varButtons[5].valueAction = 1 - ~varButtons[5].value; } };
+						{ byte == $v } { if(~seccionBtn.notNil) { ~seccionBtn.valueAction = 1 - ~seccionBtn.value; } };
 					}.defer;
 				};
 				0.001.wait;
