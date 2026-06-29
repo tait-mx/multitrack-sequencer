@@ -16,8 +16,8 @@ try { ~chorusGroup.free };
 try { ~myPort.close };
 try { ~serialRoutine.stop };
 // Free all previously loaded buffers to avoid memory exhaustion
-try { ~samples.do(_.free) };
-try { ~samplesDictionary.do(_.do(_.free)) };
+try { ~samples.do({ |b| if(b.notNil and: { b.isAllocated }) { b.free } }) };
+try { ~samplesDictionary.do({ |arr| arr.do({ |b| if(b.notNil and: { b.isAllocated }) { b.free } }) }) };
 
 s.waitForBoot({
 
@@ -245,7 +245,7 @@ s.waitForBoot({
 		var files = (folderPath +/+ "*.wav").pathMatch.sort;
 		(1..8).do({ |i|
 			var key = "coro" ++ i;
-			if(~samplesDictionary[key].notNil) { ~samplesDictionary[key].do(_.free) };
+			if(~samplesDictionary[key].notNil) { ~samplesDictionary[key].do({ |b| if(b.notNil and: { b.isAllocated }) { b.free } }) };
 		});
 		if(files.size > 0) {
 			files.do({ |path, idx|
