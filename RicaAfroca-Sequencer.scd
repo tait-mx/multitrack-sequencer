@@ -15,9 +15,8 @@ Window.allWindows.do({ |w| if(w.name.contains("RicaAfroca")) { w.close } });
 try { ~chorusGroup.free };
 try { ~myPort.close };
 try { ~serialRoutine.stop };
-// Free all previously loaded buffers to avoid memory exhaustion
-try { ~samples.do({ |b| if(b.notNil and: { b.isAllocated }) { b.free } }) };
-try { ~samplesDictionary.do({ |arr| arr.do({ |b| if(b.notNil and: { b.isAllocated }) { b.free } }) }) };
+// Discard old buffer references (server was killed above, buffers already freed)
+~samples = nil;
 
 s.waitForBoot({
 
@@ -245,7 +244,7 @@ s.waitForBoot({
 		var files = (folderPath +/+ "*.wav").pathMatch.sort;
 		(1..8).do({ |i|
 			var key = "coro" ++ i;
-			if(~samplesDictionary[key].notNil) { ~samplesDictionary[key].do({ |b| if(b.notNil and: { b.isAllocated }) { b.free } }) };
+			if(~samplesDictionary[key].notNil) { ~samplesDictionary[key].do({ |b| if(b.notNil and: { b.server.serverRunning }) { b.free } }) };
 		});
 		if(files.size > 0) {
 			files.do({ |path, idx|
