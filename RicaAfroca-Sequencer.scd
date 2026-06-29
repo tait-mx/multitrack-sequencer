@@ -906,13 +906,13 @@ s.waitForBoot({
 
 	win.view.decorator.nextLine;
 
-	Button(win, 30@30).states_([["-", Color.black, Color.grey(0.8)]]).action_({ var newBpm = (~tempo.tempo * 60) - 1; ~tempo.tempo = newBpm / 60; bpmDisplay.value = newBpm; tempoSlid.value = newBpm.linlin(60, 200, 0, 1); 	~tempoRatioBus.set(newBpm / ~cancionRefBpms[~currentSongIdx]); }).canFocus_(false);
+	Button(win, 30@30).states_([["-", Color.black, Color.grey(0.8)]]).action_({ var newBpm = (~tempo.tempo * 60) - 0.5; ~tempo.tempo = newBpm / 60; bpmDisplay.value = newBpm; tempoSlid.value = newBpm.linlin(60, 200, 0, 1); 	~tempoRatioBus.set(newBpm / ~cancionRefBpms[~currentSongIdx]); }).canFocus_(false);
 	bpmDisplay = NumberBox(win, 60@30).value_((~tempo.tempo * 60).round(0.1))
 	    .decimals_(1)
 		.background_(Color.black)
 		.normalColor_(Color.yellow)
 		.font_(Font(size: 18));
-	Button(win, 30@30).states_([["+", Color.black, Color.grey(0.8)]]).action_({ var newBpm = (~tempo.tempo * 60) + 1; ~tempo.tempo = newBpm / 60; bpmDisplay.value = newBpm; tempoSlid.value = newBpm.linlin(60, 200, 0, 1); ~tempoRatioBus.set(newBpm / ~cancionRefBpms[~currentSongIdx]); }).canFocus_(false);
+	Button(win, 30@30).states_([["+", Color.black, Color.grey(0.8)]]).action_({ var newBpm = (~tempo.tempo * 60) + 0.5; ~tempo.tempo = newBpm / 60; bpmDisplay.value = newBpm; tempoSlid.value = newBpm.linlin(60, 200, 0, 1); ~tempoRatioBus.set(newBpm / ~cancionRefBpms[~currentSongIdx]); }).canFocus_(false);
 	tempoSlid = Slider(win, 660@30).value_(~tempo.tempo.linlin(1, 3.3, 0, 1)).action_({ |s| var bpm = s.value.linlin(0, 1, 60, 200); ~tempo.tempo = bpm / 60; bpmDisplay.value = bpm; ~tempoRatioBus.set(bpm / ~cancionRefBpms[~currentSongIdx]); }).canFocus_(false);
 
 	win.view.decorator.nextLine;
@@ -1235,8 +1235,8 @@ s.waitForBoot({
 					{
 						case
 						{ byte == $s } { startBtn.valueAction = 1 - startBtn.value }
-						{ byte == $p } { var newBpm = (~tempo.tempo * 60) + 1; ~tempo.tempo = newBpm / 60; bpmDisplay.value = newBpm; tempoSlid.value = newBpm.linlin(60, 200, 0, 1); ~tempoRatioBus.set(newBpm / ~cancionRefBpms[~currentSongIdx]); }
-						{ byte == $m } { var newBpm = (~tempo.tempo * 60) - 1; ~tempo.tempo = newBpm / 60; bpmDisplay.value = newBpm; tempoSlid.value = newBpm.linlin(60, 200, 0, 1); ~tempoRatioBus.set(newBpm / ~cancionRefBpms[~currentSongIdx]); }
+						{ byte == $p } { var newBpm = (~tempo.tempo * 60) + 0.5; ~tempo.tempo = newBpm / 60; bpmDisplay.value = newBpm; tempoSlid.value = newBpm.linlin(60, 200, 0, 1); ~tempoRatioBus.set(newBpm / ~cancionRefBpms[~currentSongIdx]); }
+						{ byte == $m } { var newBpm = (~tempo.tempo * 60) - 0.5; ~tempo.tempo = newBpm / 60; bpmDisplay.value = newBpm; tempoSlid.value = newBpm.linlin(60, 200, 0, 1); ~tempoRatioBus.set(newBpm / ~cancionRefBpms[~currentSongIdx]); }
 						{ byte == $v } { if(~varButtons[5].notNil) { ~varButtons[5].valueAction = 1 - ~varButtons[5].value; } };
 					}.defer;
 				};
