@@ -67,7 +67,10 @@ s.waitForBoot({
 	~currentSongIdx = 0;
 
 	// Logic arrays
-	~rhythmIndices = Array.fill(~numTracks, { 0 });
+	~temaIndices = Array.fill(~numTracks, { 0 });
+	~montunoIndices = Array.fill(~numTracks, { 0 });
+	~rhythmIndices = ~temaIndices;
+	~seccion = \tema;
 	~rhythms = Array.fill(~numTracks, { |i|
 		if(i == 7) { ~chorus[0].drop(1)[0][1] } { [[0.5, 0, 1], [0.5, 0, 1]] }
 	});
@@ -150,8 +153,8 @@ s.waitForBoot({
 		["PaloYukaGolpe", [[0.75,0,1], [0.25,0,1], [-1,0,0]]],
 		["GolpeGuaguanco", [[1,"llcp",0.25], [0.5,"llcp",0.25], [0.5,"llap",1],
 				            [1,"llcp",0.25], [0.5,"llcp",0.25], [0.5,"llap",1]]],
-		["GolpeMatancera", [[0.75,1,0.35], [0.25,1,0.35], [0.5,1,0.35], [0.5,3,1],
-				            [0.75,1,0.35], [0.25,1,0.35], [0.5,1,0.35], [0.5,3,1]]],
+		["GolpeMatancera", [[0.75,"llcmf",0.35], [0.25,"llcmf",0.35], [0.5,"llcmf",0.35], [0.5,"llamf",1]]],
+		["GolpeMontunoMatancera", [[0.75,0,0], [0.25,"llcf",1], [1,"llcf",1], [2,"llcf",1]]],
 		["GolpeCol", [[2/3,1,0.43], [1/3,9,1],  [1/3,1,0.43], [1/3,3,1], [1/3,3,1],
 				      [2/3,1,0.43], [1/3,9,1], [1/3,1,0.43], [1/3,3,1], [1/3,3,1]]],
 		["GolpePalo", [[1/3,1,0], [2/3,"lltmp",1],  [1/3,9,0], [2/3,"llaf",1.5]]],
@@ -423,6 +426,8 @@ s.waitForBoot({
 		data.put(\pitches, Array.fill(~numTracks, { |i| ~pitches[i] }));
 		data.put(\bpm, ~tempo.tempo * 60);
 		data.put(\indices, Array.fill(~numTracks, { |i| ~rhythmIndices[i] }));
+		data.put(\montunoIndices, Array.fill(~numTracks, { |i| ~montunoIndices[i] }));
+		data.put(\seccion, ~seccion);
 		data.put(\volumes, Array.fill(~numTracks, { |i| ~volumes[i] }));
 		data.put(\sampleIndices, Array.fill(~numTracks, { |i| ~sampleIndices[i] }));
 		data.put(\humTime, Array.fill(~numTracks, { |i| ~humanizeTime[i] }));
@@ -464,7 +469,10 @@ s.waitForBoot({
 			~mutes = Array.fill(~numTracks, { |i| data[\mutes].wrapAt(i) ?? false });
 			~solos = Array.fill(~numTracks, { |i| (data[\solos] ?? { [] }).wrapAt(i) ?? false });
 			~pitches = Array.fill(~numTracks, { |i| data[\pitches].wrapAt(i) ?? 60 });
-			~rhythmIndices = Array.fill(~numTracks, { |i| data[\indices].wrapAt(i) ?? 0 });
+			~temaIndices = Array.fill(~numTracks, { |i| data[\indices].wrapAt(i) ?? 0 });
+			~montunoIndices = Array.fill(~numTracks, { |i| (data[\montunoIndices] ?? data[\indices]).wrapAt(i) ?? 0 });
+			~seccion = data[\seccion] ?? \tema;
+			~rhythmIndices = if(~seccion == \montuno) { ~montunoIndices } { ~temaIndices };
 			~volumes = Array.fill(~numTracks, { |i| data[\volumes].wrapAt(i) ?? 0.7 });
 			~sampleIndices = Array.fill(~numTracks, { |i| data[\sampleIndices].wrapAt(i) ?? i });
 			~humanizeTime = Array.fill(~numTracks, { |i| data[\humTime].wrapAt(i) ?? 0.0 });
@@ -1149,6 +1157,36 @@ s.waitForBoot({
 	StaticText(masterCol, 140@12).string_("Amp").font_(Font(size:8));
 	Slider(masterCol, 140@15).value_(0.0).action_({ |s| ~numTracks.do({ |i| ~humanizeAmp[i] = s.value.linlin(0, 1, 0, 0.3); if(~humAmpSliders[i].notNil) { {~humAmpSliders[i].value = s.value}.defer }; }); });
 	UserView(masterCol, 140@4).canFocus_(false);
+
+	// SECTION TOGGLE (TEMA / MONTUNO)
+	~seccionBtn = Button(masterCol, 140@30)
+		.states_([["TEMA", Color.black, Color.green], ["MONTUNO", Color.white, Color.blue(0.6)]])
+		.value_(0)
+		.action_({ |b|
+			~numTracks.do({ |i|
+				var newIdx;
+				if(b.value == 1) {
+					~rhythmIndices = ~montunoIndices;
+					~seccion = \montuno;
+				} {
+					~rhythmIndices = ~temaIndices;
+					~seccion = \tema;
+				};
+				newIdx = ~rhythmIndices[i];
+				~rhythmMenus[i].value = newIdx;
+				if(i == 7) {
+					if(~currentSongIdx >= 0) {
+						~rhythms[i] = ~chorus[~currentSongIdx].drop(1).wrapAt(newIdx)[1] ?? [[4,0,0]];
+					} {
+						~rhythms[i] = [[4,0,0]];
+					};
+				} {
+					~rhythms[i] = ~rhythmAndNames.wrapAt(newIdx)[1] ?? [[0.5,0,1],[0.5,0,1]];
+				};
+			});
+		})
+		.canFocus_(false);
+
 	StaticText(masterCol, 140@20).string_("Peak / dB / Master").align_(\center).font_(Font(size:10));
 
 	// =========================================================================
