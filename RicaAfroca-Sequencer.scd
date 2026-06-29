@@ -71,6 +71,7 @@ s.waitForBoot({
 	~montunoIndices = Array.fill(~numTracks, { 0 });
 	~rhythmIndices = ~temaIndices;
 	~seccion = \tema;
+	~temaBpm = 120;
 	~rhythms = Array.fill(~numTracks, { |i|
 		if(i == 7) { ~chorus[0].drop(1)[0][1] } { [[0.5, 0, 1], [0.5, 0, 1]] }
 	});
@@ -424,7 +425,8 @@ s.waitForBoot({
 		data.put(\mutes, Array.fill(~numTracks, { |i| ~mutes[i] }));
 		data.put(\solos, Array.fill(~numTracks, { |i| ~solos[i] }));
 		data.put(\pitches, Array.fill(~numTracks, { |i| ~pitches[i] }));
-		data.put(\bpm, ~tempo.tempo * 60);
+		if(~seccion == \tema) { ~temaBpm = ~tempo.tempo * 60 };
+		data.put(\temaBpm, ~temaBpm);
 		data.put(\indices, Array.fill(~numTracks, { |i| ~rhythmIndices[i] }));
 		data.put(\montunoIndices, Array.fill(~numTracks, { |i| ~montunoIndices[i] }));
 		data.put(\seccion, ~seccion);
@@ -458,11 +460,12 @@ s.waitForBoot({
 		var data = Object.readArchive(path);
 		if(data.notNil) {
 			currentPresetName = name;
-			~tempo.tempo = (data[\bpm] ?? {120}) / 60;
+			~temaBpm = data[\temaBpm] ?? data[\bpm] ?? 120;
+			~tempo.tempo = ~temaBpm / 60;
 			if(data[\currentSongIdx].notNil) {
-				~tempoRatioBus.set((data[\bpm] ?? {120}) / (data[\chorusRefBpm] ?? ~cancionRefBpms[data[\currentSongIdx]]));
+				~tempoRatioBus.set(~temaBpm / (data[\chorusRefBpm] ?? ~cancionRefBpms[data[\currentSongIdx]]));
 			} {
-				~tempoRatioBus.set((data[\bpm] ?? {120}) / ~chorusRefBpm);
+				~tempoRatioBus.set(~temaBpm / ~chorusRefBpm);
 			};
 
 			~rhythms = Array.fill(~numTracks, { |i| data[\rhythms].wrapAt(i) ?? [[0.5, 0, 1], [0.5, 0, 1]] });
@@ -1163,16 +1166,19 @@ s.waitForBoot({
 		.states_([["TEMA", Color.black, Color.green], ["MONTUNO", Color.white, Color.blue(0.6)]])
 		.value_(0)
 		.action_({ |b|
+			if(b.value == 1) {
+				~rhythmIndices = ~montunoIndices;
+				~seccion = \montuno;
+			} {
+				~rhythmIndices = ~temaIndices;
+				~seccion = \tema;
+				~tempo.tempo = ~temaBpm / 60;
+				bpmDisplay.value = ~temaBpm;
+				tempoSlid.value = ~temaBpm.linlin(60, 200, 0, 1);
+				~tempoRatioBus.set(~temaBpm / ~cancionRefBpms[~currentSongIdx.max(0)]);
+			};
 			~numTracks.do({ |i|
-				var newIdx;
-				if(b.value == 1) {
-					~rhythmIndices = ~montunoIndices;
-					~seccion = \montuno;
-				} {
-					~rhythmIndices = ~temaIndices;
-					~seccion = \tema;
-				};
-				newIdx = ~rhythmIndices[i];
+				var newIdx = ~rhythmIndices[i];
 				~rhythmMenus[i].value = newIdx;
 				if(i == 7) {
 					if(~currentSongIdx >= 0) {
