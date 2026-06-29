@@ -92,6 +92,7 @@ s.waitForBoot({
 	~muteButtons = Array.newClear(~numTracks);
 	~soloButtons = Array.newClear(~numTracks);
 	~rhythmMenus = Array.newClear(~numTracks);
+	~pendingRhythmIndices = Array.fill(~numTracks, { nil });
 	~pitchSliders = Array.newClear(~numTracks);
 	~volSliders = Array.newClear(~numTracks);
 	~trackMeters = Array.newClear(~numTracks);
@@ -660,6 +661,28 @@ s.waitForBoot({
 	// ENGINE (EVENT-DRIVEN MATRIX PLAYER)
 	/////////////////////////////////////////////////////////////////
 
+	~scheduleRhythmChange = { |i, newIdx|
+		if(startBtn.value == 1) {
+			var nextBar = ~tempo.beats.roundUp(4);
+			~tempo.schedAbs(nextBar, {
+				~rhythmIndices[i] = newIdx;
+				~rhythms[i] = if(i == 7) {
+					if(~currentSongIdx >= 0) { ~chorus[~currentSongIdx].drop(1).wrapAt(newIdx)[1] } { [[4,0,0]] }
+				} {
+					~rhythmAndNames.wrapAt(newIdx)[1] ?? [[0.5,0,1],[0.5,0,1]]
+				};
+				nil;
+			});
+		} {
+			~rhythmIndices[i] = newIdx;
+			~rhythms[i] = if(i == 7) {
+				if(~currentSongIdx >= 0) { ~chorus[~currentSongIdx].drop(1).wrapAt(newIdx)[1] } { [[4,0,0]] }
+			} {
+				~rhythmAndNames.wrapAt(newIdx)[1] ?? [[0.5,0,1],[0.5,0,1]]
+			};
+		};
+	};
+
 	~numTracks.do({ |i|
 		Tdef( ("chan" ++ i).asSymbol, {
 			var step = 0;
@@ -964,7 +987,7 @@ s.waitForBoot({
 			});
 		~muteButtons[i] = Button(comp, 50@40).states_([["ON", Color.black, Color.green], ["MUTE", Color.white, Color.red]]).action_({ |b| ~mutes[i] = (b.value == 1); if(i == 7 && ~choirSynth.notNil) { ~choirSynth.set(\amp, if(b.value == 1) { 0 } { (~volumes[i] * ~masterVol).clip(0,2) }) }; });
 		~soloButtons[i] = Button(comp, 50@40).states_([["SOLO", Color.black, Color.yellow], ["SOLO", Color.white, Color.red(0.8)]]).action_({ |b| ~solos[i] = (b.value == 1); });
-		~rhythmMenus[i] = PopUpMenu(comp, 105@30).items_(if(i == 7) { if(~currentSongIdx >= 0) { ~chorus[~currentSongIdx].drop(1).collect({ |item| item[0] }) } { ["----"] } } { ~rhythmAndNames.collect({ |item| item[0] }) }).action_({ |m| ~rhythms[i] = if(i == 7) { if(~currentSongIdx >= 0) { ~chorus[~currentSongIdx].drop(1)[m.value][1] } { [[4,0,0]] } } { ~rhythmAndNames[m.value][1] }; ~rhythmIndices[i] = m.value; });
+		~rhythmMenus[i] = PopUpMenu(comp, 105@30).items_(if(i == 7) { if(~currentSongIdx >= 0) { ~chorus[~currentSongIdx].drop(1).collect({ |item| item[0] }) } { ["----"] } } { ~rhythmAndNames.collect({ |item| item[0] }) }).action_({ |m| ~scheduleRhythmChange.value(i, m.value); });
 		if(i != 7) {
 			~varButtons[i] = Button(comp, 105@40).states_([["VARIATION", Color.black, Color.grey(0.8)], ["QUEUED", Color.white, Color.red(0.6)]]).action_({ |b| ~varRequests[i] = (b.value == 1); });
 
