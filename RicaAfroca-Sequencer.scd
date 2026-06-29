@@ -1201,18 +1201,39 @@ s.waitForBoot({
 				~tempoRatioBus.set(~temaBpm / ~cancionRefBpms[~currentSongIdx.max(0)]);
 			};
 			~numTracks.do({ |i|
-				var newIdx = ~rhythmIndices[i];
-				~rhythmMenus[i].value = newIdx;
-				if(i == 7) {
-					if(~currentSongIdx >= 0) {
-						~rhythms[i] = ~chorus[~currentSongIdx].drop(1).wrapAt(newIdx)[1] ?? [[4,0,0]];
-					} {
-						~rhythms[i] = [[4,0,0]];
-					};
-				} {
-					~rhythms[i] = ~rhythmAndNames.wrapAt(newIdx)[1] ?? [[0.5,0,1],[0.5,0,1]];
-				};
+				~rhythmMenus[i].value = ~rhythmIndices[i];
 			});
+			if(startBtn.value == 1) {
+				var nextBar = ~tempo.beats.roundUp(4);
+				~tempo.schedAbs(nextBar, {
+					~numTracks.do({ |i|
+						var newIdx = ~rhythmIndices[i];
+						if(i == 7) {
+							if(~currentSongIdx >= 0) {
+								~rhythms[i] = ~chorus[~currentSongIdx].drop(1).wrapAt(newIdx)[1] ?? [[4,0,0]];
+							} {
+								~rhythms[i] = [[4,0,0]];
+							};
+						} {
+							~rhythms[i] = ~rhythmAndNames.wrapAt(newIdx)[1] ?? [[0.5,0,1],[0.5,0,1]];
+						};
+					});
+					nil;
+				});
+			} {
+				~numTracks.do({ |i|
+					var newIdx = ~rhythmIndices[i];
+					if(i == 7) {
+						if(~currentSongIdx >= 0) {
+							~rhythms[i] = ~chorus[~currentSongIdx].drop(1).wrapAt(newIdx)[1] ?? [[4,0,0]];
+						} {
+							~rhythms[i] = [[4,0,0]];
+						};
+					} {
+						~rhythms[i] = ~rhythmAndNames.wrapAt(newIdx)[1] ?? [[0.5,0,1],[0.5,0,1]];
+					};
+				});
+			};
 		})
 		.canFocus_(false);
 
