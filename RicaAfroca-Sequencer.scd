@@ -427,7 +427,7 @@ s.waitForBoot({
 		data.put(\pitches, Array.fill(~numTracks, { |i| ~pitches[i] }));
 		if(~seccion == \tema) { ~temaBpm = ~tempo.tempo * 60 };
 		data.put(\temaBpm, ~temaBpm);
-		data.put(\indices, Array.fill(~numTracks, { |i| ~rhythmIndices[i] }));
+		data.put(\indices, Array.fill(~numTracks, { |i| ~temaIndices[i] }));
 		data.put(\montunoIndices, Array.fill(~numTracks, { |i| ~montunoIndices[i] }));
 		data.put(\seccion, ~seccion);
 		data.put(\volumes, Array.fill(~numTracks, { |i| ~volumes[i] }));
