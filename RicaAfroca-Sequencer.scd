@@ -3,6 +3,7 @@
 RicaAfroca Sequencer - Pro Version 2.5 (8-Track Edition, Track 7 Choir)
 Bigger master humanize
 Arduino retry connect from GUI
+Matanceta montuno is triggering in all rhythms
 */
 (
 
@@ -157,8 +158,9 @@ s.waitForBoot({
 				            [1,"llcp",0.25], [0.5,"llcp",0.25], [0.5,"llap",1]]],
 		["GolpeMatancera", [[0.75,"llcmf",0.35], [0.25,"llcmf",0.35], [0.5,"llcmf",0.35], [0.5,"llamf",1]]],
 		["GolpeMontunoMatancera", [[0.75,0,0], [0.25,"llcf",1], [1,"llcf",1], [2,"llcf",1]]],
-		["GolpeCol", [[2/3,1,0.43], [1/3,9,1],  [1/3,1,0.43], [1/3,3,1], [1/3,3,1],
-				      [2/3,1,0.43], [1/3,9,1], [1/3,1,0.43], [1/3,3,1], [1/3,3,1]]],
+		["GolpeCol", [[2/3,"llcmf",0.43], [1/3,"llsmf",1],  [1/3,"llcmf",0.43], [1/3,"llamf",1], [1/3,"llamf",1]]],
+		["GolpeMontunoCol", [[2/3,"llcp",1], [1/3,"llcf",1],  [1,"llcp",1],
+				             [2/3,"llcp",1], [1/3,"llsmf",1], [1/3,"llcp",1], [2/3,"llaf",1]]],
 		["GolpePalo", [[1/3,1,0], [2/3,"lltmp",1],  [1/3,9,0], [2/3,"llaf",1.5]]],
 		["Yuka Golpe", [[1,1,0.43], [1,3,1]]],
 
@@ -179,7 +181,9 @@ s.waitForBoot({
 				                [15/32, 0, 0],  [9/32, "llaf", 1], [8/32, "llsp", 1]]],
 		["Llamador Yambu", [[0.25, 0, 0],  [0.25, "llsmp", 1],  [0.25, "llsmp", 1],  [0.25, "llsmp", 1],
 				            [0.25, 0, 0],  [0.25, "llsmp", 1],  [0.25, "llaf", 1],  [0.25, "llsmp", 1]]],
-		["Llamador Columbia", [[2/3,1,0.43], [1/3,3,1],  [1,3,1]]],
+		["Llamador Columbia", [[2/3,"llcmf",1], [1/3,"llamf",1],  [1,"llamf",1]]],
+		["LlamadorMontunoColumbia", [[2/3,"llcmp",1], [1/3,"lltp",1],  [1,"llaf",1],
+				                     [2/3,"llcmp",1], [1/3,"lltp",1],  [1,"llaf",1]]],
 		["Llamador Palo", [[2/3,"llaf",1.5], [1/3,"llsmp",1],  [1,"llsmp",1]]],
 		["Yuka Llamador", [[1,1,0.43], [0.5,1,0.43], [0.5,3,1]]],
 
