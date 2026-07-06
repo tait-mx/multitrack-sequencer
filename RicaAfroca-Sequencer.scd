@@ -1155,7 +1155,6 @@ s.waitForBoot({
 						choirSetFolder = if(sets[~choirSetIdx] == "Default") { nil } { sets[~choirSetIdx] };
 						~loadChorusFolder.value(songFolder, choirSetFolder, ~samplesDictionary);
 					});
-				~cancionMenu.value = 1; // Select first real song ("Ta Jose"), skip "----"
 				~nextChorusBtn = Button(comp, 105@30).states_([["NEXT", Color.black, Color.grey(0.8)]]).action_({
 					if(~currentSongIdx >= 0) {
 						var patterns = ~chorus[~currentSongIdx].drop(1);
@@ -1309,6 +1308,8 @@ s.waitForBoot({
 			};
 		};
 	});
+
+	~cancionMenu.value = 1; // Select first real song ("Ta Jose"), skip "----"
 
 	masterCol = CompositeView(win, 150@700).background_(Color.grey(0.6));
 	masterCol.decorator = FlowLayout(masterCol.bounds, 5@5, 5@5);
