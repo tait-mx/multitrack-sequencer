@@ -3,7 +3,6 @@
 RicaAfroca Sequencer - Pro Version 2.5 (8-Track Edition, Track 7 Choir)
 Bigger master humanize
 Arduino retry connect from GUI
-Matanceta montuno is triggering in all rhythms
 */
 (
 
@@ -50,7 +49,7 @@ s.waitForBoot({
 	// Chorus patterns (separated from rhythmAndNames)
 	~chorus = [
 	["Ta Jose",
-		["Coro1", [[2,0,0],[30,"coro1",1],[32,0,0]]], // Caminando yo venía
+		["Coro1", [[32,"coro1",1],[32,0,0]]], // Caminando yo venía
 		["Coro2", [[16,"coro2",1],[16,0,0]]],         // Estoy llamando un congo pa bailar bembé
 		["Coro3", [[2,0,0],[6,"coro3",1],[8,0,0]]],   // Llámalo con la tumba llámalo Ta José
 		["Coro4", [[2,0,0],[6,"coro4",1],[8,0,0]]],   // Eh eh Ta José todos me llaman Ta José
@@ -100,6 +99,8 @@ s.waitForBoot({
 	~trackLabels = Array.newClear(~numTracks);
 	~volDisplays = Array.newClear(~numTracks);
 	~varButtons = Array.newClear(~numTracks);
+	~choirSetIdx = 0;
+	~choirSetMenu = nil;
 	~humTimeSliders = Array.newClear(~numTracks);
 	~humPitchSliders = Array.newClear(~numTracks);
 	~humAmpSliders = Array.newClear(~numTracks);
@@ -137,7 +138,7 @@ s.waitForBoot({
 		["Clave4/4", [[0.75,2,1], [1,2,1], [0.7,2,1], [0.55,2,1], [1,2,1]]],
 		["ClaveMatanzas", [[0.75,2,1], [0.25,2,1], [0.75,2,1], [0.25,2,1], [0.5,2,1], [0.5,2,1], [1,2,1]]],
 		["Clave6/8", [[2/3,4,1], [3/3,4,1], [2/3,4,1], [2/3,4,1], [3/3,4,1]]],
-		["ClaveAfricana", [[2/3,4,1], [2/3,4,1], [1/3,4,1], [2/3,4,1], [2/3,4,1], [2/3,0,1], [1/3,0,1]]],
+		["ClaveAfricana", [[2/3,4,1], [2/3,4,1], [1/3,4,1], [2/3,4,1], [2/3,4,1], [2/3,4,1], [1/3,4,1]]],
 
 		// Catas
 		["Cata1", [[0.25,"cf",1], [0.5,"cf",1], [0.25,"cf",1], [0.25,"cf",1], [0.5,"cf",1], [0.25,"cf",1], [0.5,"cf",1], [0.5,"cf",1], [0.25,"cf",1], [0.5,"cf",1], [0.25,"cf",1]]],
@@ -156,12 +157,11 @@ s.waitForBoot({
 		["PaloYukaGolpe", [[0.75,0,1], [0.25,0,1], [-1,0,0]]],
 		["GolpeGuaguanco", [[1,"llcp",0.25], [0.5,"llcp",0.25], [0.5,"llap",1],
 				            [1,"llcp",0.25], [0.5,"llcp",0.25], [0.5,"llap",1]]],
-		["GolpeMatancera", [[0.75,"llcmf",0.35], [0.25,"llcmf",0.35], [0.5,"llcmf",0.35], [0.5,"llamf",1]]],
-		["GolpeMontunoMatancera", [[0.75,0,0], [0.25,"llcf",1], [1,"llcf",1], [2,"llcf",1]]],
+
 		["GolpeCol", [[2/3,"llcmf",0.43], [1/3,"llsmf",1],  [1/3,"llcmf",0.43], [1/3,"llamf",1], [1/3,"llamf",1]]],
 		["GolpeMontunoCol", [[2/3,"llcp",1], [1/3,"llcf",1],  [1,"llcp",1],
 				             [2/3,"llcp",1], [1/3,"llsmf",1], [1/3,"llcp",1], [2/3,"llaf",1]]],
-		["GolpePalo", [[1/3,1,0], [2/3,"lltmp",1],  [1/3,9,0], [2/3,"llaf",1.5]]],
+		["GolpePalo", [[1/3,1,0], [2/3,"lltp",1],  [1/3,9,0], [2/3,"llaf",1.5]]],
 		["Yuka Golpe", [[1,1,0.43], [1,3,1]]],
 
 		// Cajon
@@ -249,9 +249,13 @@ s.waitForBoot({
 	~carpetasCanciones = ["taJose105bpm", "AllaEnLosHollos80bpm"];
 	~cancionRefBpms = [105, 80];
 
-	// Function to load chorus samples from a given folder
-	~loadChorusFolder = { |folderName|
-		var folderPath = ~samplePath +/+ "coro" +/+ folderName;
+	// Function to load chorus samples from a given folder (optional subFolder for choir sets)
+	~loadChorusFolder = { |folderName, subFolder|
+		var folderPath = if(subFolder.notNil) {
+			~samplePath +/+ "coro" +/+ folderName +/+ subFolder;
+		} {
+			~samplePath +/+ "coro" +/+ folderName;
+		};
 		var files = (folderPath +/+ "*.wav").pathMatch.sort;
 		(1..8).do({ |i|
 			var key = "coro" ++ i;
@@ -268,6 +272,22 @@ s.waitForBoot({
 			});
 		};
 	};
+
+	// Scan for choir set sub-folders under a song's chorus folder
+	~scanChoirSets = { |folderName|
+		var path = ~samplePath +/+ "coro" +/+ folderName;
+		var names = (path +/+ "*").pathMatch.collect({ |p|
+			// Normalize backslashes to forward slashes and strip trailing /
+			var clean = p.replace($\\, $/);
+			while { clean.last == $/ } { clean = clean.drop(-1) };
+			PathName(clean).fileName;
+		}).select({ |n|
+			n.endsWith(".wav").not and: { n.endsWith(".WAV").not } and: { n.endsWith(".DS_Store").not }
+		});
+		if(names.isEmpty) { names = ["Default"] };
+		names;
+	};
+
 	~projectPath = if(thisProcess.nowExecutingPath.notNil) {
 		PathName(thisProcess.nowExecutingPath).pathOnly;
 	} {
@@ -282,8 +302,12 @@ s.waitForBoot({
 	~presetPath = ~projectPath +/+ "sequences";
 	~imagePath  = ~projectPath +/+ "images";
 
-	// Load initial chorus samples
-	if(~carpetasCanciones.size > 0) { ~loadChorusFolder.value(~carpetasCanciones[0]) };
+	// Load initial chorus samples (with first available choir set)
+	if(~carpetasCanciones.size > 0) {
+		var initialSets = ~scanChoirSets.value(~carpetasCanciones[0]);
+		var initialSet = if(initialSets[0] == "Default") { nil } { initialSets[0] };
+		~loadChorusFolder.value(~carpetasCanciones[0], initialSet);
+	};
 
 	File.mkdir(~presetPath);
 
@@ -446,6 +470,7 @@ s.waitForBoot({
 
 		data.put(\currentSongIdx, ~currentSongIdx);
 		data.put(\chorusRefBpm, ~chorusRefBpm);
+		data.put(\choirSetIdx, ~choirSetIdx);
 
 		// Save EQ params
 		data.put(\eqParams, Array.fill(~numTracks, { |i|
@@ -501,6 +526,7 @@ s.waitForBoot({
 			});
 
 			{
+				var sets;
 				win.name = "RicaAfroca Sequencer Wood - Editing: " ++ name;
 				presetNameField.string = name;
 				presetMenu.value = presetMenu.items.indexOfEqual(name);
@@ -510,10 +536,17 @@ s.waitForBoot({
 				// Restore chorus song selection (only for presets that have saved song data)
 				if(data[\currentSongIdx].notNil) {
 					~currentSongIdx = data[\currentSongIdx];
+					~choirSetIdx = data[\choirSetIdx] ?? 0;
 					if(~currentSongIdx >= 0) {
 						~chorusRefBpm = data[\chorusRefBpm] ?? (~cancionRefBpms[~currentSongIdx] ?? ~chorusRefBpm ?? 105);
-						~loadChorusFolder.value(~carpetasCanciones[~currentSongIdx]);
 						~tempoRatioBus.set((~tempo.tempo * 60) / ~chorusRefBpm);
+						// Pre-scan choir sets and populate menu before triggering cancionMenu action
+						sets = ~scanChoirSets.value(~carpetasCanciones[~currentSongIdx]);
+						~choirSetIdx = ~choirSetIdx.min(sets.size - 1).max(0);
+						if(~choirSetMenu.notNil) {
+							~choirSetMenu.items = sets;
+							~choirSetMenu.value = ~choirSetIdx;
+						};
 					};
 					if(~cancionMenu.notNil) {
 						~cancionMenu.value = ~currentSongIdx + 1;
@@ -1046,21 +1079,43 @@ s.waitForBoot({
 				};
 			});
 			~cancionMenu = PopUpMenu(comp, 105@20).items_(["----"] ++ ~canciones).action_({ |m|
+				var idx, sets, choirSetFolder;
 				if(m.value == 0) {
 					~currentSongIdx = -1;
 					~rhythmMenus[7].items = ["----"];
 					~rhythmMenus[7].valueAction = 0;
 					~rhythms[7] = [[4, 0, 0]];
 				} {
-					var idx = m.value - 1;
+					idx = m.value - 1;
 					~currentSongIdx = idx;
 					~chorusRefBpm = ~cancionRefBpms[idx];
-					~loadChorusFolder.value(~carpetasCanciones[idx]);
+					// Scan for choir set sub-folders and populate menu
+					sets = ~scanChoirSets.value(~carpetasCanciones[idx]);
+					~choirSetIdx = ~choirSetIdx.min(sets.size - 1).max(0);
+					if(~choirSetMenu.notNil) {
+						~choirSetMenu.items = sets;
+						~choirSetMenu.value = ~choirSetIdx;
+					};
+					choirSetFolder = if(sets[~choirSetIdx] == "Default") { nil } { sets[~choirSetIdx] };
+					~loadChorusFolder.value(~carpetasCanciones[idx], choirSetFolder);
 					~rhythmMenus[7].items = ~chorus[idx].drop(1).collect({ |item| item[0] });
 					~rhythmMenus[7].valueAction = 0;
 					~tempoRatioBus.set((~tempo.tempo * 60) / ~chorusRefBpm);
 				};
 			});
+			~choirSetMenu = PopUpMenu(comp, 105@20)
+				.items_(~scanChoirSets.value(~carpetasCanciones[~currentSongIdx.max(0)]))
+				.background_(Color.black)
+				.stringColor_(Color.yellow)
+				.font_(Font(size: 13))
+				.action_({ |m|
+					var songFolder, sets, choirSetFolder;
+					songFolder = ~carpetasCanciones[~currentSongIdx];
+					sets = ~scanChoirSets.value(songFolder);
+					~choirSetIdx = m.value;
+					choirSetFolder = if(sets[~choirSetIdx] == "Default") { nil } { sets[~choirSetIdx] };
+					~loadChorusFolder.value(songFolder, choirSetFolder);
+				});
 			~cancionMenu.value = 1; // Select first real song ("Ta Jose"), skip "----"
 			~nextChorusBtn = Button(comp, 105@30).states_([["NEXT", Color.black, Color.grey(0.8)]]).action_({
 				if(~currentSongIdx >= 0) {
@@ -1169,7 +1224,7 @@ s.waitForBoot({
 
 		// Se remueven focos innecesarios excepto para las cajas de texto que sí requieren tipeo
 		if(i == 7) {
-			[~muteButtons[i], ~soloButtons[i], ~rhythmMenus[i], ~volSliders[i], ~choirTriggerBtn, ~cancionMenu, ~nextChorusBtn].do(_.canFocus_(false));
+			[~muteButtons[i], ~soloButtons[i], ~rhythmMenus[i], ~volSliders[i], ~choirTriggerBtn, ~cancionMenu, ~choirSetMenu, ~nextChorusBtn].do(_.canFocus_(false));
 		} {
 			[~muteButtons[i], ~soloButtons[i], ~rhythmMenus[i], ~varButtons[i], ~pitchSliders[i], ~volSliders[i], ~humTimeSliders[i], ~humPitchSliders[i], ~humAmpSliders[i]].do(_.canFocus_(false));
 		};
