@@ -1,6 +1,6 @@
 
 /*
-RicaAfroca Sequencer - Pro Version 2.5 (8-Track Edition, Track 7 Choir)
+RicaAfroca Sequencer - Pro Version 2.5 (9-Track Edition, Tracks 7-8 Choir)
 Bigger master humanize
 Arduino retry connect from GUI
 */
@@ -36,9 +36,10 @@ s.waitForBoot({
 	// Round Robin dictionaries for all llamador dynamics
 	~samplesDictionary = Dictionary.new;
 	~samplesDictionaryLastIdx = Dictionary.new;
+	~samplesDictionaryB = Dictionary.new;
 
 	// Scaled from 7 to 8 tracks (Indices 0 to 7, track 7 is dedicated choir)
-	~numTracks = 8;
+	~numTracks = 9;
 	~tempo = TempoClock.new(120/60).permanent_(true);
 	~masterVol = 0.8;
 	~dbSpec = ControlSpec(-60, 3.5, \db, 0, 0);
@@ -73,7 +74,7 @@ s.waitForBoot({
 	~seccion = \tema;
 	~temaBpm = 120;
 	~rhythms = Array.fill(~numTracks, { |i|
-		if(i == 7) { ~chorus[0].drop(1)[0][1] } { [[0.5, 0, 1], [0.5, 0, 1]] }
+		if(i == 7 || i == 8) { ~chorus[0].drop(1)[0][1] } { [[0.5, 0, 1], [0.5, 0, 1]] }
 	});
 	~mutes = Array.fill(~numTracks, { false });
 	~solos = Array.fill(~numTracks, { false });
@@ -101,10 +102,15 @@ s.waitForBoot({
 	~varButtons = Array.newClear(~numTracks);
 	~choirSetIdx = 0;
 	~choirSetMenu = nil;
+	~choirSetIdx2 = 0;
+	~choirSetMenu2 = nil;
 	~humTimeSliders = Array.newClear(~numTracks);
 	~humPitchSliders = Array.newClear(~numTracks);
 	~humAmpSliders = Array.newClear(~numTracks);
 	~choirSynth = nil;
+	~choirSynth2 = nil;
+	~choirTriggerBtn2 = nil;
+	~nextChorusBtn2 = nil;
 
 	// EQ system variables
 	~trackAudioBuses = Array.newClear(~numTracks);
@@ -250,25 +256,27 @@ s.waitForBoot({
 	~cancionRefBpms = [105, 80];
 
 	// Function to load chorus samples from a given folder (optional subFolder for choir sets)
-	~loadChorusFolder = { |folderName, subFolder|
-		var folderPath = if(subFolder.notNil) {
+	~loadChorusFolder = { |folderName, subFolder, dict|
+		var folderPath, files;
+		dict = dict ?? ~samplesDictionary;
+		folderPath = if(subFolder.notNil) {
 			~samplePath +/+ "coro" +/+ folderName +/+ subFolder;
 		} {
 			~samplePath +/+ "coro" +/+ folderName;
 		};
-		var files = (folderPath +/+ "*.wav").pathMatch.sort;
+		files = (folderPath +/+ "*.wav").pathMatch.sort;
 		(1..8).do({ |i|
 			var key = "coro" ++ i;
-			if(~samplesDictionary[key].notNil) { ~samplesDictionary[key].do({ |b| if(b.notNil and: { b.server.serverRunning }) { b.free } }) };
+			if(dict[key].notNil) { dict[key].do({ |b| if(b.notNil and: { b.server.serverRunning }) { b.free } }) };
 		});
 		if(files.size > 0) {
 			files.do({ |path, idx|
-				~samplesDictionary["coro" ++ (idx+1)] = [Buffer.readChannel(s, path, 0, -1, [0])];
+				dict["coro" ++ (idx+1)] = [Buffer.readChannel(s, path, 0, -1, [0])];
 			});
 		} {
 			"--- No se encontraron .wav en " ++ folderPath ++ ", usando buffer silencioso.".postln;
 			8.do({ |idx|
-				~samplesDictionary["coro" ++ (idx+1)] = [Buffer.alloc(s, 44100, 1)];
+				dict["coro" ++ (idx+1)] = [Buffer.alloc(s, 44100, 1)];
 			});
 		};
 	};
@@ -302,11 +310,13 @@ s.waitForBoot({
 	~presetPath = ~projectPath +/+ "sequences";
 	~imagePath  = ~projectPath +/+ "images";
 
-	// Load initial chorus samples (with first available choir set)
+	// Load initial chorus samples for both tracks
 	if(~carpetasCanciones.size > 0) {
 		var initialSets = ~scanChoirSets.value(~carpetasCanciones[0]);
-		var initialSet = if(initialSets[0] == "Default") { nil } { initialSets[0] };
-		~loadChorusFolder.value(~carpetasCanciones[0], initialSet);
+		var setA = if(initialSets[0] == "Default") { nil } { initialSets[0] };
+		var setB = if(initialSets.size > 1 && { initialSets[1] != "Default" }) { initialSets[1] } { setA };
+		~loadChorusFolder.value(~carpetasCanciones[0], setA, ~samplesDictionary);
+		~loadChorusFolder.value(~carpetasCanciones[0], setB, ~samplesDictionaryB);
 	};
 
 	File.mkdir(~presetPath);
@@ -416,9 +426,11 @@ s.waitForBoot({
 	/////////////////////////////////////////////////////////////////
 	// FUNCTION: SELECTOR EVOLUCIONADO MULTI-GOLPE (Round Robin)
 	/////////////////////////////////////////////////////////////////
-	~getBufferForStep = { |bufVal, fallbackIdx|
-		var chosenBuffer, strVal = bufVal.asString;
-		var arr = ~samplesDictionary[strVal];
+	~getBufferForStep = { |bufVal, fallbackIdx, dict|
+		var chosenBuffer, strVal, arr;
+		dict = dict ?? ~samplesDictionary;
+		strVal = bufVal.asString;
+		arr = dict[strVal];
 
 		if(arr.notNil and: { arr.size > 0 }) {
 			if(arr.size > 1) {
@@ -471,6 +483,7 @@ s.waitForBoot({
 		data.put(\currentSongIdx, ~currentSongIdx);
 		data.put(\chorusRefBpm, ~chorusRefBpm);
 		data.put(\choirSetIdx, ~choirSetIdx);
+		data.put(\choirSetIdx2, ~choirSetIdx2);
 
 		// Save EQ params
 		data.put(\eqParams, Array.fill(~numTracks, { |i|
@@ -482,7 +495,7 @@ s.waitForBoot({
 		}));
 
 		data.writeArchive(path);
-		("--- Preservado Preset Sólido de 8 Canales: " ++ name).postln;
+		("--- Preservado Preset Sólido de 9 Canales: " ++ name).postln;
 	};
 
 	~loadSettings = { |name|
@@ -537,23 +550,31 @@ s.waitForBoot({
 				if(data[\currentSongIdx].notNil) {
 					~currentSongIdx = data[\currentSongIdx];
 					~choirSetIdx = data[\choirSetIdx] ?? 0;
+					~choirSetIdx2 = data[\choirSetIdx2] ?? 0;
 					if(~currentSongIdx >= 0) {
 						~chorusRefBpm = data[\chorusRefBpm] ?? (~cancionRefBpms[~currentSongIdx] ?? ~chorusRefBpm ?? 105);
 						~tempoRatioBus.set((~tempo.tempo * 60) / ~chorusRefBpm);
-						// Pre-scan choir sets and populate menu before triggering cancionMenu action
+						// Pre-scan choir sets and populate menus before triggering cancionMenu action
 						sets = ~scanChoirSets.value(~carpetasCanciones[~currentSongIdx]);
 						~choirSetIdx = ~choirSetIdx.min(sets.size - 1).max(0);
 						if(~choirSetMenu.notNil) {
 							~choirSetMenu.items = sets;
 							~choirSetMenu.value = ~choirSetIdx;
 						};
+						~choirSetIdx2 = ~choirSetIdx2.min(sets.size - 1).max(0);
+						if(~choirSetMenu2.notNil) {
+							~choirSetMenu2.items = sets;
+							~choirSetMenu2.value = ~choirSetIdx2;
+						};
 					};
 					if(~cancionMenu.notNil) {
 						~cancionMenu.value = ~currentSongIdx + 1;
 						if(~currentSongIdx >= 0) {
 							~rhythmMenus[7].items = ~chorus[~currentSongIdx].drop(1).collect({ |item| item[0] });
+							~rhythmMenus[8].items = ~chorus[~currentSongIdx].drop(1).collect({ |item| item[0] });
 						} {
 							~rhythmMenus[7].items = ["----"];
+							~rhythmMenus[8].items = ["----"];
 						};
 					};
 				};
@@ -570,7 +591,7 @@ s.waitForBoot({
 						~trackLabels[i].string = "Track " ++ i;
 					};
 
-					if(i != 7) {
+					if(i != 7 && i != 8) {
 						~pitchSliders[i].value = ~pitches[i].linlin(36, 72.0, 0, 1);
 						~humTimeSliders[i].value = ~humanizeTime[i].linlin(0, 0.08, 0, 1);
 						~humPitchSliders[i].value = ~humanizePitch[i].linlin(0, 1.5, 0, 1);
@@ -703,7 +724,7 @@ s.waitForBoot({
 			var nextBar = ~tempo.beats.roundUp(4);
 			~tempo.schedAbs(nextBar, {
 				~rhythmIndices[i] = newIdx;
-				~rhythms[i] = if(i == 7) {
+				~rhythms[i] = if(i == 7 || i == 8) {
 					if(~currentSongIdx >= 0) { ~chorus[~currentSongIdx].drop(1).wrapAt(newIdx)[1] } { [[4,0,0]] }
 				} {
 					~rhythmAndNames.wrapAt(newIdx)[1] ?? [[0.5,0,1],[0.5,0,1]]
@@ -712,7 +733,7 @@ s.waitForBoot({
 			});
 		} {
 			~rhythmIndices[i] = newIdx;
-			~rhythms[i] = if(i == 7) {
+			~rhythms[i] = if(i == 7 || i == 8) {
 				if(~currentSongIdx >= 0) { ~chorus[~currentSongIdx].drop(1).wrapAt(newIdx)[1] } { [[4,0,0]] }
 			} {
 				~rhythmAndNames.wrapAt(newIdx)[1] ?? [[0.5,0,1],[0.5,0,1]]
@@ -722,7 +743,8 @@ s.waitForBoot({
 
 	~numTracks.do({ |i|
 		Tdef( ("chan" ++ i).asSymbol, {
-			var step = 0;
+			var step = 0, samplesDict;
+			samplesDict = if(i == 8) { ~samplesDictionaryB } { ~samplesDictionary };
 			loop {
 				var currentEvent, delta, bufOff, hitAmp, pbRate, targetBuffer;
 
@@ -749,17 +771,19 @@ s.waitForBoot({
 								s.makeBundle(s.latency + ~humanizeTime[i].rand2, {
 									var synth;
 									if(i == 7 && ~choirSynth.notNil) { ~choirSynth.free };
-									synth = Synth(\chorusChannel, [\buf, ~getBufferForStep.value(vBuf, ~sampleIndices[i]),
+									if(i == 8 && ~choirSynth2.notNil) { ~choirSynth2.free };
+									synth = Synth(\chorusChannel, [\buf, ~getBufferForStep.value(vBuf, ~sampleIndices[i], samplesDict),
 										\amp, (vAmp * ~volumes[i] + ~humanizeAmp[i].rand2).clip(0,2) * ~masterVol,
 										\peakOut, ~trackPeakBuses[i],
 										\tempoRatioBus, ~tempoRatioBus,
 										\out, ~trackAudioBuses[i].index,
 									], ~chorusGroup, \addToHead);
 									if(i == 7) { ~choirSynth = synth };
+									if(i == 8) { ~choirSynth2 = synth };
 								});
 							} {
 								pbRate = (~pitches[i] + ~humanizePitch[i].rand2 - 60).midiratio;
-								vTargetBuffer = ~getBufferForStep.value(vBuf, ~sampleIndices[i]);
+								vTargetBuffer = ~getBufferForStep.value(vBuf, ~sampleIndices[i], samplesDict);
 
 								s.makeBundle(s.latency + ~humanizeTime[i].rand2, {
 									Synth(\liveChannel, [
@@ -787,17 +811,19 @@ s.waitForBoot({
 					s.makeBundle(s.latency + ~humanizeTime[i].rand2, {
 						var synth;
 						if(i == 7 && ~choirSynth.notNil) { ~choirSynth.free };
-						synth = Synth(\chorusChannel, [\buf, ~getBufferForStep.value(bufOff, ~sampleIndices[i]),
+						if(i == 8 && ~choirSynth2.notNil) { ~choirSynth2.free };
+						synth = Synth(\chorusChannel, [\buf, ~getBufferForStep.value(bufOff, ~sampleIndices[i], samplesDict),
 							\amp, (hitAmp * ~volumes[i] + ~humanizeAmp[i].rand2).clip(0,2) * ~masterVol,
 							\peakOut, ~trackPeakBuses[i],
 							\tempoRatioBus, ~tempoRatioBus,
 							\out, ~trackAudioBuses[i].index,
 						], ~chorusGroup, \addToHead);
 						if(i == 7) { ~choirSynth = synth };
+						if(i == 8) { ~choirSynth2 = synth };
 					});
 					} {
 						pbRate = (~pitches[i] + ~humanizePitch[i].rand2 - 60).midiratio;
-						targetBuffer = ~getBufferForStep.value(bufOff, ~sampleIndices[i]);
+						targetBuffer = ~getBufferForStep.value(bufOff, ~sampleIndices[i], samplesDict);
 
 						s.makeBundle(s.latency + ~humanizeTime[i].rand2, {
 							Synth(\liveChannel, [
@@ -987,7 +1013,7 @@ s.waitForBoot({
 		if(keycode == 32) { startBtn.valueAction = 1 - startBtn.value };
 	});
 
-	startBtn = Button(win, 800@40).states_([["START ALL", Color.black, Color.green], ["STOP ALL", Color.white, Color.red]]).action_({ |b| if(b.value == 1) { ~numTracks.do({ |i| if(i != 7) { Tdef(("chan"++i).asSymbol).play(~tempo) } }) } { ~numTracks.do({ |i| Tdef(("chan"++i).asSymbol).stop }); if(~chorusGroup.notNil) { ~chorusGroup.freeAll }; ~choirSynth = nil; if(~choirTriggerBtn.notNil) { ~choirTriggerBtn.value = 0 } }; });
+	startBtn = Button(win, 800@40).states_([["START ALL", Color.black, Color.green], ["STOP ALL", Color.white, Color.red]]).action_({ |b| if(b.value == 1) { ~numTracks.do({ |i| if(i != 7 && i != 8) { Tdef(("chan"++i).asSymbol).play(~tempo) } }) } { ~numTracks.do({ |i| Tdef(("chan"++i).asSymbol).stop }); if(~chorusGroup.notNil) { ~chorusGroup.freeAll }; ~choirSynth = nil; ~choirSynth2 = nil; if(~choirTriggerBtn.notNil) { ~choirTriggerBtn.value = 0 }; if(~choirTriggerBtn2.notNil) { ~choirTriggerBtn2.value = 0 } }; });
 	startBtn.canFocus_(true);
 	startBtn.focus;
 
@@ -1010,7 +1036,7 @@ s.waitForBoot({
 
 		// TextField interactivo con desenfoque automático al presionar Enter
 		~trackLabels[i] = TextField(comp, 105@25)
-			.string_(if(i == 7) { "Choir" } { "Track " ++ i })
+			.string_(if(i == 7) { "Choir" } { if(i == 8) { "Choir2" } { "Track " ++ i } })
 			.align_(\center)
 		.background_(Color.black)
 		.stringColor_(Color.yellow)
@@ -1022,10 +1048,10 @@ s.waitForBoot({
 				// 2. Le quita el foco al TextField devolviéndoselo al botón START ALL
 				if(startBtn.notNil) { startBtn.focus };
 			});
-		~muteButtons[i] = Button(comp, 50@40).states_([["ON", Color.black, Color.green], ["MUTE", Color.white, Color.red]]).action_({ |b| ~mutes[i] = (b.value == 1); if(i == 7 && ~choirSynth.notNil) { ~choirSynth.set(\amp, if(b.value == 1) { 0 } { (~volumes[i] * ~masterVol).clip(0,2) }) }; });
+		~muteButtons[i] = Button(comp, 50@40).states_([["ON", Color.black, Color.green], ["MUTE", Color.white, Color.red]]).action_({ |b| ~mutes[i] = (b.value == 1); if(i == 7 && ~choirSynth.notNil) { ~choirSynth.set(\amp, if(b.value == 1) { 0 } { (~volumes[i] * ~masterVol).clip(0,2) }) }; if(i == 8 && ~choirSynth2.notNil) { ~choirSynth2.set(\amp, if(b.value == 1) { 0 } { (~volumes[i] * ~masterVol).clip(0,2) }) }; });
 		~soloButtons[i] = Button(comp, 50@40).states_([["SOLO", Color.black, Color.yellow], ["SOLO", Color.white, Color.red(0.8)]]).action_({ |b| ~solos[i] = (b.value == 1); });
-		~rhythmMenus[i] = PopUpMenu(comp, 105@30).items_(if(i == 7) { if(~currentSongIdx >= 0) { ~chorus[~currentSongIdx].drop(1).collect({ |item| item[0] }) } { ["----"] } } { ~rhythmAndNames.collect({ |item| item[0] }) }).action_({ |m| ~scheduleRhythmChange.value(i, m.value); });
-		if(i != 7) {
+		~rhythmMenus[i] = PopUpMenu(comp, 105@30).items_(if(i == 7 || i == 8) { if(~currentSongIdx >= 0) { ~chorus[~currentSongIdx].drop(1).collect({ |item| item[0] }) } { ["----"] } } { ~rhythmAndNames.collect({ |item| item[0] }) }).action_({ |m| ~scheduleRhythmChange.value(i, m.value); });
+		if(i != 7 && i != 8) {
 			~varButtons[i] = Button(comp, 105@40).states_([["VARIATION", Color.black, Color.grey(0.8)], ["QUEUED", Color.white, Color.red(0.6)]]).action_({ |b| ~varRequests[i] = (b.value == 1); });
 
 			StaticText(comp, 105@20).string_("Pitch").align_(\center);
@@ -1064,66 +1090,114 @@ s.waitForBoot({
 					if(~eqSynths[i].notNil) { ~eqSynths[i].set(\gain, val) };
 				});
 		} {
-			~choirTriggerBtn = Button(comp, 105@40).states_([["CHORUS", Color.black, Color.grey(0.8)], ["STOP", Color.white, Color.green]]).action_({ |b|
-				if(b.value == 1) {
-					if(startBtn.value == 0) {
-						"CHORUS: Cannot start while sequencer is stopped. Press START ALL first.".postln;
-						b.value = 0;
+			if(i == 7) {
+				~choirTriggerBtn = Button(comp, 105@40).states_([["CHORUS", Color.black, Color.grey(0.8)], ["STOP", Color.white, Color.green]]).action_({ |b|
+					if(b.value == 1) {
+						if(startBtn.value == 0) {
+							"CHORUS: Cannot start while sequencer is stopped. Press START ALL first.".postln;
+							b.value = 0;
+						} {
+							Tdef(\chan7).reset.play(~tempo, quant: 4);
+						};
 					} {
-						Tdef(\chan7).reset.play(~tempo, quant: 4);
+						Tdef(\chan7).stop;
+						if(~chorusGroup.notNil) { ~chorusGroup.freeAll };
+						~choirSynth = nil;
 					};
-				} {
-					Tdef(\chan7).stop;
-					if(~chorusGroup.notNil) { ~chorusGroup.freeAll };
-					~choirSynth = nil;
-				};
-			});
-			~cancionMenu = PopUpMenu(comp, 105@20).items_(["----"] ++ ~canciones).action_({ |m|
-				var idx, sets, choirSetFolder;
-				if(m.value == 0) {
-					~currentSongIdx = -1;
-					~rhythmMenus[7].items = ["----"];
-					~rhythmMenus[7].valueAction = 0;
-					~rhythms[7] = [[4, 0, 0]];
-				} {
-					idx = m.value - 1;
-					~currentSongIdx = idx;
-					~chorusRefBpm = ~cancionRefBpms[idx];
-					// Scan for choir set sub-folders and populate menu
-					sets = ~scanChoirSets.value(~carpetasCanciones[idx]);
-					~choirSetIdx = ~choirSetIdx.min(sets.size - 1).max(0);
-					if(~choirSetMenu.notNil) {
-						~choirSetMenu.items = sets;
-						~choirSetMenu.value = ~choirSetIdx;
-					};
-					choirSetFolder = if(sets[~choirSetIdx] == "Default") { nil } { sets[~choirSetIdx] };
-					~loadChorusFolder.value(~carpetasCanciones[idx], choirSetFolder);
-					~rhythmMenus[7].items = ~chorus[idx].drop(1).collect({ |item| item[0] });
-					~rhythmMenus[7].valueAction = 0;
-					~tempoRatioBus.set((~tempo.tempo * 60) / ~chorusRefBpm);
-				};
-			});
-			~choirSetMenu = PopUpMenu(comp, 105@20)
-				.items_(~scanChoirSets.value(~carpetasCanciones[~currentSongIdx.max(0)]))
-				.background_(Color.black)
-				.stringColor_(Color.yellow)
-				.font_(Font(size: 13))
-				.action_({ |m|
-					var songFolder, sets, choirSetFolder;
-					songFolder = ~carpetasCanciones[~currentSongIdx];
-					sets = ~scanChoirSets.value(songFolder);
-					~choirSetIdx = m.value;
-					choirSetFolder = if(sets[~choirSetIdx] == "Default") { nil } { sets[~choirSetIdx] };
-					~loadChorusFolder.value(songFolder, choirSetFolder);
 				});
-			~cancionMenu.value = 1; // Select first real song ("Ta Jose"), skip "----"
-			~nextChorusBtn = Button(comp, 105@30).states_([["NEXT", Color.black, Color.grey(0.8)]]).action_({
-				if(~currentSongIdx >= 0) {
-					var patterns = ~chorus[~currentSongIdx].drop(1);
-					var next = (~rhythmIndices[7] + 1) % patterns.size;
-					~rhythmMenus[7].valueAction = next;
-				};
-			});
+				~cancionMenu = PopUpMenu(comp, 105@20).items_(["----"] ++ ~canciones).action_({ |m|
+					var idx, sets, choirSetFolder, choirSetFolder2;
+					if(m.value == 0) {
+						~currentSongIdx = -1;
+						~rhythmMenus[7].items = ["----"];
+						~rhythmMenus[7].valueAction = 0;
+						~rhythms[7] = [[4, 0, 0]];
+						~rhythmMenus[8].items = ["----"];
+						~rhythmMenus[8].valueAction = 0;
+						~rhythms[8] = [[4, 0, 0]];
+					} {
+						idx = m.value - 1;
+						~currentSongIdx = idx;
+						~chorusRefBpm = ~cancionRefBpms[idx];
+						// Scan for choir set sub-folders and populate menus
+						sets = ~scanChoirSets.value(~carpetasCanciones[idx]);
+						~choirSetIdx = ~choirSetIdx.min(sets.size - 1).max(0);
+						~choirSetIdx2 = ~choirSetIdx2.min(sets.size - 1).max(0);
+						if(~choirSetMenu.notNil) {
+							~choirSetMenu.items = sets;
+							~choirSetMenu.value = ~choirSetIdx;
+						};
+						if(~choirSetMenu2.notNil) {
+							~choirSetMenu2.items = sets;
+							~choirSetMenu2.value = ~choirSetIdx2;
+						};
+						choirSetFolder = if(sets[~choirSetIdx] == "Default") { nil } { sets[~choirSetIdx] };
+						choirSetFolder2 = if(sets[~choirSetIdx2] == "Default") { nil } { sets[~choirSetIdx2] };
+						~loadChorusFolder.value(~carpetasCanciones[idx], choirSetFolder, ~samplesDictionary);
+						~loadChorusFolder.value(~carpetasCanciones[idx], choirSetFolder2, ~samplesDictionaryB);
+						~rhythmMenus[7].items = ~chorus[idx].drop(1).collect({ |item| item[0] });
+						~rhythmMenus[7].valueAction = 0;
+						~rhythmMenus[8].items = ~chorus[idx].drop(1).collect({ |item| item[0] });
+						~rhythmMenus[8].valueAction = 0;
+						~tempoRatioBus.set((~tempo.tempo * 60) / ~chorusRefBpm);
+					};
+				});
+				~choirSetMenu = PopUpMenu(comp, 105@20)
+					.items_(~scanChoirSets.value(~carpetasCanciones[~currentSongIdx.max(0)]))
+					.background_(Color.black)
+					.stringColor_(Color.yellow)
+					.font_(Font(size: 13))
+					.action_({ |m|
+						var songFolder, sets, choirSetFolder;
+						songFolder = ~carpetasCanciones[~currentSongIdx];
+						sets = ~scanChoirSets.value(songFolder);
+						~choirSetIdx = m.value;
+						choirSetFolder = if(sets[~choirSetIdx] == "Default") { nil } { sets[~choirSetIdx] };
+						~loadChorusFolder.value(songFolder, choirSetFolder, ~samplesDictionary);
+					});
+				~cancionMenu.value = 1; // Select first real song ("Ta Jose"), skip "----"
+				~nextChorusBtn = Button(comp, 105@30).states_([["NEXT", Color.black, Color.grey(0.8)]]).action_({
+					if(~currentSongIdx >= 0) {
+						var patterns = ~chorus[~currentSongIdx].drop(1);
+						var next = (~rhythmIndices[7] + 1) % patterns.size;
+						~rhythmMenus[7].valueAction = next;
+					};
+				});
+			} {
+				~choirTriggerBtn2 = Button(comp, 105@40).states_([["CHORUS", Color.black, Color.grey(0.8)], ["STOP", Color.white, Color.green]]).action_({ |b|
+					if(b.value == 1) {
+						if(startBtn.value == 0) {
+							"CHORUS: Cannot start while sequencer is stopped. Press START ALL first.".postln;
+							b.value = 0;
+						} {
+							Tdef(\chan8).reset.play(~tempo, quant: 4);
+						};
+					} {
+						Tdef(\chan8).stop;
+						if(~choirSynth2.notNil) { ~choirSynth2.free; ~choirSynth2 = nil };
+					};
+				});
+				~choirSetMenu2 = PopUpMenu(comp, 105@20)
+					.items_(~scanChoirSets.value(~carpetasCanciones[~currentSongIdx.max(0)]))
+					.background_(Color.black)
+					.stringColor_(Color.yellow)
+					.font_(Font(size: 13))
+					.action_({ |m|
+						var songFolder, sets, choirSetFolder;
+						songFolder = ~carpetasCanciones[~currentSongIdx];
+						sets = ~scanChoirSets.value(songFolder);
+						~choirSetIdx2 = m.value;
+						choirSetFolder = if(sets[~choirSetIdx2] == "Default") { nil } { sets[~choirSetIdx2] };
+						~loadChorusFolder.value(songFolder, choirSetFolder, ~samplesDictionaryB);
+					});
+				~nextChorusBtn2 = Button(comp, 105@30).states_([["NEXT", Color.black, Color.grey(0.8)]]).action_({
+					if(~currentSongIdx >= 0) {
+						var patterns = ~chorus[~currentSongIdx].drop(1);
+						var next = (~rhythmIndices[8] + 1) % patterns.size;
+						~rhythmMenus[8].valueAction = next;
+					};
+				});
+			};
 
 			// EQ button below NEXT for choir track
 			~eqButtons[i] = Button(comp, 105@20)
@@ -1175,6 +1249,7 @@ s.waitForBoot({
 				// Sincroniza la posición física del slider
 				~volSliders[i].value = ~dbSpec.unmap(nb.value);
 				if(i == 7 && ~choirSynth.notNil) { ~choirSynth.set(\amp, (targetAmp * ~masterVol).clip(0,2)) };
+				if(i == 8 && ~choirSynth2.notNil) { ~choirSynth2.set(\amp, (targetAmp * ~masterVol).clip(0,2)) };
 			})
 			.canFocus_(true);
 
@@ -1202,13 +1277,14 @@ s.waitForBoot({
 				// Actualiza el NumberBox en tiempo real al arrastrar
 				~volDisplays[i].value = currentDb.round(0.1);
 				if(i == 7 && ~choirSynth.notNil) { ~choirSynth.set(\amp, (~volumes[i] * ~masterVol).clip(0,2)) };
+				if(i == 8 && ~choirSynth2.notNil) { ~choirSynth2.set(\amp, (~volumes[i] * ~masterVol).clip(0,2)) };
 			});
 		~volSliders[i].canFocus_(false);
 
 
 
 
-		if(i != 7) {
+		if(i != 7 && i != 8) {
 			humGroup = CompositeView(comp, 105@140).background_(Color.grey(0.6));
 			humGroup.decorator = FlowLayout(humGroup.bounds, 2@2, 2@2);
 			StaticText(humGroup, 100@15).string_("HUMANIZATION").align_(\center).font_(Font(size:9, bold:true));
@@ -1226,7 +1302,11 @@ s.waitForBoot({
 		if(i == 7) {
 			[~muteButtons[i], ~soloButtons[i], ~rhythmMenus[i], ~volSliders[i], ~choirTriggerBtn, ~cancionMenu, ~choirSetMenu, ~nextChorusBtn].do(_.canFocus_(false));
 		} {
-			[~muteButtons[i], ~soloButtons[i], ~rhythmMenus[i], ~varButtons[i], ~pitchSliders[i], ~volSliders[i], ~humTimeSliders[i], ~humPitchSliders[i], ~humAmpSliders[i]].do(_.canFocus_(false));
+			if(i == 8) {
+				[~muteButtons[i], ~soloButtons[i], ~rhythmMenus[i], ~volSliders[i], ~choirTriggerBtn2, ~choirSetMenu2, ~nextChorusBtn2].do(_.canFocus_(false));
+			} {
+				[~muteButtons[i], ~soloButtons[i], ~rhythmMenus[i], ~varButtons[i], ~pitchSliders[i], ~volSliders[i], ~humTimeSliders[i], ~humPitchSliders[i], ~humAmpSliders[i]].do(_.canFocus_(false));
+			};
 		};
 	});
 
@@ -1267,7 +1347,7 @@ s.waitForBoot({
 				~tempo.schedAbs(nextBar, {
 					~numTracks.do({ |i|
 						var newIdx = ~rhythmIndices[i];
-						if(i == 7) {
+						if(i == 7 || i == 8) {
 							if(~currentSongIdx >= 0) {
 								~rhythms[i] = ~chorus[~currentSongIdx].drop(1).wrapAt(newIdx)[1] ?? [[4,0,0]];
 							} {
@@ -1282,7 +1362,7 @@ s.waitForBoot({
 			} {
 				~numTracks.do({ |i|
 					var newIdx = ~rhythmIndices[i];
-					if(i == 7) {
+					if(i == 7 || i == 8) {
 						if(~currentSongIdx >= 0) {
 							~rhythms[i] = ~chorus[~currentSongIdx].drop(1).wrapAt(newIdx)[1] ?? [[4,0,0]];
 						} {
@@ -1313,6 +1393,7 @@ s.waitForBoot({
 			~masterVol = targetAmp; // Actualiza la amplitud del motor
 			~masterSlider.value = ~dbSpec.unmap(nb.value); // Mueve el slider físicamente
 			if(~choirSynth.notNil) { ~choirSynth.set(\amp, (~volumes[7] * ~masterVol).clip(0,2)) };
+			if(~choirSynth2.notNil) { ~choirSynth2.set(\amp, (~volumes[8] * ~masterVol).clip(0,2)) };
 		})
 		.canFocus_(true);
 	// =========================================================================
@@ -1334,6 +1415,7 @@ s.waitForBoot({
 			~masterVol = db.dbamp;
 			~masterDisplay.value = db.round(0.1); // Actualiza el número amarillo al arrastrar
 			if(~choirSynth.notNil) { ~choirSynth.set(\amp, (~volumes[7] * ~masterVol).clip(0,2)) };
+			if(~choirSynth2.notNil) { ~choirSynth2.set(\amp, (~volumes[8] * ~masterVol).clip(0,2)) };
 		})
 		.canFocus_(false);
 
@@ -1363,7 +1445,7 @@ s.waitForBoot({
 	refreshBtn = Button(win, 100@40).states_([["REFRESH", Color.white, Color.grey(0.3)]]).action_({ ~updatePresetList.value });
 	patRefBtn = Button(win, 105@40).states_([["PATTERNS", Color.black, Color.grey(0.8)]]).action_({
 		~numTracks.do({ |i|
-			if(i == 7) {
+			if(i == 7 || i == 8) {
 				~rhythmMenus[i].items = if(~currentSongIdx >= 0) { ~chorus[~currentSongIdx].drop(1).collect({ |item| item[0] }) } { ["----"] };
 			} {
 				~rhythmMenus[i].items = ~rhythmAndNames.collect({ |item| item[0] });
