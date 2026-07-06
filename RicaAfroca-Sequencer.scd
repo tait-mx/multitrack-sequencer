@@ -997,7 +997,7 @@ s.waitForBoot({
 		woodImg = Image.new(~imagePath +/+ "wood-size.jpg");
 	};
 
-	win = Window("RicaAfroca Sequencer Wood", Rect(50, 50, 1360, 920)).front;
+	win = Window("RicaAfroca Sequencer Wood", Rect(50, 50, 1500, 920)).front;
 	~mainWindow = win;
 
 	if(woodImg.notNil) {
