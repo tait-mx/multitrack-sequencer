@@ -1156,9 +1156,10 @@ s.waitForBoot({
 						~loadChorusFolder.value(songFolder, choirSetFolder, ~samplesDictionary);
 					});
 				~nextChorusBtn = Button(comp, 105@30).states_([["NEXT", Color.black, Color.grey(0.8)]]).action_({
+					var patterns, next;
 					if(~currentSongIdx >= 0) {
-						var patterns = ~chorus[~currentSongIdx].drop(1);
-						var next = (~rhythmIndices[7] + 1) % patterns.size;
+						patterns = ~chorus[~currentSongIdx].drop(1);
+						next = (~rhythmIndices[7] + 1) % patterns.size;
 						~rhythmMenus[7].valueAction = next;
 					};
 				});
@@ -1190,9 +1191,10 @@ s.waitForBoot({
 						~loadChorusFolder.value(songFolder, choirSetFolder, ~samplesDictionaryB);
 					});
 				~nextChorusBtn2 = Button(comp, 105@30).states_([["NEXT", Color.black, Color.grey(0.8)]]).action_({
+					var patterns, next;
 					if(~currentSongIdx >= 0) {
-						var patterns = ~chorus[~currentSongIdx].drop(1);
-						var next = (~rhythmIndices[8] + 1) % patterns.size;
+						patterns = ~chorus[~currentSongIdx].drop(1);
+						next = (~rhythmIndices[8] + 1) % patterns.size;
 						~rhythmMenus[8].valueAction = next;
 					};
 				});
@@ -1299,17 +1301,17 @@ s.waitForBoot({
 
 		// Se remueven focos innecesarios excepto para las cajas de texto que sí requieren tipeo
 		if(i == 7) {
-			[~muteButtons[i], ~soloButtons[i], ~rhythmMenus[i], ~volSliders[i], ~choirTriggerBtn, ~cancionMenu, ~choirSetMenu, ~nextChorusBtn].do(_.canFocus_(false));
+			[~muteButtons[i], ~soloButtons[i], ~rhythmMenus[i], ~volSliders[i], ~choirTriggerBtn, ~cancionMenu, ~choirSetMenu, ~nextChorusBtn].select(_.notNil).do(_.canFocus_(false));
 		} {
 			if(i == 8) {
-				[~muteButtons[i], ~soloButtons[i], ~rhythmMenus[i], ~volSliders[i], ~choirTriggerBtn2, ~choirSetMenu2, ~nextChorusBtn2].do(_.canFocus_(false));
+				[~muteButtons[i], ~soloButtons[i], ~rhythmMenus[i], ~volSliders[i], ~choirTriggerBtn2, ~choirSetMenu2, ~nextChorusBtn2].select(_.notNil).do(_.canFocus_(false));
 			} {
-				[~muteButtons[i], ~soloButtons[i], ~rhythmMenus[i], ~varButtons[i], ~pitchSliders[i], ~volSliders[i], ~humTimeSliders[i], ~humPitchSliders[i], ~humAmpSliders[i]].do(_.canFocus_(false));
+				[~muteButtons[i], ~soloButtons[i], ~rhythmMenus[i], ~varButtons[i], ~pitchSliders[i], ~volSliders[i], ~humTimeSliders[i], ~humPitchSliders[i], ~humAmpSliders[i]].select(_.notNil).do(_.canFocus_(false));
 			};
 		};
 	});
 
-	~cancionMenu.value = 1; // Select first real song ("Ta Jose"), skip "----"
+	if(~cancionMenu.notNil) { ~cancionMenu.value = 1 };
 
 	masterCol = CompositeView(win, 150@700).background_(Color.grey(0.6));
 	masterCol.decorator = FlowLayout(masterCol.bounds, 5@5, 5@5);
