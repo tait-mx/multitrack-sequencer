@@ -22,7 +22,7 @@ o = [
 	Array.prNew(3),  "cjndf",  Array.prNew(1),  Array.prNew(3),  
 	"coro1",  Array.prNew(9),  "Clave",  "Cáscara",  
 	"Shekere",  "----",  "----",  "Llamador",  
-	"Cajon",  "CORO",  "Clave",  Array.prNew(9),  
+	"Cajon",  "CORO I",  "CORO II",  Array.prNew(9),  
 	Array.prNew(9),  Array.prNew(9),  Array.prNew(11),  Array.prNew(11),  
 	Array.prNew(11),  Array.prNew(11),  Array.prNew(11),  Array.prNew(11),  
 	Array.prNew(11),  Array.prNew(11),  Array.prNew(11),  Array.prNew(9),  
@@ -41,7 +41,7 @@ p = [
 		'choirSetIdx',  2,  nil,  nil,  
 		'trackNames',  o[81],  nil,  nil,  
 		nil,  nil,  nil,  nil,  
-		'pitches',  o[91],  'temaBpm',  81.504702194357,  
+		'pitches',  o[91],  'temaBpm',  79.968652037618,  
 		nil,  nil,  nil,  nil,  
 		'seccion',  'tema',  nil,  nil,  
 		nil,  nil,  nil,  nil,  
@@ -221,11 +221,11 @@ p = [
 	// Array
 	101, [ 116.0,  22.740002615824,  8.6565715252332,  1000,  
 		0,  0.707,  5000,  0,  
-		0.707,  false,  5.4 ],  
+		0.707,  false,  8.3 ],  
 	// Array
 	102, [ 265.08772819178,  0,  5.1898010283689,  1089.6207143201,  
 		6.4962071432007,  2.7394425152227,  3632.4532412149,  8.4313682755227,  
-		7.9255406275383,  false,  -0.4 ],  
+		7.9255406275383,  false,  -0.6 ],  
 	// Array
 	103, [ false,  false,  false,  true,  
 		true,  false,  false,  false,  
@@ -233,7 +233,7 @@ p = [
 	// Array
 	104, [ 2,  6,  10,  0,  
 		0,  24,  21,  0,  
-		2 ],  
+		0 ],  
 	// Array
 	105, [ 0,  0,  0,  0,  
 		0,  0,  0,  0,  
@@ -244,8 +244,8 @@ p = [
 		0.0088135593220339 ],  
 	// Array
 	107, [ 1.1057207257138,  1.1494678363437,  1.3648527477948,  1.3971321692305,  
-		0.7,  1.1057207257138,  1.1057207257138,  1.0346965601279,  
-		1.0346965601279 ],  
+		0.7,  1.1057207257138,  1.1057207257138,  0.97957614457689,  
+		0.95258224244061 ],  
 	// Array
 	108, [ 0.15254237288136,  0.15254237288136,  0.15254237288136,  0.15254237288136,  
 		0.15254237288136,  0.15254237288136,  0.15254237288136,  0.15254237288136,  

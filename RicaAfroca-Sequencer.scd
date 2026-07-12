@@ -1,11 +1,12 @@
 
 /*
 RicaAfroca Sequencer - Pro Version 2.5 (9-Track Edition, Tracks 7-8 Choir)
-Bigger master humanize
-Arduino retry connect from GUI
+Matancera montuno is missing
 Fix coro5 and coro6 length
 Add reverb
 Add chorus master
+Only one NEXT button fot both chorus tracks
+Add breaks for montuno change
 */
 (
 
