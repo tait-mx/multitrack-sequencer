@@ -1128,6 +1128,9 @@ s.waitForBoot({
 				});
 		};
 		if(i == 7) {
+			UserView(comp, 105@40).canFocus_(false);
+			UserView(comp, 105@20).canFocus_(false);
+			UserView(comp, 105@30).canFocus_(false);
 
 			~eqButtons[i] = Button(comp, 105@20)
 				.states_([["EQ", Color.black, Color.grey(0.8)], ["EQ", Color.white, Color.blue(0.6)]])
@@ -1161,6 +1164,10 @@ s.waitForBoot({
 				});
 		};
 		if(i == 8) {
+			UserView(comp, 105@40).canFocus_(false);
+			UserView(comp, 105@20).canFocus_(false);
+			UserView(comp, 105@30).canFocus_(false);
+
 			~eqButtons[i] = Button(comp, 105@20)
 				.states_([["EQ", Color.black, Color.grey(0.8)], ["EQ", Color.white, Color.blue(0.6)]])
 				.action_({ |b|
