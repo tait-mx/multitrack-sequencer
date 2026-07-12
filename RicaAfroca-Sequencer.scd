@@ -115,6 +115,10 @@ s.waitForBoot({
 	~choirSynth2 = nil;
 	~choirTriggerBtn2 = nil;
 	~nextChorusBtn2 = nil;
+	~chorusMasterVol = 1.0;
+	~chorusMasterSlider = nil;
+	~chorusMasterDisplay = nil;
+	~chorusMasterMeter = nil;
 
 	// EQ system variables
 	~trackAudioBuses = Array.newClear(~numTracks);
@@ -776,8 +780,8 @@ s.waitForBoot({
 									var synth;
 									if(i == 7 && ~choirSynth.notNil) { ~choirSynth.free };
 									if(i == 8 && ~choirSynth2.notNil) { ~choirSynth2.free };
-									synth = Synth(\chorusChannel, [\buf, ~getBufferForStep.value(vBuf, ~sampleIndices[i], samplesDict),
-										\amp, (vAmp * ~volumes[i] + ~humanizeAmp[i].rand2).clip(0,2) * ~masterVol,
+								synth = Synth(\chorusChannel, [\buf, ~getBufferForStep.value(vBuf, ~sampleIndices[i], samplesDict),
+									\amp, (vAmp * ~volumes[i] + ~humanizeAmp[i].rand2).clip(0,2) * ~masterVol * ~chorusMasterVol,
 										\peakOut, ~trackPeakBuses[i],
 										\tempoRatioBus, ~tempoRatioBus,
 										\out, ~trackAudioBuses[i].index,
@@ -816,8 +820,8 @@ s.waitForBoot({
 						var synth;
 						if(i == 7 && ~choirSynth.notNil) { ~choirSynth.free };
 						if(i == 8 && ~choirSynth2.notNil) { ~choirSynth2.free };
-						synth = Synth(\chorusChannel, [\buf, ~getBufferForStep.value(bufOff, ~sampleIndices[i], samplesDict),
-							\amp, (hitAmp * ~volumes[i] + ~humanizeAmp[i].rand2).clip(0,2) * ~masterVol,
+					synth = Synth(\chorusChannel, [\buf, ~getBufferForStep.value(bufOff, ~sampleIndices[i], samplesDict),
+						\amp, (hitAmp * ~volumes[i] + ~humanizeAmp[i].rand2).clip(0,2) * ~masterVol * ~chorusMasterVol,
 							\peakOut, ~trackPeakBuses[i],
 							\tempoRatioBus, ~tempoRatioBus,
 							\out, ~trackAudioBuses[i].index,
@@ -1052,7 +1056,7 @@ s.waitForBoot({
 				// 2. Le quita el foco al TextField devolviéndoselo al botón START ALL
 				if(startBtn.notNil) { startBtn.focus };
 			});
-		~muteButtons[i] = Button(comp, 50@40).states_([["ON", Color.black, Color.green], ["MUTE", Color.white, Color.red]]).action_({ |b| ~mutes[i] = (b.value == 1); if(i == 7 && ~choirSynth.notNil) { ~choirSynth.set(\amp, if(b.value == 1) { 0 } { (~volumes[i] * ~masterVol).clip(0,2) }) }; if(i == 8 && ~choirSynth2.notNil) { ~choirSynth2.set(\amp, if(b.value == 1) { 0 } { (~volumes[i] * ~masterVol).clip(0,2) }) }; });
+		~muteButtons[i] = Button(comp, 50@40).states_([["ON", Color.black, Color.green], ["MUTE", Color.white, Color.red]]).action_({ |b| ~mutes[i] = (b.value == 1); if(i == 7 && ~choirSynth.notNil) { ~choirSynth.set(\amp, if(b.value == 1) { 0 } { (~volumes[i] * ~masterVol * ~chorusMasterVol).clip(0,2) }) }; if(i == 8 && ~choirSynth2.notNil) { ~choirSynth2.set(\amp, if(b.value == 1) { 0 } { (~volumes[i] * ~masterVol * ~chorusMasterVol).clip(0,2) }) }; });
 		~soloButtons[i] = Button(comp, 50@40).states_([["SOLO", Color.black, Color.yellow], ["SOLO", Color.white, Color.red(0.8)]]).action_({ |b| ~solos[i] = (b.value == 1); });
 		if(i != 8) {
 			~rhythmMenus[i] = PopUpMenu(comp, 105@30).items_(if((i == 7) || (i == 8)) { if(~currentSongIdx >= 0) { ~chorus[~currentSongIdx].drop(1).collect({ |item| item[0] }) } { ["----"] } } { ~rhythmAndNames.collect({ |item| item[0] }) }).action_({ |m| ~scheduleRhythmChange.value(i, m.value); if(i == 7) { ~scheduleRhythmChange.value(8, m.value) } });
@@ -1275,8 +1279,8 @@ s.waitForBoot({
 				~volumes[i] = targetAmp;
 				// Sincroniza la posición física del slider
 				~volSliders[i].value = ~dbSpec.unmap(nb.value);
-				if(i == 7 && ~choirSynth.notNil) { ~choirSynth.set(\amp, (targetAmp * ~masterVol).clip(0,2)) };
-				if(i == 8 && ~choirSynth2.notNil) { ~choirSynth2.set(\amp, (targetAmp * ~masterVol).clip(0,2)) };
+				if(i == 7 && ~choirSynth.notNil) { ~choirSynth.set(\amp, (targetAmp * ~masterVol * ~chorusMasterVol).clip(0,2)) };
+				if(i == 8 && ~choirSynth2.notNil) { ~choirSynth2.set(\amp, (targetAmp * ~masterVol * ~chorusMasterVol).clip(0,2)) };
 			})
 			.canFocus_(true);
 
@@ -1303,8 +1307,8 @@ s.waitForBoot({
 				~volumes[i] = currentDb.dbamp;
 				// Actualiza el NumberBox en tiempo real al arrastrar
 				~volDisplays[i].value = currentDb.round(0.1);
-				if(i == 7 && ~choirSynth.notNil) { ~choirSynth.set(\amp, (~volumes[i] * ~masterVol).clip(0,2)) };
-				if(i == 8 && ~choirSynth2.notNil) { ~choirSynth2.set(\amp, (~volumes[i] * ~masterVol).clip(0,2)) };
+				if(i == 7 && ~choirSynth.notNil) { ~choirSynth.set(\amp, (~volumes[i] * ~masterVol * ~chorusMasterVol).clip(0,2)) };
+				if(i == 8 && ~choirSynth2.notNil) { ~choirSynth2.set(\amp, (~volumes[i] * ~masterVol * ~chorusMasterVol).clip(0,2)) };
 			});
 		~volSliders[i].canFocus_(false);
 
@@ -1335,6 +1339,55 @@ s.waitForBoot({
 		};
 		if(i < 7) {
 			[~muteButtons[i], ~soloButtons[i], ~rhythmMenus[i], ~varButtons[i], ~pitchSliders[i], ~volSliders[i], ~humTimeSliders[i], ~humPitchSliders[i], ~humAmpSliders[i]].select(_.notNil).do(_.canFocus_(false));
+		};
+		if(i == 6) {
+			var chorusMasterCol = CompositeView(win, 115@700).background_(Color.grey(0.55));
+			chorusMasterCol.decorator = FlowLayout(chorusMasterCol.bounds, 5@5, 5@5);
+			StaticText(chorusMasterCol, 105@25).string_("CHORUS").align_(\center).background_(Color.black).stringColor_(Color.yellow).font_(Font(size: 18));
+			UserView(chorusMasterCol, 105@82).canFocus_(false);
+			UserView(chorusMasterCol, 105@30).canFocus_(false);
+			UserView(chorusMasterCol, 105@40).canFocus_(false);
+			UserView(chorusMasterCol, 105@40).canFocus_(false);
+			UserView(chorusMasterCol, 105@20).canFocus_(false);
+			UserView(chorusMasterCol, 105@20).canFocus_(false);
+			UserView(chorusMasterCol, 105@30).canFocus_(false);
+			UserView(chorusMasterCol, 105@30).canFocus_(false);
+			UserView(chorusMasterCol, 105@20).canFocus_(false);
+			StaticText(chorusMasterCol, 105@20).string_("Peak / dB").align_(\center).font_(Font(size:10));
+			~chorusMasterDisplay = NumberBox(chorusMasterCol, 105@20)
+				.value_(0.0)
+				.clipLo_(-60).clipHi_(3.5)
+				.decimals_(1)
+				.align_(\center)
+				.background_(Color.black)
+				.normalColor_(Color.yellow)
+				.action_({ |nb|
+					var targetAmp = ~dbSpec.map(~dbSpec.unmap(nb.value)).dbamp;
+					~chorusMasterVol = targetAmp;
+					~chorusMasterSlider.value = ~dbSpec.unmap(nb.value);
+					if(~choirSynth.notNil) { ~choirSynth.set(\amp, (~volumes[7] * ~masterVol * ~chorusMasterVol).clip(0,2)) };
+					if(~choirSynth2.notNil) { ~choirSynth2.set(\amp, (~volumes[8] * ~masterVol * ~chorusMasterVol).clip(0,2)) };
+				})
+				.canFocus_(false);
+			var cmHLayout = CompositeView(chorusMasterCol, 105@200);
+			cmHLayout.decorator = FlowLayout(cmHLayout.bounds, 0@0, 2@0);
+			~chorusMasterMeter = LevelIndicator(cmHLayout, 15@200).warning_(0.8).critical_(0.95).background_(Color.black);
+			var cmVRuler = CompositeView(cmHLayout, 25@200);
+			[3.5, 0, -12, -24, -40, -60].do({ |db|
+				var yPos = ~dbSpec.unmap(db);
+				StaticText(cmVRuler, Rect(0, (1 - yPos) * 180, 25, 20)).string_(db.asString).font_(Font(size: 7)).align_(\right).stringColor_(if(db > 0) { Color.red } { Color.black });
+			});
+			~chorusMasterSlider = Slider(cmHLayout, 55@200)
+				.value_(~dbSpec.unmap(0))
+				.action_({ |s|
+					var db = ~dbSpec.map(s.value);
+					~chorusMasterVol = db.dbamp;
+					~chorusMasterDisplay.value = db.round(0.1);
+					if(~choirSynth.notNil) { ~choirSynth.set(\amp, (~volumes[7] * ~masterVol * ~chorusMasterVol).clip(0,2)) };
+					if(~choirSynth2.notNil) { ~choirSynth2.set(\amp, (~volumes[8] * ~masterVol * ~chorusMasterVol).clip(0,2)) };
+				})
+				.canFocus_(false);
+			UserView(chorusMasterCol, 105@140).canFocus_(false);
 		};
 	});
 
@@ -1422,9 +1475,9 @@ s.waitForBoot({
 			var targetAmp = ~dbSpec.map(~dbSpec.unmap(nb.value)).dbamp;
 			~masterVol = targetAmp; // Actualiza la amplitud del motor
 			~masterSlider.value = ~dbSpec.unmap(nb.value); // Mueve el slider físicamente
-			if(~choirSynth.notNil) { ~choirSynth.set(\amp, (~volumes[7] * ~masterVol).clip(0,2)) };
-			if(~choirSynth2.notNil) { ~choirSynth2.set(\amp, (~volumes[8] * ~masterVol).clip(0,2)) };
-		})
+		if(~choirSynth.notNil) { ~choirSynth.set(\amp, (~volumes[7] * ~masterVol * ~chorusMasterVol).clip(0,2)) };
+		if(~choirSynth2.notNil) { ~choirSynth2.set(\amp, (~volumes[8] * ~masterVol * ~chorusMasterVol).clip(0,2)) };
+	})
 		.canFocus_(true);
 	// =========================================================================
 
@@ -1444,16 +1497,22 @@ s.waitForBoot({
 			var db = ~dbSpec.map(s.value);
 			~masterVol = db.dbamp;
 			~masterDisplay.value = db.round(0.1); // Actualiza el número amarillo al arrastrar
-			if(~choirSynth.notNil) { ~choirSynth.set(\amp, (~volumes[7] * ~masterVol).clip(0,2)) };
-			if(~choirSynth2.notNil) { ~choirSynth2.set(\amp, (~volumes[8] * ~masterVol).clip(0,2)) };
-		})
+		if(~choirSynth.notNil) { ~choirSynth.set(\amp, (~volumes[7] * ~masterVol * ~chorusMasterVol).clip(0,2)) };
+		if(~choirSynth2.notNil) { ~choirSynth2.set(\amp, (~volumes[8] * ~masterVol * ~chorusMasterVol).clip(0,2)) };
+	})
 		.canFocus_(false);
 
 	meterRoutine = {
 		loop {
+			var peakChorus = 0;
 			~peakBus.get({ |val| { if(peakMeter.notNil) { peakMeter.value = val } }.defer; });
 			~numTracks.do({ |i|
 				~trackPeakBuses[i].get({ |val| { if(~trackMeters[i].notNil) { ~trackMeters[i].value = val; }; }.defer; });
+			});
+			~trackPeakBuses[7].get({ |v7|
+				~trackPeakBuses[8].get({ |v8|
+					{ if(~chorusMasterMeter.notNil) { ~chorusMasterMeter.value = (v7 + v8).clip(0, 1) } }.defer;
+				});
 			});
 			0.05.wait;
 		}
