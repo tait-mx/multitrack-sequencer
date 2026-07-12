@@ -54,6 +54,7 @@ s.waitForBoot({
 	// Chorus patterns (separated from rhythmAndNames)
 	~chorus = [
 	["Ta Jose",
+		["Coro0", [[4,"coro0",0]]], // Inicio en blanco
 		["Coro1", [[64,"coro1",1]]], // Caminando yo venía
 		["Coro2", [[32,"coro2",1]]],         // Estoy llamando un congo pa bailar bembé
 		["Coro3", [[16,"coro3",1]]],   // Llámalo con la tumba llámalo Ta José
@@ -64,6 +65,7 @@ s.waitForBoot({
 		["Coro8", [[8,"coro8",1]]]            // Arriba nganga Ta José
 		],
 	["Alla en los Hollos",
+		["Coro0", [[4,"coro0",0]]], // Inicio en blanco
 		["Coro1", [[88,"coro1",1]]], // Alla en los Hollos
 		["Coro2", [[16,"coro2",1]]]          // Lorenzo David
 		]
