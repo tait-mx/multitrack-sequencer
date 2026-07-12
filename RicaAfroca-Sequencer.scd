@@ -543,7 +543,7 @@ s.waitForBoot({
 			});
 
 			{
-				var sets;
+				var sets, choirSetFolder, choirSetFolder2;
 				win.name = "RicaAfroca Sequencer Wood - Editing: " ++ name;
 				presetNameField.string = name;
 				presetMenu.value = presetMenu.items.indexOfEqual(name);
@@ -561,13 +561,17 @@ s.waitForBoot({
 						// Pre-scan choir sets and populate menus before triggering cancionMenu action
 						sets = ~scanChoirSets.value(~carpetasCanciones[~currentSongIdx]);
 						~choirSetIdx = ~choirSetIdx.min(sets.size - 1).max(0);
-						if(~choirSetMenu.notNil) {
-							~choirSetMenu.items = sets;
-							~choirSetMenu.value = ~choirSetIdx;
-						};
-
+					if(~choirSetMenu.notNil) {
+						~choirSetMenu.items = sets;
+						~choirSetMenu.value = ~choirSetIdx;
 					};
-					if(~cancionMenu.notNil) {
+					choirSetFolder = if(sets[~choirSetIdx] == "Default") { nil } { sets[~choirSetIdx] };
+					choirSetFolder2 = if(sets[~choirSetIdx2] == "Default") { nil } { sets[~choirSetIdx2] };
+					~loadChorusFolder.value(~carpetasCanciones[~currentSongIdx], choirSetFolder, ~samplesDictionary);
+					~loadChorusFolder.value(~carpetasCanciones[~currentSongIdx], choirSetFolder2, ~samplesDictionaryB);
+
+				};
+				if(~cancionMenu.notNil) {
 						~cancionMenu.value = ~currentSongIdx + 1;
 						if(~currentSongIdx >= 0) {
 							~rhythmMenus[7].items = ~chorus[~currentSongIdx].drop(1).collect({ |item| item[0] });
