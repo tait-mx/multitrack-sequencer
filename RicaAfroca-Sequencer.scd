@@ -669,6 +669,7 @@ s.waitForBoot({
 		rate = In.kr(tempoRatioBus, 1);
 		sig = PlayBuf.ar(1, buf, BufRateScale.kr(buf) * rate);
 		pitched = PitchShift.ar(sig, 0.2, rate.reciprocal, 0, 0.001);
+		pitched = pitched * rate;
 		sig = Select.ar((rate - 1).abs > 0.001, [sig, pitched]);
 		sig = sig * amp;
 
