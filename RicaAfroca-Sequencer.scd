@@ -1,4 +1,5 @@
 
+(
 /*
 RicaAfroca Sequencer - Pro Version 2.5 (9-Track Edition, Tracks 7-8 Choir)
 Matancera montuno is missing
@@ -8,7 +9,6 @@ Add chorus master
 Only one NEXT button fot both chorus tracks
 Add breaks for montuno change
 */
-(
 
 // Kill any lingering server instances to avoid UDP port conflicts
 Server.killAll;
@@ -121,6 +121,8 @@ s.waitForBoot({
 	~chorusMasterSlider = nil;
 	~chorusMasterDisplay = nil;
 	~chorusMasterMeter = nil;
+	~beatCounterBox = nil;
+	~beatCounterRoutine = nil;
 
 	// EQ system variables
 	~trackAudioBuses = Array.newClear(~numTracks);
@@ -1023,7 +1025,20 @@ s.waitForBoot({
 		if(keycode == 32) { startBtn.valueAction = 1 - startBtn.value };
 	});
 
-	startBtn = Button(win, 800@40).states_([["START ALL", Color.black, Color.green], ["STOP ALL", Color.white, Color.red]]).action_({ |b| if(b.value == 1) { ~numTracks.do({ |i| if(i < 7) { Tdef(("chan"++i).asSymbol).reset.play(~tempo, quant: 4) } }) } { ~numTracks.do({ |i| Tdef(("chan"++i).asSymbol).stop }); if(~chorusGroup.notNil) { ~chorusGroup.freeAll }; ~choirSynth = nil; ~choirSynth2 = nil; if(~choirTriggerBtn.notNil) { ~choirTriggerBtn.value = 0 } }; });
+	UserView(win, 865@1).canFocus_(false);
+	~beatCounterBox = NumberBox(win, 115@115)
+		.value_(1)
+		.clipLo_(1).clipHi_(4)
+		.decimals_(0)
+		.align_(\center)
+		.background_(Color.black)
+		.normalColor_(Color.new255(0, 200, 255))
+		.font_(Font("Helvetica", 48))
+		.canFocus_(false);
+
+	win.view.decorator.nextLine;
+
+	startBtn = Button(win, 740@40).states_([["START ALL", Color.black, Color.green], ["STOP ALL", Color.white, Color.red]]).action_({ |b| if(b.value == 1) { ~numTracks.do({ |i| if(i < 7) { Tdef(("chan"++i).asSymbol).reset.play(~tempo, quant: 4) } }) } { ~numTracks.do({ |i| Tdef(("chan"++i).asSymbol).stop }); if(~chorusGroup.notNil) { ~chorusGroup.freeAll }; ~choirSynth = nil; ~choirSynth2 = nil; if(~choirTriggerBtn.notNil) { ~choirTriggerBtn.value = 0 } }; });
 	startBtn.canFocus_(true);
 	startBtn.focus;
 
@@ -1036,7 +1051,7 @@ s.waitForBoot({
 		.normalColor_(Color.yellow)
 		.font_(Font(size: 18));
 	Button(win, 30@30).states_([["+", Color.black, Color.grey(0.8)]]).action_({ var newBpm = (~tempo.tempo * 60) + 0.5; ~tempo.tempo = newBpm / 60; bpmDisplay.value = newBpm; tempoSlid.value = newBpm.linlin(60, 200, 0, 1); ~tempoRatioBus.set(newBpm / (~cancionRefBpms[~currentSongIdx] ?? ~chorusRefBpm ?? 105)); }).canFocus_(false);
-	tempoSlid = Slider(win, 660@30).value_(~tempo.tempo.linlin(1, 3.3, 0, 1)).action_({ |s| var bpm = s.value.linlin(0, 1, 60, 200); ~tempo.tempo = bpm / 60; bpmDisplay.value = bpm; ~tempoRatioBus.set(bpm / (~cancionRefBpms[~currentSongIdx] ?? ~chorusRefBpm ?? 105)); }).canFocus_(false);
+	tempoSlid = Slider(win, 590@30).value_(~tempo.tempo.linlin(1, 3.3, 0, 1)).action_({ |s| var bpm = s.value.linlin(0, 1, 60, 200); ~tempo.tempo = bpm / 60; bpmDisplay.value = bpm; ~tempoRatioBus.set(bpm / (~cancionRefBpms[~currentSongIdx] ?? ~chorusRefBpm ?? 105)); }).canFocus_(false);
 
 	win.view.decorator.nextLine;
 
@@ -1279,10 +1294,10 @@ s.waitForBoot({
 			[~muteButtons[i], ~soloButtons[i], ~rhythmMenus[i], ~varButtons[i], ~pitchSliders[i], ~volSliders[i], ~humTimeSliders[i], ~humPitchSliders[i], ~humAmpSliders[i]].select(_.notNil).do(_.canFocus_(false));
 		};
 		if(i == 6) {
-			var chorusMasterCol = CompositeView(win, 115@700).background_(Color.grey(0.55));
-			chorusMasterCol.decorator = FlowLayout(chorusMasterCol.bounds, 5@5, 5@5);
-			UserView(chorusMasterCol, 105@15).canFocus_(false);
-			StaticText(chorusMasterCol, 105@25).string_("CHORUS").align_(\center).background_(Color.black).stringColor_(Color.yellow).font_(Font(size: 18));
+		var chorusMasterCol = CompositeView(win, 115@700).background_(Color.grey(0.55));
+		chorusMasterCol.decorator = FlowLayout(chorusMasterCol.bounds, 5@5, 5@5);
+		UserView(chorusMasterCol, 105@15).canFocus_(false);
+		StaticText(chorusMasterCol, 105@25).string_("CHORUS").align_(\center).background_(Color.black).stringColor_(Color.yellow).font_(Font(size: 18));
 			UserView(chorusMasterCol, 105@40).canFocus_(false);
 			~rhythmMenus[7] = PopUpMenu(chorusMasterCol, 105@30).items_(if(~currentSongIdx >= 0) { ~chorus[~currentSongIdx].drop(1).collect({ |item| item[0] }) } { ["----"] }).action_({ |m| ~scheduleRhythmChange.value(7, m.value); ~scheduleRhythmChange.value(8, m.value); });
 			~choirTriggerBtn = Button(chorusMasterCol, 105@40).states_([["CHORUS", Color.black, Color.grey(0.8)], ["STOP", Color.white, Color.green]]).action_({ |b|
@@ -1512,6 +1527,16 @@ s.waitForBoot({
 			0.05.wait;
 		}
 	}.fork(AppClock);
+
+	~beatCounterRoutine = { |clock|
+		var updateBeat;
+		updateBeat = {
+			var beatInBar = (~tempo.beats.floor.asInteger % 4) + 1;
+			{ if(~beatCounterBox.notNil) { ~beatCounterBox.value = beatInBar } }.defer;
+			clock.sched(1, updateBeat);
+		};
+		clock.sched(0, updateBeat);
+	}.value(~tempo);
 
 	win.view.decorator.nextLine;
 	presetNameField = TextField(win, 150@40).string_(currentPresetName)
