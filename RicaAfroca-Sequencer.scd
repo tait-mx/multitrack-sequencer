@@ -1343,7 +1343,7 @@ s.waitForBoot({
 				};
 			});
 			UserView(chorusMasterCol, 105@30).canFocus_(false);
-			UserView(chorusMasterCol, 105@38).canFocus_(false);
+			UserView(chorusMasterCol, 105@43).canFocus_(false);
 			StaticText(chorusMasterCol, 105@20).string_("Peak / dB").align_(\center).font_(Font(size:10));
 			~chorusMasterDisplay = NumberBox(chorusMasterCol, 105@20)
 				.value_(0.0)
