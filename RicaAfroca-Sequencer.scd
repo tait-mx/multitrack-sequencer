@@ -1043,6 +1043,8 @@ s.waitForBoot({
 		var cmHLayout, cmVRuler;
 		comp.decorator = FlowLayout(comp.bounds, 5@5, 5@5);
 
+		StaticText(comp, 105@15).string_(i).align_(\center).font_(Font(size: 16, bold: true)).stringColor_(Color.black);
+
 		// TextField interactivo con desenfoque automático al presionar Enter
 		~trackLabels[i] = TextField(comp, 105@25)
 			.string_(if(i == 7) { "Choir" } { if(i == 8) { "Choir2" } { "Track " ++ i } })
@@ -1060,7 +1062,11 @@ s.waitForBoot({
 		~muteButtons[i] = Button(comp, 50@40).states_([["ON", Color.black, Color.green], ["MUTE", Color.white, Color.red]]).action_({ |b| ~mutes[i] = (b.value == 1); if(i == 7 && ~choirSynth.notNil) { ~choirSynth.set(\amp, if(b.value == 1) { 0 } { (~volumes[i] * ~masterVol * ~chorusMasterVol).clip(0,2) }) }; if(i == 8 && ~choirSynth2.notNil) { ~choirSynth2.set(\amp, if(b.value == 1) { 0 } { (~volumes[i] * ~masterVol * ~chorusMasterVol).clip(0,2) }) }; });
 		~soloButtons[i] = Button(comp, 50@40).states_([["SOLO", Color.black, Color.yellow], ["SOLO", Color.white, Color.red(0.8)]]).action_({ |b| ~solos[i] = (b.value == 1); });
 		if(i != 8) {
-			~rhythmMenus[i] = PopUpMenu(comp, 105@30).items_(if((i == 7) || (i == 8)) { if(~currentSongIdx >= 0) { ~chorus[~currentSongIdx].drop(1).collect({ |item| item[0] }) } { ["----"] } } { ~rhythmAndNames.collect({ |item| item[0] }) }).action_({ |m| ~scheduleRhythmChange.value(i, m.value); if(i == 7) { ~scheduleRhythmChange.value(8, m.value) } });
+			if(i == 7) {
+				UserView(comp, 105@30).canFocus_(false);
+			} {
+				~rhythmMenus[i] = PopUpMenu(comp, 105@30).items_(~rhythmAndNames.collect({ |item| item[0] })).action_({ |m| ~scheduleRhythmChange.value(i, m.value); });
+			};
 		} {
 			UserView(comp, 105@30).canFocus_(false);
 			~rhythmMenus[i] = PopUpMenu(Window("", 0@0), 0@0);
@@ -1103,57 +1109,8 @@ s.waitForBoot({
 				});
 		};
 		if(i == 7) {
-			~choirTriggerBtn = Button(comp, 105@40).states_([["CHORUS", Color.black, Color.grey(0.8)], ["STOP", Color.white, Color.green]]).action_({ |b|
-				if(b.value == 1) {
-					if(startBtn.value == 0) {
-						"CHORUS: Cannot start while sequencer is stopped. Press START ALL first.".postln;
-						b.value = 0;
-					} {
-						Tdef(\chan7).reset.play(~tempo, quant: 4);
-						Tdef(\chan8).reset.play(~tempo, quant: 4);
-					};
-				} {
-					Tdef(\chan7).stop;
-					Tdef(\chan8).stop;
-					if(~chorusGroup.notNil) { ~chorusGroup.freeAll };
-					~choirSynth = nil;
-					~choirSynth2 = nil;
-				};
-			});
-			~cancionMenu = PopUpMenu(comp, 105@20).items_(["----"] ++ ~canciones).action_({ |m|
-				var idx, sets, choirSetFolder, choirSetFolder2;
-				if(m.value == 0) {
-					~currentSongIdx = -1;
-					~rhythmMenus[7].items = ["----"];
-					~rhythmMenus[7].valueAction = 0;
-					~rhythms[7] = [[4, 0, 0]];
-					~rhythmMenus[8].items = ["----"];
-					~scheduleRhythmChange.value(8, 0);
-					~rhythms[8] = [[4, 0, 0]];
-				} {
-					idx = m.value - 1;
-					~currentSongIdx = idx;
-					~chorusRefBpm = ~cancionRefBpms[idx];
-					sets = ~scanChoirSets.value(~carpetasCanciones[idx]);
-					~choirSetIdx = ~choirSetIdx.min(sets.size - 1).max(0);
-					~choirSetIdx2 = ~choirSetIdx2.min(sets.size - 1).max(0);
-					if(~choirSetMenu.notNil) {
-						~choirSetMenu.items = sets;
-						~choirSetMenu.value = ~choirSetIdx;
-					};
-					if(~choirSetMenu2.notNil) {
-						~choirSetMenu2.items = sets;
-						~choirSetMenu2.value = ~choirSetIdx2;
-					};
-					choirSetFolder = if(sets[~choirSetIdx] == "Default") { nil } { sets[~choirSetIdx] };
-					choirSetFolder2 = if(sets[~choirSetIdx2] == "Default") { nil } { sets[~choirSetIdx2] };
-					~loadChorusFolder.value(~carpetasCanciones[idx], choirSetFolder, ~samplesDictionary);
-					~loadChorusFolder.value(~carpetasCanciones[idx], choirSetFolder2, ~samplesDictionaryB);
-					~rhythmMenus[7].items = ~chorus[idx].drop(1).collect({ |item| item[0] });
-					~rhythmMenus[7].valueAction = 0;
-					~tempoRatioBus.set((~tempo.tempo * 60) / ~chorusRefBpm);
-				};
-			});
+			UserView(comp, 105@40).canFocus_(false);
+			UserView(comp, 105@20).canFocus_(false);
 			~choirSetMenu = PopUpMenu(comp, 105@20)
 				.items_(~scanChoirSets.value(~carpetasCanciones[~currentSongIdx.max(0)]))
 				.background_(Color.black)
@@ -1168,14 +1125,7 @@ s.waitForBoot({
 					~loadChorusFolder.value(songFolder, choirSetFolder, ~samplesDictionary);
 					~loadChorusFolder.value(songFolder, choirSetFolder, ~samplesDictionaryB);
 				});
-			~nextChorusBtn = Button(comp, 105@30).states_([["NEXT", Color.black, Color.grey(0.8)]]).action_({
-				var patterns, next;
-				if(~currentSongIdx >= 0) {
-					patterns = ~chorus[~currentSongIdx].drop(1);
-					next = (~rhythmIndices[7] + 1) % patterns.size;
-					~rhythmMenus[7].valueAction = next;
-				};
-			});
+			UserView(comp, 105@30).canFocus_(false);
 
 			~eqButtons[i] = Button(comp, 105@20)
 				.states_([["EQ", Color.black, Color.grey(0.8)], ["EQ", Color.white, Color.blue(0.6)]])
@@ -1333,7 +1283,7 @@ s.waitForBoot({
 
 		// Se remueven focos innecesarios excepto para las cajas de texto que sí requieren tipeo
 		if(i == 7) {
-			[~muteButtons[i], ~soloButtons[i], ~rhythmMenus[i], ~volSliders[i], ~choirTriggerBtn, ~cancionMenu, ~choirSetMenu, ~nextChorusBtn].select(_.notNil).do(_.canFocus_(false));
+			[~muteButtons[i], ~soloButtons[i], ~volSliders[i]].select(_.notNil).do(_.canFocus_(false));
 		};
 		if(i == 8) {
 			[~muteButtons[i], ~soloButtons[i], ~rhythmMenus[i], ~volSliders[i], ~nextChorusBtn2].select(_.notNil).do(_.canFocus_(false));
@@ -1345,13 +1295,67 @@ s.waitForBoot({
 			var chorusMasterCol = CompositeView(win, 115@700).background_(Color.grey(0.55));
 			chorusMasterCol.decorator = FlowLayout(chorusMasterCol.bounds, 5@5, 5@5);
 			StaticText(chorusMasterCol, 105@25).string_("CHORUS").align_(\center).background_(Color.black).stringColor_(Color.yellow).font_(Font(size: 18));
-			UserView(chorusMasterCol, 105@82).canFocus_(false);
-			UserView(chorusMasterCol, 105@30).canFocus_(false);
-			UserView(chorusMasterCol, 105@40).canFocus_(false);
-			UserView(chorusMasterCol, 105@40).canFocus_(false);
-			UserView(chorusMasterCol, 105@20).canFocus_(false);
-			UserView(chorusMasterCol, 105@20).canFocus_(false);
-			UserView(chorusMasterCol, 105@30).canFocus_(false);
+			UserView(chorusMasterCol, 105@60).canFocus_(false);
+			~rhythmMenus[7] = PopUpMenu(chorusMasterCol, 105@30).items_(if(~currentSongIdx >= 0) { ~chorus[~currentSongIdx].drop(1).collect({ |item| item[0] }) } { ["----"] }).action_({ |m| ~scheduleRhythmChange.value(7, m.value); ~scheduleRhythmChange.value(8, m.value); });
+			~choirTriggerBtn = Button(chorusMasterCol, 105@40).states_([["CHORUS", Color.black, Color.grey(0.8)], ["STOP", Color.white, Color.green]]).action_({ |b|
+				if(b.value == 1) {
+					if(startBtn.value == 0) {
+						"CHORUS: Cannot start while sequencer is stopped. Press START ALL first.".postln;
+						b.value = 0;
+					} {
+						Tdef(\chan7).reset.play(~tempo, quant: 4);
+						Tdef(\chan8).reset.play(~tempo, quant: 4);
+					};
+				} {
+					Tdef(\chan7).stop;
+					Tdef(\chan8).stop;
+					if(~chorusGroup.notNil) { ~chorusGroup.freeAll };
+					~choirSynth = nil;
+					~choirSynth2 = nil;
+				};
+			});
+			~cancionMenu = PopUpMenu(chorusMasterCol, 105@20).items_(["----"] ++ ~canciones).action_({ |m|
+				var idx, sets, choirSetFolder, choirSetFolder2;
+				if(m.value == 0) {
+					~currentSongIdx = -1;
+					~rhythmMenus[7].items = ["----"];
+					~rhythmMenus[7].valueAction = 0;
+					~rhythms[7] = [[4, 0, 0]];
+					~rhythmMenus[8].items = ["----"];
+					~scheduleRhythmChange.value(8, 0);
+					~rhythms[8] = [[4, 0, 0]];
+				} {
+					idx = m.value - 1;
+					~currentSongIdx = idx;
+					~chorusRefBpm = ~cancionRefBpms[idx];
+					sets = ~scanChoirSets.value(~carpetasCanciones[idx]);
+					~choirSetIdx = ~choirSetIdx.min(sets.size - 1).max(0);
+					~choirSetIdx2 = ~choirSetIdx2.min(sets.size - 1).max(0);
+					if(~choirSetMenu.notNil) {
+						~choirSetMenu.items = sets;
+						~choirSetMenu.value = ~choirSetIdx;
+					};
+					if(~choirSetMenu2.notNil) {
+						~choirSetMenu2.items = sets;
+						~choirSetMenu2.value = ~choirSetIdx2;
+					};
+					choirSetFolder = if(sets[~choirSetIdx] == "Default") { nil } { sets[~choirSetIdx] };
+					choirSetFolder2 = if(sets[~choirSetIdx2] == "Default") { nil } { sets[~choirSetIdx2] };
+					~loadChorusFolder.value(~carpetasCanciones[idx], choirSetFolder, ~samplesDictionary);
+					~loadChorusFolder.value(~carpetasCanciones[idx], choirSetFolder2, ~samplesDictionaryB);
+					~rhythmMenus[7].items = ~chorus[idx].drop(1).collect({ |item| item[0] });
+					~rhythmMenus[7].valueAction = 0;
+					~tempoRatioBus.set((~tempo.tempo * 60) / ~chorusRefBpm);
+				};
+			});
+			~nextChorusBtn = Button(chorusMasterCol, 105@30).states_([["NEXT", Color.black, Color.grey(0.8)]]).action_({
+				var patterns, next;
+				if(~currentSongIdx >= 0) {
+					patterns = ~chorus[~currentSongIdx].drop(1);
+					next = (~rhythmIndices[7] + 1) % patterns.size;
+					~rhythmMenus[7].valueAction = next;
+				};
+			});
 			UserView(chorusMasterCol, 105@30).canFocus_(false);
 			UserView(chorusMasterCol, 105@20).canFocus_(false);
 			StaticText(chorusMasterCol, 105@20).string_("Peak / dB").align_(\center).font_(Font(size:10));
@@ -1389,6 +1393,7 @@ s.waitForBoot({
 				})
 				.canFocus_(false);
 			UserView(chorusMasterCol, 105@140).canFocus_(false);
+			[~rhythmMenus[7], ~chorusMasterSlider, ~chorusMasterDisplay].select(_.notNil).do(_.canFocus_(false));
 		};
 	});
 
