@@ -1040,6 +1040,7 @@ s.waitForBoot({
 
 	~numTracks.do({ |i|
 		var comp = CompositeView(win, 115@700).background_(Color.grey(0.7));
+		var cmHLayout, cmVRuler;
 		comp.decorator = FlowLayout(comp.bounds, 5@5, 5@5);
 
 		// TextField interactivo con desenfoque automático al presionar Enter
@@ -1369,10 +1370,10 @@ s.waitForBoot({
 					if(~choirSynth2.notNil) { ~choirSynth2.set(\amp, (~volumes[8] * ~masterVol * ~chorusMasterVol).clip(0,2)) };
 				})
 				.canFocus_(false);
-			var cmHLayout = CompositeView(chorusMasterCol, 105@200);
+			cmHLayout = CompositeView(chorusMasterCol, 105@200);
 			cmHLayout.decorator = FlowLayout(cmHLayout.bounds, 0@0, 2@0);
 			~chorusMasterMeter = LevelIndicator(cmHLayout, 15@200).warning_(0.8).critical_(0.95).background_(Color.black);
-			var cmVRuler = CompositeView(cmHLayout, 25@200);
+			cmVRuler = CompositeView(cmHLayout, 25@200);
 			[3.5, 0, -12, -24, -40, -60].do({ |db|
 				var yPos = ~dbSpec.unmap(db);
 				StaticText(cmVRuler, Rect(0, (1 - yPos) * 180, 25, 20)).string_(db.asString).font_(Font(size: 7)).align_(\right).stringColor_(if(db > 0) { Color.red } { Color.black });
