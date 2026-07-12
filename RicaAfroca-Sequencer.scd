@@ -1279,8 +1279,9 @@ s.waitForBoot({
 		if(i == 6) {
 			var chorusMasterCol = CompositeView(win, 115@700).background_(Color.grey(0.55));
 			chorusMasterCol.decorator = FlowLayout(chorusMasterCol.bounds, 5@5, 5@5);
+			UserView(chorusMasterCol, 105@15).canFocus_(false);
 			StaticText(chorusMasterCol, 105@25).string_("CHORUS").align_(\center).background_(Color.black).stringColor_(Color.yellow).font_(Font(size: 18));
-			UserView(chorusMasterCol, 105@60).canFocus_(false);
+			UserView(chorusMasterCol, 105@40).canFocus_(false);
 			~rhythmMenus[7] = PopUpMenu(chorusMasterCol, 105@30).items_(if(~currentSongIdx >= 0) { ~chorus[~currentSongIdx].drop(1).collect({ |item| item[0] }) } { ["----"] }).action_({ |m| ~scheduleRhythmChange.value(7, m.value); ~scheduleRhythmChange.value(8, m.value); });
 			~choirTriggerBtn = Button(chorusMasterCol, 105@40).states_([["CHORUS", Color.black, Color.grey(0.8)], ["STOP", Color.white, Color.green]]).action_({ |b|
 				if(b.value == 1) {
@@ -1342,7 +1343,7 @@ s.waitForBoot({
 				};
 			});
 			UserView(chorusMasterCol, 105@30).canFocus_(false);
-			UserView(chorusMasterCol, 105@20).canFocus_(false);
+			UserView(chorusMasterCol, 105@38).canFocus_(false);
 			StaticText(chorusMasterCol, 105@20).string_("Peak / dB").align_(\center).font_(Font(size:10));
 			~chorusMasterDisplay = NumberBox(chorusMasterCol, 105@20)
 				.value_(0.0)
