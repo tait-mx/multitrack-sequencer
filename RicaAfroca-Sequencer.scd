@@ -1025,19 +1025,6 @@ s.waitForBoot({
 		if(keycode == 32) { startBtn.valueAction = 1 - startBtn.value };
 	});
 
-	UserView(win, 865@1).canFocus_(false);
-	~beatCounterBox = NumberBox(win, 115@115)
-		.value_(1)
-		.clipLo_(1).clipHi_(4)
-		.decimals_(0)
-		.align_(\center)
-		.background_(Color.black)
-		.normalColor_(Color.new255(0, 200, 255))
-		.font_(Font("Helvetica", 48))
-		.canFocus_(false);
-
-	win.view.decorator.nextLine;
-
 	startBtn = Button(win, 740@40).states_([["START ALL", Color.black, Color.green], ["STOP ALL", Color.white, Color.red]]).action_({ |b| if(b.value == 1) { ~numTracks.do({ |i| if(i < 7) { Tdef(("chan"++i).asSymbol).reset.play(~tempo, quant: 4) } }) } { ~numTracks.do({ |i| Tdef(("chan"++i).asSymbol).stop }); if(~chorusGroup.notNil) { ~chorusGroup.freeAll }; ~choirSynth = nil; ~choirSynth2 = nil; if(~choirTriggerBtn.notNil) { ~choirTriggerBtn.value = 0 } }; });
 	startBtn.canFocus_(true);
 	startBtn.focus;
@@ -1052,6 +1039,19 @@ s.waitForBoot({
 		.font_(Font(size: 18));
 	Button(win, 30@30).states_([["+", Color.black, Color.grey(0.8)]]).action_({ var newBpm = (~tempo.tempo * 60) + 0.5; ~tempo.tempo = newBpm / 60; bpmDisplay.value = newBpm; tempoSlid.value = newBpm.linlin(60, 200, 0, 1); ~tempoRatioBus.set(newBpm / (~cancionRefBpms[~currentSongIdx] ?? ~chorusRefBpm ?? 105)); }).canFocus_(false);
 	tempoSlid = Slider(win, 590@30).value_(~tempo.tempo.linlin(1, 3.3, 0, 1)).action_({ |s| var bpm = s.value.linlin(0, 1, 60, 200); ~tempo.tempo = bpm / 60; bpmDisplay.value = bpm; ~tempoRatioBus.set(bpm / (~cancionRefBpms[~currentSongIdx] ?? ~chorusRefBpm ?? 105)); }).canFocus_(false);
+
+	win.view.decorator.nextLine;
+
+	UserView(win, 865@1).canFocus_(false);
+	~beatCounterBox = NumberBox(win, 115@115)
+		.value_(1)
+		.clipLo_(1).clipHi_(4)
+		.decimals_(0)
+		.align_(\center)
+		.background_(Color.black)
+		.normalColor_(Color.new255(0, 200, 255))
+		.font_(Font("Helvetica", 48))
+		.canFocus_(false);
 
 	win.view.decorator.nextLine;
 
