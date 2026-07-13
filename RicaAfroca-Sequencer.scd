@@ -123,7 +123,6 @@ s.waitForBoot({
 	~chorusMasterDisplay = nil;
 	~chorusMasterMeter = nil;
 	~beatCounterBox = nil;
-	~beatCounterRoutine = nil;
 
 	// EQ system variables
 	~trackAudioBuses = Array.newClear(~numTracks);
@@ -1029,7 +1028,7 @@ s.waitForBoot({
 	cellA = CompositeView(win, 740@80);
 	cellA.decorator = FlowLayout(cellA.bounds, 0@0, 10@10);
 
-	startBtn = Button(cellA, 740@40).states_([["START ALL", Color.black, Color.green], ["STOP ALL", Color.white, Color.red]]).action_({ |b| if(b.value == 1) { ~beatCounterRoutine.value(~tempo); ~numTracks.do({ |i| if(i < 7) { Tdef(("chan"++i).asSymbol).reset.play(~tempo, quant: 4) } }) } { ~numTracks.do({ |i| Tdef(("chan"++i).asSymbol).stop }); if(~chorusGroup.notNil) { ~chorusGroup.freeAll }; ~choirSynth = nil; ~choirSynth2 = nil; if(~choirTriggerBtn.notNil) { ~choirTriggerBtn.value = 0 }; if(~beatCounterBox.notNil) { ~beatCounterBox.value = 1 } }; });
+	startBtn = Button(cellA, 740@40).states_([["START ALL", Color.black, Color.green], ["STOP ALL", Color.white, Color.red]]).action_({ |b| if(b.value == 1) { Tdef(\beatCounter).play(~tempo); ~numTracks.do({ |i| if(i < 7) { Tdef(("chan"++i).asSymbol).reset.play(~tempo, quant: 4) } }) } { Tdef(\beatCounter).stop; ~numTracks.do({ |i| Tdef(("chan"++i).asSymbol).stop }); if(~chorusGroup.notNil) { ~chorusGroup.freeAll }; ~choirSynth = nil; ~choirSynth2 = nil; if(~choirTriggerBtn.notNil) { ~choirTriggerBtn.value = 0 }; if(~beatCounterBox.notNil) { ~beatCounterBox.value = 1 } }; });
 	startBtn.canFocus_(true);
 	startBtn.focus;
 
@@ -1530,15 +1529,13 @@ s.waitForBoot({
 		}
 	}.fork(AppClock);
 
-	~beatCounterRoutine = { |clock|
-		var updateBeat;
-		updateBeat = {
+	Tdef(\beatCounter, {
+		loop {
 			var beatInBar = (~tempo.beats.floor.asInteger % 4) + 1;
 			{ if(~beatCounterBox.notNil) { ~beatCounterBox.value = beatInBar } }.defer;
-			clock.sched(1, updateBeat);
+			1.wait;
 		};
-		clock.sched(0, updateBeat);
-	};
+	});
 
 	win.view.decorator.nextLine;
 	presetNameField = TextField(win, 150@40).string_(currentPresetName)
