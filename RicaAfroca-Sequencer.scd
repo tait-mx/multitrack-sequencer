@@ -862,7 +862,15 @@ s.waitForBoot({
 
 				step = step + 1;
 				if(step >= ~rhythms[i].size) { step = 0 };
-				delta.abs.wait;
+				// Wait in 4-beat chunks so rhythm changes can interrupt
+				{
+					var remaining = delta.abs;
+					while { remaining > 0 && ~rhythmResetFlags[i].not } {
+						var chunk = remaining.min(4);
+						chunk.wait;
+						remaining = remaining - chunk;
+					};
+				}.value;
 			}
 		}).quant = 4;
 	});
