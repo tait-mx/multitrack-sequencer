@@ -32,7 +32,8 @@ s.waitForBoot({
 	presetNameField, presetMenu, refreshBtn,
 	masterMuteBtn, masterCol, peakMeter, meterRoutine, hLayout, vRuler,
 	masterHumTime, masterHumPitch, masterHumAmp, humGroup, woodImg,
-	currentPresetName = "newPreset";
+	currentPresetName = "newPreset",
+	cellA;
 	var patRefBtn;
 
 	var masterSlid, masterDisplay;
@@ -1025,24 +1026,25 @@ s.waitForBoot({
 		if(keycode == 32) { startBtn.valueAction = 1 - startBtn.value };
 	});
 
-	startBtn = Button(win, 740@40).states_([["START ALL", Color.black, Color.green], ["STOP ALL", Color.white, Color.red]]).action_({ |b| if(b.value == 1) { ~numTracks.do({ |i| if(i < 7) { Tdef(("chan"++i).asSymbol).reset.play(~tempo, quant: 4) } }) } { ~numTracks.do({ |i| Tdef(("chan"++i).asSymbol).stop }); if(~chorusGroup.notNil) { ~chorusGroup.freeAll }; ~choirSynth = nil; ~choirSynth2 = nil; if(~choirTriggerBtn.notNil) { ~choirTriggerBtn.value = 0 } }; });
+	cellA = CompositeView(win, 740@80);
+	cellA.decorator = FlowLayout(cellA.bounds, 0@0, 10@10);
+
+	startBtn = Button(cellA, 740@40).states_([["START ALL", Color.black, Color.green], ["STOP ALL", Color.white, Color.red]]).action_({ |b| if(b.value == 1) { ~numTracks.do({ |i| if(i < 7) { Tdef(("chan"++i).asSymbol).reset.play(~tempo, quant: 4) } }) } { ~numTracks.do({ |i| Tdef(("chan"++i).asSymbol).stop }); if(~chorusGroup.notNil) { ~chorusGroup.freeAll }; ~choirSynth = nil; ~choirSynth2 = nil; if(~choirTriggerBtn.notNil) { ~choirTriggerBtn.value = 0 } }; });
 	startBtn.canFocus_(true);
 	startBtn.focus;
 
-	win.view.decorator.nextLine;
+	cellA.decorator.nextLine;
 
-	Button(win, 30@30).states_([["-", Color.black, Color.grey(0.8)]]).action_({ var newBpm = (~tempo.tempo * 60) - 0.5; ~tempo.tempo = newBpm / 60; bpmDisplay.value = newBpm; tempoSlid.value = newBpm.linlin(60, 200, 0, 1); 	~tempoRatioBus.set(newBpm / (~cancionRefBpms[~currentSongIdx] ?? ~chorusRefBpm ?? 105)); }).canFocus_(false);
-	bpmDisplay = NumberBox(win, 60@30).value_((~tempo.tempo * 60).round(0.1))
+	Button(cellA, 30@30).states_([["-", Color.black, Color.grey(0.8)]]).action_({ var newBpm = (~tempo.tempo * 60) - 0.5; ~tempo.tempo = newBpm / 60; bpmDisplay.value = newBpm; tempoSlid.value = newBpm.linlin(60, 200, 0, 1); 	~tempoRatioBus.set(newBpm / (~cancionRefBpms[~currentSongIdx] ?? ~chorusRefBpm ?? 105)); }).canFocus_(false);
+	bpmDisplay = NumberBox(cellA, 60@30).value_((~tempo.tempo * 60).round(0.1))
 	    .decimals_(1)
 		.background_(Color.black)
 		.normalColor_(Color.yellow)
 		.font_(Font(size: 18));
-	Button(win, 30@30).states_([["+", Color.black, Color.grey(0.8)]]).action_({ var newBpm = (~tempo.tempo * 60) + 0.5; ~tempo.tempo = newBpm / 60; bpmDisplay.value = newBpm; tempoSlid.value = newBpm.linlin(60, 200, 0, 1); ~tempoRatioBus.set(newBpm / (~cancionRefBpms[~currentSongIdx] ?? ~chorusRefBpm ?? 105)); }).canFocus_(false);
-	tempoSlid = Slider(win, 590@30).value_(~tempo.tempo.linlin(1, 3.3, 0, 1)).action_({ |s| var bpm = s.value.linlin(0, 1, 60, 200); ~tempo.tempo = bpm / 60; bpmDisplay.value = bpm; ~tempoRatioBus.set(bpm / (~cancionRefBpms[~currentSongIdx] ?? ~chorusRefBpm ?? 105)); }).canFocus_(false);
+	Button(cellA, 30@30).states_([["+", Color.black, Color.grey(0.8)]]).action_({ var newBpm = (~tempo.tempo * 60) + 0.5; ~tempo.tempo = newBpm / 60; bpmDisplay.value = newBpm; tempoSlid.value = newBpm.linlin(60, 200, 0, 1); ~tempoRatioBus.set(newBpm / (~cancionRefBpms[~currentSongIdx] ?? ~chorusRefBpm ?? 105)); }).canFocus_(false);
+	tempoSlid = Slider(cellA, 590@30).value_(~tempo.tempo.linlin(1, 3.3, 0, 1)).action_({ |s| var bpm = s.value.linlin(0, 1, 60, 200); ~tempo.tempo = bpm / 60; bpmDisplay.value = bpm; ~tempoRatioBus.set(bpm / (~cancionRefBpms[~currentSongIdx] ?? ~chorusRefBpm ?? 105)); }).canFocus_(false);
 
-	win.view.decorator.nextLine;
-
-	UserView(win, 865@1).canFocus_(false);
+	UserView(win, 115@1).canFocus_(false);
 	~beatCounterBox = NumberBox(win, 115@115)
 		.value_(1)
 		.clipLo_(1).clipHi_(4)
