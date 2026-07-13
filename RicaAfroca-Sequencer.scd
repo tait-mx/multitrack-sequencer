@@ -90,6 +90,7 @@ s.waitForBoot({
 	~sampleIndices = Array.fill(~numTracks, { |i| i });
 
 	~varRequests = Array.fill(~numTracks, { false });
+	~rhythmResetFlags = Array.fill(~numTracks, { false });
 
 	// Humanize Logic Arrays
 	~humanizeTime = Array.fill(~numTracks, { 0.0 });
@@ -741,6 +742,7 @@ s.waitForBoot({
 				} {
 					~rhythmAndNames.wrapAt(newIdx)[1] ?? [[0.5,0,1],[0.5,0,1]]
 				};
+				~rhythmResetFlags[i] = true;
 				nil;
 			});
 		} {
@@ -812,6 +814,14 @@ s.waitForBoot({
 						vDelta.abs.wait;
 					});
 
+					currentEvent = ~rhythms[i].wrapAt(step);
+					delta = currentEvent[0]; bufOff = currentEvent[1]; hitAmp = currentEvent[2];
+				};
+
+				// RHYTHM CHANGE RESET
+				if (~rhythmResetFlags[i]) {
+					~rhythmResetFlags[i] = false;
+					step = 0;
 					currentEvent = ~rhythms[i].wrapAt(step);
 					delta = currentEvent[0]; bufOff = currentEvent[1]; hitAmp = currentEvent[2];
 				};
