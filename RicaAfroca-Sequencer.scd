@@ -1357,7 +1357,10 @@ s.waitForBoot({
 				if(~currentSongIdx >= 0) {
 					patterns = ~chorus[~currentSongIdx].drop(1);
 					next = (~rhythmIndices[7] + 1) % patterns.size;
-					~rhythmMenus[7].valueAction = next;
+					~scheduleRhythmChange.value(7, next);
+					~scheduleRhythmChange.value(8, next);
+					~rhythmMenus[7].value = next;
+					~rhythmMenus[8].value = next;
 				};
 			});
 			UserView(chorusMasterCol, 105@30).canFocus_(false);
