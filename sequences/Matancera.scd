@@ -9,25 +9,26 @@ o = [
 	Array.prNew(3),  "cf",  Array.prNew(3),  "cf",  
 	Array.prNew(3),  "cf",  Array.prNew(3),  "cf",  
 	Array.prNew(3),  "cf",  Array.prNew(2),  Array.prNew(3),  
-	Array.prNew(3),  Array.prNew(3),  Array.prNew(3),  "llcmf",  
-	Array.prNew(3),  "llamf",  Array.prNew(3),  "llamf",  
-	Array.prNew(6),  Array.prNew(3),  "llcp",  Array.prNew(3),  
-	"llcp",  Array.prNew(3),  "llap",  Array.prNew(3),  
-	"llcp",  Array.prNew(3),  "llcp",  Array.prNew(3),  
-	"llap",  Array.prNew(6),  Array.prNew(3),  Array.prNew(3),  
-	"llsp",  Array.prNew(3),  "llsp",  Array.prNew(3),  
-	Array.prNew(3),  "llaf",  Array.prNew(3),  "llsp",  
-	Array.prNew(4),  Array.prNew(3),  "llcf",  Array.prNew(3),  
-	"llcf",  Array.prNew(3),  "llcf",  Array.prNew(3),  
-	"llaf",  Array.prNew(1),  Array.prNew(3),  Array.prNew(1),  
-	Array.prNew(3),  Array.prNew(9),  "Clave",  "Cáscara",  
-	"Shekere",  "----",  "----",  "Llamador",  
-	"Golpe",  "CORO",  "Clave",  Array.prNew(9),  
-	Array.prNew(9),  Array.prNew(9),  Array.prNew(11),  Array.prNew(11),  
+	Array.prNew(3),  Array.prNew(8),  Array.prNew(3),  Array.prNew(3),  
+	"llsmp",  Array.prNew(3),  "llsmp",  Array.prNew(3),  
+	"llsmp",  Array.prNew(3),  Array.prNew(3),  "llsmp",  
+	Array.prNew(3),  "llaf",  Array.prNew(3),  "llsmp",  
+	Array.prNew(4),  Array.prNew(3),  Array.prNew(3),  "llcf",  
+	Array.prNew(3),  "llcf",  Array.prNew(3),  "llcf",  
+	Array.prNew(6),  Array.prNew(3),  Array.prNew(3),  "llsp",  
+	Array.prNew(3),  "llsp",  Array.prNew(3),  Array.prNew(3),  
+	"llaf",  Array.prNew(3),  "llsp",  Array.prNew(4),  
+	Array.prNew(3),  "llcmf",  Array.prNew(3),  "llcmf",  
+	Array.prNew(3),  "llcmf",  Array.prNew(3),  "llaf",  
+	Array.prNew(1),  Array.prNew(3),  Array.prNew(1),  Array.prNew(3),  
+	Array.prNew(9),  "Clave",  "Cáscara",  "Shekere",  
+	"----",  "----",  "Llamador",  "Golpe",  
+	"CORO",  "Clave",  Array.prNew(9),  Array.prNew(9),  
+	Array.prNew(9),  Array.prNew(11),  Array.prNew(11),  Array.prNew(11),  
 	Array.prNew(11),  Array.prNew(11),  Array.prNew(11),  Array.prNew(11),  
-	Array.prNew(11),  Array.prNew(11),  Array.prNew(11),  Array.prNew(9),  
+	Array.prNew(11),  Array.prNew(11),  Array.prNew(9),  Array.prNew(9),  
 	Array.prNew(9),  Array.prNew(9),  Array.prNew(9),  Array.prNew(9),  
-	Array.prNew(9),  Array.prNew(9),  Array.prNew(9)
+	Array.prNew(9),  Array.prNew(9)
 ];
 p = [
 	// Dictionary
@@ -39,36 +40,36 @@ p = [
 		'choirSetIdx2',  0,  nil,  nil,  
 		'rhythms',  o[2],  nil,  nil,  
 		'choirSetIdx',  0,  nil,  nil,  
-		'trackNames',  o[81],  nil,  nil,  
+		'trackNames',  o[84],  nil,  nil,  
 		nil,  nil,  nil,  nil,  
-		'pitches',  o[91],  'temaBpm',  85.235109717868,  
+		'pitches',  o[94],  'temaBpm',  92.535211267606,  
 		nil,  nil,  nil,  nil,  
 		'seccion',  'tema',  nil,  nil,  
 		nil,  nil,  nil,  nil,  
 		nil,  nil,  'currentSongIdx',  -1,  
 		nil,  nil,  nil,  nil,  
 		nil,  nil,  nil,  nil,  
-		nil,  nil,  'solos',  o[92],  
+		nil,  nil,  'solos',  o[95],  
 		nil,  nil,  nil,  nil,  
-		'eqParams',  o[93],  nil,  nil,  
+		'eqParams',  o[96],  nil,  nil,  
 		nil,  nil,  nil,  nil,  
-		nil,  nil,  'mutes',  o[103],  
+		nil,  nil,  'mutes',  o[106],  
 		nil,  nil,  nil,  nil,  
-		'indices',  o[104],  nil,  nil,  
-		nil,  nil,  'humAmp',  o[105],  
+		'indices',  o[107],  nil,  nil,  
+		nil,  nil,  'humAmp',  o[108],  
 		nil,  nil,  nil,  nil,  
-		nil,  nil,  'humTime',  o[106],  
-		nil,  nil,  'volumes',  o[107],  
+		nil,  nil,  'humTime',  o[109],  
+		nil,  nil,  'volumes',  o[110],  
 		nil,  nil,  nil,  nil,  
-		'humPitch',  o[108],  nil,  nil,  
-		'montunoIndices',  o[109],  'sampleIndices',  o[110],  
+		'humPitch',  o[111],  nil,  nil,  
+		'montunoIndices',  o[112],  'sampleIndices',  o[113],  
 		nil,  nil,  nil,  nil,  
 		nil,  nil,  nil,  nil,  
 		nil,  nil,  nil,  nil ],  
 	// Array
 	2, [ o[3],  o[11],  o[34],  o[37],  
-		o[44],  o[57],  o[68],  o[77],  
-		o[79] ],  
+		o[52],  o[60],  o[71],  o[80],  
+		o[82] ],  
 	// Array
 	3, [ o[4],  o[5],  o[6],  o[7],  
 		o[8],  o[9],  o[10] ],  
@@ -119,143 +120,149 @@ p = [
 	// Array
 	36, [ 0.25,  8,  1 ],  
 	// Array
-	37, [ o[38],  o[40],  o[42] ],  
+	37, [ o[38],  o[39],  o[41],  o[43],  
+		o[45],  o[46],  o[48],  o[50] ],  
 	// Array
-	38, [ 0.66666666666667,  o[39],  1 ],  
+	38, [ 0.25,  0,  0 ],  
 	// Array
-	40, [ 0.33333333333333,  o[41],  1 ],  
+	39, [ 0.25,  o[40],  1 ],  
 	// Array
-	42, [ 1,  o[43],  1 ],  
+	41, [ 0.25,  o[42],  1 ],  
 	// Array
-	44, [ o[45],  o[47],  o[49],  o[51],  
-		o[53],  o[55] ],  
+	43, [ 0.25,  o[44],  1 ],  
 	// Array
-	45, [ 1,  o[46],  0.25 ],  
+	45, [ 0.25,  0,  0 ],  
 	// Array
-	47, [ 0.5,  o[48],  0.25 ],  
+	46, [ 0.25,  o[47],  1 ],  
 	// Array
-	49, [ 0.5,  o[50],  1 ],  
+	48, [ 0.25,  o[49],  1 ],  
 	// Array
-	51, [ 1,  o[52],  0.25 ],  
+	50, [ 0.25,  o[51],  1 ],  
 	// Array
-	53, [ 0.5,  o[54],  0.25 ],  
+	52, [ o[53],  o[54],  o[56],  o[58] ],  
 	// Array
-	55, [ 0.5,  o[56],  1 ],  
+	53, [ 0.75,  0,  0 ],  
 	// Array
-	57, [ o[58],  o[59],  o[61],  o[63],  
-		o[64],  o[66] ],  
+	54, [ 0.25,  o[55],  1 ],  
 	// Array
-	58, [ 0.46875,  0,  0 ],  
+	56, [ 1,  o[57],  1 ],  
 	// Array
-	59, [ 0.28125,  o[60],  1 ],  
+	58, [ 2,  o[59],  1 ],  
 	// Array
-	61, [ 0.25,  o[62],  1 ],  
+	60, [ o[61],  o[62],  o[64],  o[66],  
+		o[67],  o[69] ],  
 	// Array
-	63, [ 0.46875,  0,  0 ],  
+	61, [ 0.46875,  0,  0 ],  
 	// Array
-	64, [ 0.28125,  o[65],  1 ],  
+	62, [ 0.28125,  o[63],  1 ],  
 	// Array
-	66, [ 0.25,  o[67],  1 ],  
+	64, [ 0.25,  o[65],  1 ],  
 	// Array
-	68, [ o[69],  o[71],  o[73],  o[75] ],  
+	66, [ 0.46875,  0,  0 ],  
 	// Array
-	69, [ 0.75,  o[70],  1 ],  
+	67, [ 0.28125,  o[68],  1 ],  
 	// Array
-	71, [ 0.25,  o[72],  1 ],  
+	69, [ 0.25,  o[70],  1 ],  
 	// Array
-	73, [ 0.5,  o[74],  1 ],  
+	71, [ o[72],  o[74],  o[76],  o[78] ],  
 	// Array
-	75, [ 0.5,  o[76],  1 ],  
+	72, [ 0.75,  o[73],  1 ],  
 	// Array
-	77, [ o[78] ],  
+	74, [ 0.25,  o[75],  1 ],  
 	// Array
-	78, [ 4,  0,  0 ],  
+	76, [ 0.5,  o[77],  1 ],  
 	// Array
-	79, [ o[80] ],  
+	78, [ 0.5,  o[79],  1 ],  
 	// Array
-	80, [ 4,  0,  0 ],  
+	80, [ o[81] ],  
 	// Array
-	81, [ o[82],  o[83],  o[84],  o[85],  
-		o[86],  o[87],  o[88],  o[89],  
-		o[90] ],  
+	81, [ 4,  0,  0 ],  
 	// Array
-	91, [ 47.0,  56.0,  59.0,  60,  
-		59.0,  59.0,  57.0,  47.0,  
+	82, [ o[83] ],  
+	// Array
+	83, [ 4,  0,  0 ],  
+	// Array
+	84, [ o[85],  o[86],  o[87],  o[88],  
+		o[89],  o[90],  o[91],  o[92],  
+		o[93] ],  
+	// Array
+	94, [ 47.0,  56.0,  59.0,  60,  
+		59.0,  58.0,  57.0,  47.0,  
 		47.0 ],  
 	// Array
-	92, [ false,  false,  false,  false,  
+	95, [ false,  false,  false,  false,  
 		false,  false,  false,  false,  
 		false ],  
 	// Array
-	93, [ o[94],  o[95],  o[96],  o[97],  
-		o[98],  o[99],  o[100],  o[101],  
-		o[102] ],  
+	96, [ o[97],  o[98],  o[99],  o[100],  
+		o[101],  o[102],  o[103],  o[104],  
+		o[105] ],  
 	// Array
-	94, [ 200,  0,  0.707,  811.17744821837,  
+	97, [ 200,  0,  0.707,  811.17744821837,  
 		4.810973251498,  2.9566466888436,  5000,  0,  
 		0.707,  false,  0.7 ],  
 	// Array
-	95, [ 200,  0,  0.707,  1299.9385962009,  
+	98, [ 200,  0,  0.707,  1299.9385962009,  
 		8.294843746021,  3.2967066223129,  5000,  0,  
 		0.707,  false,  0.0 ],  
 	// Array
-	96, [ 200,  0,  0.707,  1089.6207143201,  
+	99, [ 200,  0,  0.707,  1089.6207143201,  
 		18.019178391686,  3.0063920688831,  4285.0935175701,  6.763790240975,  
 		2.4200599334693,  false,  0 ],  
 	// Array
-	97, [ 200,  0,  0.707,  1000,  
+	100, [ 200,  0,  0.707,  1000,  
 		0,  0.707,  5000,  0,  
 		0.707,  false,  0 ],  
-	// Array
-	98, [ 200,  0,  0.707,  1000,  
-		0,  0.707,  5000,  0,  
-		0.707,  false,  0 ],  
-	// Array
-	99, [ 265.38633706149,  9.8223264534456,  4.1733533111564,  3716.4022491013,  
-		11.450408188332,  4.4644258363731,  10019.005919989,  10.566001764067,  
-		5.1287361530028,  false,  3.0 ],  
-	// Array
-	100, [ 221.66001764067,  8.0704531249609,  0.595,  200,  
-		2.0358969096676,  0.44984272328515,  6269.2440658644,  18.069136070014,  
-		4.6767722283573,  false,  7.6 ],  
 	// Array
 	101, [ 200,  0,  0.707,  1000,  
 		0,  0.707,  5000,  0,  
 		0.707,  false,  0 ],  
 	// Array
-	102, [ 200,  0,  0.707,  811.17744821837,  
+	102, [ 265.38633706149,  9.8223264534456,  4.1733533111564,  695.12633441477,  
+		18.650408188332,  6.948450654402,  1548.454522759,  15.453111144828,  
+		1.8117066223129,  false,  3.0 ],  
+	// Array
+	103, [ 203.13971553284,  8.2612023384222,  0.595,  200,  
+		2.0358969096676,  0.44984272328515,  6269.2440658644,  10.149591811668,  
+		4.6767722283573,  false,  7.6 ],  
+	// Array
+	104, [ 200,  0,  0.707,  1000,  
+		0,  0.707,  5000,  0,  
+		0.707,  false,  0 ],  
+	// Array
+	105, [ 200,  0,  0.707,  811.17744821837,  
 		4.810973251498,  2.9566466888436,  5000,  0,  
 		0.707,  false,  0.7 ],  
 	// Array
-	103, [ false,  false,  false,  true,  
-		true,  false,  false,  false,  
+	106, [ false,  false,  false,  false,  
+		false,  false,  false,  false,  
 		false ],  
 	// Array
-	104, [ 2,  5,  10,  25,  
-		15,  23,  14,  0,  
+	107, [ 2,  5,  10,  25,  
+		15,  24,  14,  0,  
 		0 ],  
 	// Array
-	105, [ 0.027966101694915,  0.027966101694915,  0.027966101694915,  0.027966101694915,  
+	108, [ 0.027966101694915,  0.027966101694915,  0.027966101694915,  0.027966101694915,  
 		0.027966101694915,  0.027966101694915,  0.027966101694915,  0.027966101694915,  
 		0.027966101694915 ],  
 	// Array
-	106, [ 0.0088135593220339,  0.0088135593220339,  0.0088135593220339,  0.0088135593220339,  
+	109, [ 0.0088135593220339,  0.0088135593220339,  0.0088135593220339,  0.0088135593220339,  
 		0.0088135593220339,  0.0088135593220339,  0.0088135593220339,  0.0088135593220339,  
 		0.0088135593220339 ],  
 	// Array
-	107, [ 1.1057207257138,  1.0346965601279,  0.73837713440461,  1.3971321692305,  
-		0.7,  1.0346965601279,  0.96603200137215,  0.71496983465007,  
+	110, [ 1.1057207257138,  1.0346965601279,  0.73837713440461,  0.001,  
+		0.001,  1.0346965601279,  0.96603200137215,  0.71496983465007,  
 		1.1057207257138 ],  
 	// Array
-	108, [ 0.15254237288136,  0.15254237288136,  0.15254237288136,  0.15254237288136,  
+	111, [ 0.15254237288136,  0.15254237288136,  0.15254237288136,  0.15254237288136,  
 		0.15254237288136,  0.15254237288136,  0.15254237288136,  0.15254237288136,  
 		0.15254237288136 ],  
 	// Array
-	109, [ 2,  5,  12,  25,  
-		15,  26,  17,  0,  
+	112, [ 2,  5,  12,  0,  
+		0,  25,  15,  0,  
 		2 ],  
 	// Array
-	110, [ 0,  1,  2,  3,  
+	113, [ 0,  1,  2,  3,  
 		4,  5,  0,  0,  
 		0 ]
 ];

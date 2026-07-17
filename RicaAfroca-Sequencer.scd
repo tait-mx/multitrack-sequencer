@@ -173,7 +173,8 @@ s.waitForBoot({
 		["Shekere6/8", [[2/3,7,1], [1/3,8,1]]],
 
 		// Golpes
-		["GolpeMatancera", [[0.75,"llcp",1], [0.25,"llcp",1], [0.5,"llcp",1], [0.5,"llaf",1]]],
+		["GolpeMatancera", [[0.75,"llcmf",1], [0.25,"llcmf",1], [0.5,"llcmf",1], [0.5,"llaf",1]]],
+		["GolpeMontMatancera", [[0.75,0,0], [0.25,"llcf",1], [1,"llcf",1], [2,"llcf",1]]],
 		["GolpeGuaguanco", [[1,"llcp",0.25], [0.5,"llcp",0.25], [0.5,"llap",1],
 				            [1,"llcp",0.25], [0.5,"llcp",0.25], [0.5,"llap",1]]],
 		["GolpeCol", [[2/3,"llcmf",0.43], [1/3,"llsmf",1],  [1/3,"llcmf",0.43], [1/3,"llamf",1], [1/3,"llamf",1]]],
@@ -195,8 +196,10 @@ s.waitForBoot({
 			                   [0.25,"llcp",0.3], [0.25,"llpp",0.125], [0.25,"llpp",0.125], [0.25,"lltp",0.5],
 			                   [0.75,"llap",1],[0.25,"llcp",0.3],
 			                   [0.25,"llcp",0.3], [0.25,"llpp",0.125], [0.25,"llpp",0.125], [0.25,"llcp",0.3]]],
-		["Llamador Matancera", [[15/32, 0, 0],  [9/32, "llsp", 1], [8/32, "llsp", 1],
+		["LlamadorMatancera", [[15/32, 0, 0],  [9/32, "llsp", 1], [8/32, "llsp", 1],
 				                [15/32, 0, 0],  [9/32, "llaf", 1], [8/32, "llsp", 1]]],
+		["LlamadorMontMatancera", [[0.25, 0, 0],  [0.25, "llsp", 1],  [0.25, "llsp", 1],  [0.25, "llsp", 1],
+				            [0.25, 0, 0],  [0.25, "llsp", 1],  [0.25, "llaf", 1],  [0.25, "llsp", 1]]],
 		["Llamador Yambu", [[0.25, 0, 0],  [0.25, "llsmp", 1],  [0.25, "llsmp", 1],  [0.25, "llsmp", 1],
 				            [0.25, 0, 0],  [0.25, "llsmp", 1],  [0.25, "llaf", 1],  [0.25, "llsmp", 1]]],
 		["Llamador Columbia", [[2/3,"llcmf",1], [1/3,"llamf",1],  [1,"llamf",1]]],
