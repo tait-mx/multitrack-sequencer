@@ -176,11 +176,10 @@ s.waitForBoot({
 		["PaloYukaGolpe", [[0.75,0,1], [0.25,0,1], [-1,0,0]]],
 		["GolpeGuaguanco", [[1,"llcp",0.25], [0.5,"llcp",0.25], [0.5,"llap",1],
 				            [1,"llcp",0.25], [0.5,"llcp",0.25], [0.5,"llap",1]]],
-
 		["GolpeCol", [[2/3,"llcmf",0.43], [1/3,"llsmf",1],  [1/3,"llcmf",0.43], [1/3,"llamf",1], [1/3,"llamf",1]]],
 		["GolpeMontunoCol", [[2/3,"llcp",1], [1/3,"llcf",1],  [1,"llcp",1],
 				             [2/3,"llcp",1], [1/3,"llsmf",1], [1/3,"llcp",1], [2/3,"llaf",1]]],
-		["GolpePalo", [[1/3,1,0], [2/3,"lltp",1],  [1/3,9,0], [2/3,"llaf",1.5]]],
+		["GolpePalo", [[1/3,0,0], [1/3,"llsp",1], [1/3,"llsp",1],  [1/3,0,0], [1/3,"llamf",1], [1/3,"llsp",1]]],
 		["Yuka Golpe", [[1,1,0.43], [1,3,1]]],
 
 		// Cajon
