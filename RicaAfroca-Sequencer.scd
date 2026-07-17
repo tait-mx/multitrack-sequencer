@@ -173,7 +173,7 @@ s.waitForBoot({
 		["Shekere6/8", [[2/3,7,1], [1/3,8,1]]],
 
 		// Golpes
-		["PaloYukaGolpe", [[0.75,0,1], [0.25,0,1], [-1,0,0]]],
+		["GolpeMatancera", [[0.75,"llcp",1], [0.25,"llcp",1], [0.5,"llcp",1], [0.5,"llaf",1]]],
 		["GolpeGuaguanco", [[1,"llcp",0.25], [0.5,"llcp",0.25], [0.5,"llap",1],
 				            [1,"llcp",0.25], [0.5,"llcp",0.25], [0.5,"llap",1]]],
 		["GolpeCol", [[2/3,"llcmf",0.43], [1/3,"llsmf",1],  [1/3,"llcmf",0.43], [1/3,"llamf",1], [1/3,"llamf",1]]],
