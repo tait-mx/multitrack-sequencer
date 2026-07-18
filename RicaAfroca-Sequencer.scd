@@ -1,14 +1,17 @@
 
 (
 /*
-RicaAfroca Sequencer - Pro Version 2.5 (9-Track Edition, Tracks 7-8 Choir)
+RicaAfroca Sequencer - Pro Version 2.6 (9-Track Edition, Tracks 7-8 Choir + Reverb)
 Matancera montuno is missing
 Fix coro5 and coro6 length
-Add reverb
+Add reverb (JPverb send/return with per-track sends)
 Add chorus master
 Only one NEXT button fot both chorus tracks
 Add breaks for montuno change
 */
+
+// Increase server memory for JPverb reverb plugin
+s.options.memSize_(65536 * 4);
 
 // Kill any lingering server instances to avoid UDP port conflicts
 Server.killAll;
@@ -17,6 +20,7 @@ Server.killAll;
 Window.allWindows.do({ |w| if(w.name.contains("RicaAfroca")) { w.close } });
 ~numTracks.do({ |i| try { Tdef(("chan"++i).asSymbol).stop } });
 try { ~chorusGroup.free };
+try { ~reverbSynth.free };
 try { ~myPort.close };
 try { ~serialRoutine.stop };
 // Discard old buffer references (server was killed above, buffers already freed)
@@ -147,6 +151,23 @@ s.waitForBoot({
 	~eqSynths = Array.newClear(~numTracks);
 	~eqWindows = Array.newClear(~numTracks);
 	~eqButtons = Array.newClear(~numTracks);
+
+	// Reverb system variables
+	~reverbSendBus = nil;
+	~reverbReturnBus = nil;
+	~reverbSynth = nil;
+	~reverbSends = Array.fill(~numTracks, { 0.3 });
+	~reverbDryGain = 0.85;
+	~reverbWetGain = 0.65;
+	~reverbEnabled = true;
+	~reverbParams = Dictionary.newFrom([
+		\t60, 1.8, \damp, 0.45, \size, 1.2, \earlyDiff, 0.75,
+		\modDepth, 0.15, \modFreq, 0.8,
+		\low, 0.9, \mid, 0.7, \high, 0.4,
+		\lowcut, 400, \highcut, 3500
+	]);
+	~reverbKnobs = Array.newClear(~numTracks);
+	~reverbNbs = Array.newClear(~numTracks);
 	~gainKnobs = Array.newClear(~numTracks);
 	~gainNbs = Array.newClear(~numTracks);
 	~eqGroup = nil;
@@ -517,6 +538,12 @@ s.waitForBoot({
 			 p[\bypass], p[\gain]]
 		}));
 
+		// Save reverb params
+		data.put(\reverbSends, Array.fill(~numTracks, { |i| ~reverbSends[i] }));
+		data.put(\reverbParams, ~reverbParams.copy);
+		data.put(\reverbWetGain, ~reverbWetGain);
+		data.put(\reverbEnabled, ~reverbEnabled);
+
 		data.writeArchive(path);
 		("--- Preservado Preset Sólido de 9 Canales: " ++ name).postln;
 	};
@@ -560,6 +587,21 @@ s.waitForBoot({
 					p[\gain] = if(ep[10].notNil) { ep[10] } { 0 };
 				};
 			});
+
+			// Load reverb params
+			if(data[\reverbSends].notNil) {
+				~numTracks.do({ |i| ~reverbSends[i] = data[\reverbSends].wrapAt(i) ?? 0.3 });
+			};
+			if(data[\reverbParams].notNil) {
+				data[\reverbParams].keysDo({ |k|
+					~reverbParams[k] = data[\reverbParams][k];
+				});
+			};
+			if(data[\reverbWetGain].notNil) {
+				~reverbWetGain = data[\reverbWetGain];
+				~reverbDryGain = (1 - ~reverbWetGain).max(0.1);
+			};
+			~reverbEnabled = data[\reverbEnabled] ?? true;
 
 			{
 				var sets, choirSetFolder, choirSetFolder2;
@@ -635,7 +677,28 @@ s.waitForBoot({
 					};
 					~gainKnobs[i].value = ~eqParams[i][\gain].linlin(-12, 12, 0, 1).clip(0, 1);
 					~gainNbs[i].value = ~eqParams[i][\gain];
+
+					// Restore reverb send knobs
+					if(~reverbKnobs[i].notNil) { ~reverbKnobs[i].value = ~reverbSends[i] };
+					if(~reverbNbs[i].notNil) { ~reverbNbs[i].value = ~reverbSends[i] * 100 };
 				});
+
+				// Update reverb synth from loaded params
+				if(~reverbSynth.notNil) {
+					~reverbSynth.set(
+						\t60, ~reverbParams[\t60], \damp, ~reverbParams[\damp],
+						\size, ~reverbParams[\size], \earlyDiff, ~reverbParams[\earlyDiff],
+						\modDepth, ~reverbParams[\modDepth], \modFreq, ~reverbParams[\modFreq],
+						\low, ~reverbParams[\low], \mid, ~reverbParams[\mid],
+						\high, ~reverbParams[\high], \lowcut, ~reverbParams[\lowcut],
+						\highcut, ~reverbParams[\highcut],
+						\wetGain, if(~reverbEnabled) { ~reverbWetGain } { 0 },
+						\dryGain, if(~reverbEnabled) { ~reverbDryGain } { 1 }
+					);
+				};
+				if(~reverbToggleBtn.notNil) {
+					~reverbToggleBtn.value = ~reverbEnabled.asInteger;
+				};
 			}.defer;
 		};
 	};
@@ -663,26 +726,47 @@ s.waitForBoot({
 	~chorusGroup = Group.new(s);
 
 	SynthDef(\masterOut, {
-		arg amp=0.8;
-		var sig = In.ar(0, 2);
+		arg amp=0.8, reverbIn=99;
+		var sig, reverb;
+		sig = In.ar(0, 2);
+		reverb = In.ar(reverbIn, 2);
+		sig = sig + reverb;
 		sig = sig * amp;
 		sig = Limiter.ar(sig, 0.98);
 		Out.kr(~peakBus, PeakFollower.kr(sig[0].abs.max(sig[1].abs), 0.999));
 		ReplaceOut.ar(0, sig);
 	}).add;
 
+	SynthDef(\reverb, {
+		arg inBus, outBus,
+		t60=1.8, damp=0.45, size=1.2, earlyDiff=0.75,
+		modDepth=0.15, modFreq=0.8,
+		low=0.9, mid=0.7, high=0.4, lowcut=400, highcut=3500,
+		dryGain=0.85, wetGain=0.65;
+		var dry, wet;
+		dry = In.ar(inBus, 2) * dryGain;
+		wet = JPverb.ar(
+			In.ar(inBus, 2),
+			t60, damp, size, earlyDiff,
+			modDepth, modFreq,
+			low, mid, high, lowcut, highcut
+		) * wetGain;
+		Out.ar(outBus, dry + wet);
+	}).add;
+
 	SynthDef(\liveChannel, {
-		arg out=0, buf=0, rate=1, amp=0.5, pan=0, rel=0.3, peakOut;
+		arg out=0, buf=0, rate=1, amp=0.5, pan=0, rel=0.3, peakOut, reverbSendBus=0, reverbSend=0;
 		var sig, env;
 		env = EnvGen.kr(Env.perc(0.005, rel), 1, doneAction: 2);
 		sig = PlayBuf.ar(1, buf, BufRateScale.kr(buf) * rate, loop: 0);
 		sig = sig * 0.8 * env * amp;
 		Out.kr(peakOut, PeakFollower.kr(sig.abs.max(sig.abs), 0.999));
 		OffsetOut.ar(out, Pan2.ar(sig, pan));
+		Out.ar(reverbSendBus, sig * reverbSend);
 	}).add;
 
 	SynthDef(\chorusChannel, {
-		arg out=0, buf=0, amp=0.5, pan=0, peakOut, tempoRatioBus;
+		arg out=0, buf=0, amp=0.5, pan=0, peakOut, tempoRatioBus, reverbSendBus=0, reverbSend=0;
 		var sig, rate, pitched;
 
 		rate = In.kr(tempoRatioBus, 1);
@@ -694,6 +778,7 @@ s.waitForBoot({
 
 		Out.kr(peakOut, PeakFollower.kr(sig.abs, 0.999));
 		OffsetOut.ar(out, Pan2.ar(sig, pan));
+		Out.ar(reverbSendBus, sig * reverbSend);
 	}).add;
 
 	SynthDef(\trackEQ, {
@@ -735,8 +820,31 @@ s.waitForBoot({
 		], ~eqGroup, \addToHead);
 	});
 
-	// MasterOut after EQ group
-	Synth(\masterOut, [\amp, ~masterVol], ~eqGroup, \addAfter);
+	// Reverb send/return buses
+	~reverbSendBus = Bus.audio(s, 2);
+	~reverbReturnBus = Bus.audio(s, 2);
+
+	// MasterOut after EQ group (reads reverb return)
+	Synth(\masterOut, [\amp, ~masterVol, \reverbIn, ~reverbReturnBus.index], ~eqGroup, \addAfter);
+
+	// Reverb synth
+	~reverbSynth = Synth(\reverb, [
+		\inBus, ~reverbSendBus,
+		\outBus, ~reverbReturnBus,
+		\t60, ~reverbParams[\t60],
+		\damp, ~reverbParams[\damp],
+		\size, ~reverbParams[\size],
+		\earlyDiff, ~reverbParams[\earlyDiff],
+		\modDepth, ~reverbParams[\modDepth],
+		\modFreq, ~reverbParams[\modFreq],
+		\low, ~reverbParams[\low],
+		\mid, ~reverbParams[\mid],
+		\high, ~reverbParams[\high],
+		\lowcut, ~reverbParams[\lowcut],
+		\highcut, ~reverbParams[\highcut],
+		\dryGain, ~reverbDryGain,
+		\wetGain, ~reverbWetGain
+	], ~eqGroup, \addAfter);
 
 	/////////////////////////////////////////////////////////////////
 	// ENGINE (EVENT-DRIVEN MATRIX PLAYER)
@@ -796,12 +904,14 @@ s.waitForBoot({
 									var synth;
 									if(i == 7 && ~choirSynth.notNil) { ~choirSynth.free };
 									if(i == 8 && ~choirSynth2.notNil) { ~choirSynth2.free };
-								synth = Synth(\chorusChannel, [\buf, ~getBufferForStep.value(vBuf, ~sampleIndices[i], samplesDict),
-									\amp, (vAmp * ~volumes[i] + ~humanizeAmp[i].rand2).clip(0,2) * ~masterVol * ~chorusMasterVol,
-										\peakOut, ~trackPeakBuses[i],
-										\tempoRatioBus, ~tempoRatioBus,
-										\out, ~trackAudioBuses[i].index,
-									], ~chorusGroup, \addToHead);
+							synth = Synth(\chorusChannel, [\buf, ~getBufferForStep.value(vBuf, ~sampleIndices[i], samplesDict),
+								\amp, (vAmp * ~volumes[i] + ~humanizeAmp[i].rand2).clip(0,2) * ~masterVol * ~chorusMasterVol,
+									\peakOut, ~trackPeakBuses[i],
+									\tempoRatioBus, ~tempoRatioBus,
+									\out, ~trackAudioBuses[i].index,
+									\reverbSendBus, ~reverbSendBus.index,
+									\reverbSend, ~reverbSends[i],
+								], ~chorusGroup, \addToHead);
 									if(i == 7) { ~choirSynth = synth };
 									if(i == 8) { ~choirSynth2 = synth };
 								});
@@ -809,16 +919,18 @@ s.waitForBoot({
 								pbRate = (~pitches[i] + ~humanizePitch[i].rand2 - 60).midiratio;
 								vTargetBuffer = ~getBufferForStep.value(vBuf, ~sampleIndices[i], samplesDict);
 
-								s.makeBundle(s.latency + ~humanizeTime[i].rand2, {
-									Synth(\liveChannel, [
-										\buf, vTargetBuffer,
-										\rate, pbRate,
-										\amp, (vAmp * ~volumes[i] + ~humanizeAmp[i].rand2).clip(0,2) * ~masterVol,
-										\rel, (vDelta.abs / ~tempo.tempo) * 0.8,
-										\peakOut, ~trackPeakBuses[i],
-										\out, ~trackAudioBuses[i].index,
-									]);
-								});
+							s.makeBundle(s.latency + ~humanizeTime[i].rand2, {
+								Synth(\liveChannel, [
+									\buf, vTargetBuffer,
+									\rate, pbRate,
+									\amp, (vAmp * ~volumes[i] + ~humanizeAmp[i].rand2).clip(0,2) * ~masterVol,
+									\rel, (vDelta.abs / ~tempo.tempo) * 0.8,
+									\peakOut, ~trackPeakBuses[i],
+									\out, ~trackAudioBuses[i].index,
+									\reverbSendBus, ~reverbSendBus.index,
+									\reverbSend, ~reverbSends[i],
+								]);
+							});
 							};
 						};
 						vDelta.abs.wait;
@@ -844,12 +956,14 @@ s.waitForBoot({
 						var synth;
 						if(i == 7 && ~choirSynth.notNil) { ~choirSynth.free };
 						if(i == 8 && ~choirSynth2.notNil) { ~choirSynth2.free };
-					synth = Synth(\chorusChannel, [\buf, ~getBufferForStep.value(bufOff, ~sampleIndices[i], samplesDict),
-						\amp, (hitAmp * ~volumes[i] + ~humanizeAmp[i].rand2).clip(0,2) * ~masterVol * ~chorusMasterVol,
-							\peakOut, ~trackPeakBuses[i],
-							\tempoRatioBus, ~tempoRatioBus,
-							\out, ~trackAudioBuses[i].index,
-						], ~chorusGroup, \addToHead);
+				synth = Synth(\chorusChannel, [\buf, ~getBufferForStep.value(bufOff, ~sampleIndices[i], samplesDict),
+					\amp, (hitAmp * ~volumes[i] + ~humanizeAmp[i].rand2).clip(0,2) * ~masterVol * ~chorusMasterVol,
+						\peakOut, ~trackPeakBuses[i],
+						\tempoRatioBus, ~tempoRatioBus,
+						\out, ~trackAudioBuses[i].index,
+						\reverbSendBus, ~reverbSendBus.index,
+						\reverbSend, ~reverbSends[i],
+					], ~chorusGroup, \addToHead);
 						if(i == 7) { ~choirSynth = synth };
 						if(i == 8) { ~choirSynth2 = synth };
 					});
@@ -857,16 +971,18 @@ s.waitForBoot({
 						pbRate = (~pitches[i] + ~humanizePitch[i].rand2 - 60).midiratio;
 						targetBuffer = ~getBufferForStep.value(bufOff, ~sampleIndices[i], samplesDict);
 
-						s.makeBundle(s.latency + ~humanizeTime[i].rand2, {
-							Synth(\liveChannel, [
-								\buf, targetBuffer,
-								\rate, pbRate,
-								\amp, (hitAmp * ~volumes[i] + ~humanizeAmp[i].rand2).clip(0,2) * ~masterVol,
-								\rel, (delta.abs / ~tempo.tempo) * 0.8,
-								\peakOut, ~trackPeakBuses[i],
-								\out, ~trackAudioBuses[i].index,
-							]);
-						});
+					s.makeBundle(s.latency + ~humanizeTime[i].rand2, {
+						Synth(\liveChannel, [
+							\buf, targetBuffer,
+							\rate, pbRate,
+							\amp, (hitAmp * ~volumes[i] + ~humanizeAmp[i].rand2).clip(0,2) * ~masterVol,
+							\rel, (delta.abs / ~tempo.tempo) * 0.8,
+							\peakOut, ~trackPeakBuses[i],
+							\out, ~trackAudioBuses[i].index,
+							\reverbSendBus, ~reverbSendBus.index,
+							\reverbSend, ~reverbSends[i],
+						]);
+					});
 					};
 				};
 
@@ -1172,6 +1288,23 @@ s.waitForBoot({
 					~gainKnobs[i].value = val.linlin(-12, 12, 0, 1).clip(0, 1);
 					if(~eqSynths[i].notNil) { ~eqSynths[i].set(\gain, val) };
 				});
+
+			~reverbKnobs[i] = Knob(comp, 105@30)
+				.value_(~reverbSends[i])
+				.action_({ |k|
+					~reverbSends[i] = k.value;
+					~reverbNbs[i].value = (k.value * 100).round(1);
+				});
+			~reverbNbs[i] = NumberBox(comp, 105@18)
+				.value_(~reverbSends[i] * 100)
+				.decimals_(0).clipLo_(0).clipHi_(100)
+				.align_(\center).font_(Font(size: 11))
+				.normalColor_(Color.yellow).background_(Color.black)
+				.action_({ |nb|
+					var val = nb.value.clip(0, 100) / 100;
+					~reverbSends[i] = val;
+					~reverbKnobs[i].value = val;
+				});
 		};
 		if(i == 7) {
 			UserView(comp, 105@40).canFocus_(false);
@@ -1208,6 +1341,23 @@ s.waitForBoot({
 					~gainKnobs[i].value = val.linlin(-12, 12, 0, 1).clip(0, 1);
 					if(~eqSynths[i].notNil) { ~eqSynths[i].set(\gain, val) };
 				});
+
+			~reverbKnobs[i] = Knob(comp, 105@30)
+				.value_(~reverbSends[i])
+				.action_({ |k|
+					~reverbSends[i] = k.value;
+					~reverbNbs[i].value = (k.value * 100).round(1);
+				});
+			~reverbNbs[i] = NumberBox(comp, 105@18)
+				.value_(~reverbSends[i] * 100)
+				.decimals_(0).clipLo_(0).clipHi_(100)
+				.align_(\center).font_(Font(size: 11))
+				.normalColor_(Color.yellow).background_(Color.black)
+				.action_({ |nb|
+					var val = nb.value.clip(0, 100) / 100;
+					~reverbSends[i] = val;
+					~reverbKnobs[i].value = val;
+				});
 		};
 		if(i == 8) {
 			UserView(comp, 105@40).canFocus_(false);
@@ -1243,6 +1393,23 @@ s.waitForBoot({
 					~eqParams[i][\gain] = val;
 					~gainKnobs[i].value = val.linlin(-12, 12, 0, 1).clip(0, 1);
 					if(~eqSynths[i].notNil) { ~eqSynths[i].set(\gain, val) };
+				});
+
+			~reverbKnobs[i] = Knob(comp, 105@30)
+				.value_(~reverbSends[i])
+				.action_({ |k|
+					~reverbSends[i] = k.value;
+					~reverbNbs[i].value = (k.value * 100).round(1);
+				});
+			~reverbNbs[i] = NumberBox(comp, 105@18)
+				.value_(~reverbSends[i] * 100)
+				.decimals_(0).clipLo_(0).clipHi_(100)
+				.align_(\center).font_(Font(size: 11))
+				.normalColor_(Color.yellow).background_(Color.black)
+				.action_({ |nb|
+					var val = nb.value.clip(0, 100) / 100;
+					~reverbSends[i] = val;
+					~reverbKnobs[i].value = val;
 				});
 		};
 
@@ -1314,13 +1481,13 @@ s.waitForBoot({
 
 		// Se remueven focos innecesarios excepto para las cajas de texto que sí requieren tipeo
 		if(i == 7) {
-			[~muteButtons[i], ~soloButtons[i], ~volSliders[i]].select(_.notNil).do(_.canFocus_(false));
+			[~muteButtons[i], ~soloButtons[i], ~volSliders[i], ~reverbKnobs[i]].select(_.notNil).do(_.canFocus_(false));
 		};
 		if(i == 8) {
-			[~muteButtons[i], ~soloButtons[i], ~rhythmMenus[i], ~volSliders[i]].select(_.notNil).do(_.canFocus_(false));
+			[~muteButtons[i], ~soloButtons[i], ~rhythmMenus[i], ~volSliders[i], ~reverbKnobs[i]].select(_.notNil).do(_.canFocus_(false));
 		};
 		if(i < 7) {
-			[~muteButtons[i], ~soloButtons[i], ~rhythmMenus[i], ~varButtons[i], ~pitchSliders[i], ~volSliders[i], ~humTimeSliders[i], ~humPitchSliders[i], ~humAmpSliders[i]].select(_.notNil).do(_.canFocus_(false));
+			[~muteButtons[i], ~soloButtons[i], ~rhythmMenus[i], ~varButtons[i], ~pitchSliders[i], ~volSliders[i], ~humTimeSliders[i], ~humPitchSliders[i], ~humAmpSliders[i], ~reverbKnobs[i]].select(_.notNil).do(_.canFocus_(false));
 		};
 		if(i == 6) {
 		var chorusMasterCol = CompositeView(win, 115@700).background_(Color.grey(0.55));
@@ -1544,6 +1711,60 @@ s.waitForBoot({
 	})
 		.canFocus_(false);
 
+	// =========================================================================
+	// REVERB SECTION
+	// =========================================================================
+	UserView(masterCol, 140@6).canFocus_(false);
+	StaticText(masterCol, 140@20).string_("REVERB").align_(\center)
+		.background_(Color.black).stringColor_(Color.yellow).font_(Font(size:14));
+
+	~reverbToggleBtn = Button(masterCol, 140@30)
+		.states_([["REVERB ON", Color.black, Color.green], ["REVERB OFF", Color.white, Color.red(0.8)]])
+		.value_(1)
+		.action_({ |b|
+			if(b.value == 1) {
+				~reverbEnabled = true;
+				if(~reverbSynth.notNil) { ~reverbSynth.set(\wetGain, ~reverbWetGain, \dryGain, ~reverbDryGain) };
+			} {
+				~reverbEnabled = false;
+				if(~reverbSynth.notNil) { ~reverbSynth.set(\wetGain, 0, \dryGain, 1) };
+			};
+		}).canFocus_(false);
+
+	StaticText(masterCol, 140@12).string_("Room Size").font_(Font(size:8));
+	Knob(masterCol, 70@40).value_(1.2.linlin(0.5, 5, 0, 1))
+		.action_({ |k|
+			var val = k.value.linlin(0, 1, 0.5, 5);
+			~reverbParams[\size] = val;
+			if(~reverbSynth.notNil) { ~reverbSynth.set(\size, val) };
+		}).canFocus_(false);
+
+	StaticText(masterCol, 140@12).string_("Decay (s)").font_(Font(size:8));
+	Knob(masterCol, 70@40).value_(1.8.linlin(0.1, 10, 0, 1))
+		.action_({ |k|
+			var val = k.value.linlin(0, 1, 0.1, 10);
+			~reverbParams[\t60] = val;
+			if(~reverbSynth.notNil) { ~reverbSynth.set(\t60, val) };
+		}).canFocus_(false);
+
+	StaticText(masterCol, 140@12).string_("Damping").font_(Font(size:8));
+	Knob(masterCol, 70@40).value_(0.45)
+		.action_({ |k|
+			~reverbParams[\damp] = k.value;
+			if(~reverbSynth.notNil) { ~reverbSynth.set(\damp, k.value) };
+		}).canFocus_(false);
+
+	StaticText(masterCol, 140@12).string_("Wet/Dry").font_(Font(size:8));
+	Knob(masterCol, 70@40).value_(0.65)
+		.action_({ |k|
+			~reverbWetGain = k.value;
+			~reverbDryGain = (1 - k.value).max(0.1);
+			if(~reverbEnabled && { ~reverbSynth.notNil }) {
+				~reverbSynth.set(\wetGain, k.value, \dryGain, ~reverbDryGain);
+			};
+		}).canFocus_(false);
+	// =========================================================================
+
 	meterRoutine = {
 		loop {
 			var peakChorus = 0;
@@ -1608,6 +1829,10 @@ s.waitForBoot({
 		if(~serialRoutine.notNil) { ~serialRoutine.stop };
 		if(~myPort.notNil) { ~myPort.close };
 		if(~chorusGroup.notNil) { ~chorusGroup.free };
+		// Cleanup reverb resources
+		if(~reverbSynth.notNil) { ~reverbSynth.free };
+		if(~reverbSendBus.notNil) { ~reverbSendBus.free };
+		if(~reverbReturnBus.notNil) { ~reverbReturnBus.free };
 		// Cleanup EQ resources
 		~eqWindows.do({ |w| if(w.notNil and: { w.isClosed.not }) { w.close } });
 		~eqSynths.do(_.free);
