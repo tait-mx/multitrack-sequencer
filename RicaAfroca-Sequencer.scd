@@ -81,6 +81,11 @@ s.waitForBoot({
 	["Si a una Mamita",
 		["Coro0", [[4,"coro0",0]]], // Inicio en blanco
 		["Coro1", [[16,"coro1",1]]] // Por eso ahora ya yo no vuelvo a querer
+		],
+	["Ave Maria Morena",
+		["Coro0", [[4,"coro0",0]]], // Inicio en blanco
+		["Coro1", [[128,"coro1",1]]], // A la la la la la
+		["Coro2", [[8,"coro2",1]]] // Ave María Morena
 		]
 	];
 
@@ -296,8 +301,8 @@ s.waitForBoot({
 
 	// Song (chorus folder) selection
 	~canciones = ~chorus.collect({ |song| song[0] });
-	~carpetasCanciones = ["taJose105bpm", "AllaEnLosHollos80bpm", "LosChinos76bpm", "SiAUnaMamita140bpm"];
-	~cancionRefBpms = [105, 80, 76, 140];
+	~carpetasCanciones = ["taJose105bpm", "AllaEnLosHollos80bpm", "LosChinos76bpm", "SiAUnaMamita140bpm", "AveMariaMorena75bpm"];
+	~cancionRefBpms = [105, 80, 76, 140, 75];
 
 	// Function to load chorus samples from a given folder (optional subFolder for choir sets)
 	~loadChorusFolder = { |folderName, subFolder, dict|
