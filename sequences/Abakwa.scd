@@ -2,33 +2,23 @@ var o, p;
 o = [
 	Dictionary.prNew,  Array.prNew(128),  Array.prNew(9),  Array.prNew(5),  
 	Array.prNew(3),  Array.prNew(3),  Array.prNew(3),  Array.prNew(3),  
-	Array.prNew(3),  Array.prNew(11),  Array.prNew(3),  "cf",  
-	Array.prNew(3),  "cf",  Array.prNew(3),  "cf",  
-	Array.prNew(3),  "cf",  Array.prNew(3),  "cf",  
-	Array.prNew(3),  "cf",  Array.prNew(3),  "cf",  
-	Array.prNew(3),  "cf",  Array.prNew(3),  "cf",  
-	Array.prNew(3),  "cf",  Array.prNew(3),  "cf",  
-	Array.prNew(2),  Array.prNew(3),  Array.prNew(3),  Array.prNew(1),  
-	Array.prNew(3),  Array.prNew(14),  Array.prNew(3),  "llcp",  
-	Array.prNew(3),  "llpp",  Array.prNew(3),  "llpp",  
-	Array.prNew(3),  "llcp",  Array.prNew(3),  "llcp",  
-	Array.prNew(3),  "llpp",  Array.prNew(3),  "llpp",  
-	Array.prNew(3),  "lltp",  Array.prNew(3),  "llap",  
-	Array.prNew(3),  "llcp",  Array.prNew(3),  "llcp",  
-	Array.prNew(3),  "llpp",  Array.prNew(3),  "llpp",  
-	Array.prNew(3),  "llcp",  Array.prNew(4),  Array.prNew(3),  
-	Array.prNew(3),  "llcmp",  Array.prNew(3),  Array.prNew(3),  
-	"llaf",  Array.prNew(1),  Array.prNew(3),  Array.prNew(5),  
+	Array.prNew(3),  Array.prNew(9),  Array.prNew(3),  Array.prNew(3),  
 	Array.prNew(3),  Array.prNew(3),  Array.prNew(3),  Array.prNew(3),  
-	Array.prNew(3),  Array.prNew(9),  "CLAVE",  "CATA",  
-	"SHEKERE",  "",  "",  "LLAMADOR",  
-	"GOLPE",  "CLAVE",  "CLAVE",  Array.prNew(9),  
-	Dictionary.prNew,  Array.prNew(88),  Array.prNew(9),  Array.prNew(9),  
+	Array.prNew(3),  Array.prNew(3),  Array.prNew(3),  Array.prNew(2),  
+	Array.prNew(3),  Array.prNew(3),  Array.prNew(1),  Array.prNew(3),  
+	Array.prNew(4),  Array.prNew(3),  Array.prNew(3),  "llcmp",  
+	Array.prNew(3),  Array.prNew(3),  "llaf",  Array.prNew(4),  
+	Array.prNew(3),  Array.prNew(3),  Array.prNew(3),  "llaf",  
+	Array.prNew(3),  "llaf",  Array.prNew(1),  Array.prNew(3),  
+	Array.prNew(1),  Array.prNew(3),  Array.prNew(9),  "CLAVE",  
+	"CATA",  "SHEKERE",  "",  "",  
+	"LLAMADOR",  "GOLPE",  "CLAVE",  "CLAVE",  
+	Array.prNew(9),  Dictionary.prNew,  Array.prNew(88),  Array.prNew(9),  
+	Array.prNew(9),  Array.prNew(11),  Array.prNew(11),  Array.prNew(11),  
 	Array.prNew(11),  Array.prNew(11),  Array.prNew(11),  Array.prNew(11),  
-	Array.prNew(11),  Array.prNew(11),  Array.prNew(11),  Array.prNew(11),  
-	Array.prNew(11),  Array.prNew(9),  Array.prNew(9),  Array.prNew(9),  
+	Array.prNew(11),  Array.prNew(11),  Array.prNew(9),  Array.prNew(9),  
 	Array.prNew(9),  Array.prNew(9),  Array.prNew(9),  Array.prNew(9),  
-	Array.prNew(9),  Array.prNew(9)
+	Array.prNew(9),  Array.prNew(9),  Array.prNew(9)
 ];
 p = [
 	// Dictionary
@@ -40,36 +30,36 @@ p = [
 		'choirSetIdx2',  0,  nil,  nil,  
 		'rhythms',  o[2],  'reverbWetGain',  0.65,  
 		'choirSetIdx',  0,  nil,  nil,  
-		'trackNames',  o[81],  nil,  nil,  
+		'trackNames',  o[42],  nil,  nil,  
 		nil,  nil,  nil,  nil,  
-		'pitches',  o[91],  'temaBpm',  118.62676056338,  
+		'pitches',  o[52],  'temaBpm',  118.62676056338,  
 		nil,  nil,  nil,  nil,  
-		'seccion',  'tema',  'reverbParams',  o[92],  
+		'seccion',  'tema',  'reverbParams',  o[53],  
 		nil,  nil,  nil,  nil,  
 		nil,  nil,  'currentSongIdx',  -1,  
 		nil,  nil,  nil,  nil,  
 		nil,  nil,  nil,  nil,  
-		nil,  nil,  'solos',  o[94],  
+		nil,  nil,  'solos',  o[55],  
 		nil,  nil,  nil,  nil,  
-		'eqParams',  o[95],  nil,  nil,  
+		'eqParams',  o[56],  nil,  nil,  
 		nil,  nil,  nil,  nil,  
-		nil,  nil,  'mutes',  o[105],  
+		nil,  nil,  'mutes',  o[66],  
 		nil,  nil,  nil,  nil,  
-		'indices',  o[106],  nil,  nil,  
-		nil,  nil,  'humAmp',  o[107],  
+		'indices',  o[67],  nil,  nil,  
+		nil,  nil,  'humAmp',  o[68],  
 		'reverbEnabled',  true,  nil,  nil,  
-		nil,  nil,  'humTime',  o[108],  
-		nil,  nil,  'volumes',  o[109],  
+		nil,  nil,  'humTime',  o[69],  
+		nil,  nil,  'volumes',  o[70],  
 		nil,  nil,  nil,  nil,  
-		'humPitch',  o[110],  nil,  nil,  
-		'montunoIndices',  o[111],  'sampleIndices',  o[112],  
+		'humPitch',  o[71],  nil,  nil,  
+		'montunoIndices',  o[72],  'sampleIndices',  o[73],  
 		nil,  nil,  nil,  nil,  
-		nil,  nil,  'reverbSends',  o[113],  
+		nil,  nil,  'reverbSends',  o[74],  
 		nil,  nil,  nil,  nil ],  
 	// Array
-	2, [ o[3],  o[9],  o[32],  o[35],  
-		o[35],  o[37],  o[66],  o[73],  
-		o[75] ],  
+	2, [ o[3],  o[9],  o[19],  o[22],  
+		o[22],  o[24],  o[31],  o[38],  
+		o[40] ],  
 	// Array
 	3, [ o[4],  o[5],  o[6],  o[7],  
 		o[8] ],  
@@ -84,113 +74,77 @@ p = [
 	// Array
 	8, [ 1.0,  4,  1 ],  
 	// Array
-	9, [ o[10],  o[12],  o[14],  o[16],  
-		o[18],  o[20],  o[22],  o[24],  
-		o[26],  o[28],  o[30] ],  
+	9, [ o[10],  o[11],  o[12],  o[13],  
+		o[14],  o[15],  o[16],  o[17],  
+		o[18] ],  
 	// Array
-	10, [ 0.25,  o[11],  1 ],  
+	10, [ 0.25,  4,  0 ],  
 	// Array
-	12, [ 0.5,  o[13],  1 ],  
+	11, [ 0.25,  4,  1 ],  
 	// Array
-	14, [ 0.25,  o[15],  1 ],  
+	12, [ 0.5,  4,  1 ],  
 	// Array
-	16, [ 0.25,  o[17],  1 ],  
+	13, [ 0.5,  4,  0 ],  
 	// Array
-	18, [ 0.5,  o[19],  1 ],  
+	14, [ 0.5,  4,  0 ],  
 	// Array
-	20, [ 0.25,  o[21],  1 ],  
+	15, [ 0.5,  4,  1 ],  
 	// Array
-	22, [ 0.5,  o[23],  1 ],  
+	16, [ 0.5,  4,  1 ],  
 	// Array
-	24, [ 0.5,  o[25],  1 ],  
+	17, [ 0.75,  4,  0 ],  
 	// Array
-	26, [ 0.25,  o[27],  1 ],  
+	18, [ 0.25,  4,  1 ],  
 	// Array
-	28, [ 0.5,  o[29],  1 ],  
+	19, [ o[20],  o[21] ],  
 	// Array
-	30, [ 0.25,  o[31],  1 ],  
+	20, [ 0.66666666666667,  7,  1 ],  
 	// Array
-	32, [ o[33],  o[34] ],  
+	21, [ 0.33333333333333,  8,  1 ],  
 	// Array
-	33, [ 0.66666666666667,  7,  1 ],  
+	22, [ o[23] ],  
 	// Array
-	34, [ 0.33333333333333,  8,  1 ],  
+	23, [ 4,  0,  0 ],  
 	// Array
-	35, [ o[36] ],  
+	24, [ o[25],  o[26],  o[28],  o[29] ],  
 	// Array
-	36, [ 4,  0,  0 ],  
+	25, [ 0.33333333333333,  0,  0 ],  
 	// Array
-	37, [ o[38],  o[40],  o[42],  o[44],  
-		o[46],  o[48],  o[50],  o[52],  
-		o[54],  o[56],  o[58],  o[60],  
-		o[62],  o[64] ],  
+	26, [ 0.66666666666667,  o[27],  1 ],  
 	// Array
-	38, [ 0.25,  o[39],  0.3 ],  
+	28, [ 0.33333333333333,  0,  0 ],  
 	// Array
-	40, [ 0.25,  o[41],  0.125 ],  
+	29, [ 0.66666666666667,  o[30],  1 ],  
 	// Array
-	42, [ 0.25,  o[43],  0.125 ],  
+	31, [ o[32],  o[33],  o[34],  o[36] ],  
 	// Array
-	44, [ 0.25,  o[45],  0.3 ],  
+	32, [ 2.0,  0,  0 ],  
 	// Array
-	46, [ 0.25,  o[47],  0.3 ],  
+	33, [ 0.66666666666667,  0,  0 ],  
 	// Array
-	48, [ 0.25,  o[49],  0.125 ],  
+	34, [ 0.33333333333333,  o[35],  1 ],  
 	// Array
-	50, [ 0.25,  o[51],  0.125 ],  
+	36, [ 1.0,  o[37],  1 ],  
 	// Array
-	52, [ 0.25,  o[53],  0.5 ],  
+	38, [ o[39] ],  
 	// Array
-	54, [ 0.75,  o[55],  1 ],  
+	39, [ 4,  0,  0 ],  
 	// Array
-	56, [ 0.25,  o[57],  0.3 ],  
+	40, [ o[41] ],  
 	// Array
-	58, [ 0.25,  o[59],  0.3 ],  
+	41, [ 4,  0,  0 ],  
 	// Array
-	60, [ 0.25,  o[61],  0.125 ],  
+	42, [ o[43],  o[44],  o[45],  o[46],  
+		o[47],  o[48],  o[49],  o[50],  
+		o[51] ],  
 	// Array
-	62, [ 0.25,  o[63],  0.125 ],  
-	// Array
-	64, [ 0.25,  o[65],  0.3 ],  
-	// Array
-	66, [ o[67],  o[68],  o[70],  o[71] ],  
-	// Array
-	67, [ 0.33333333333333,  0,  0 ],  
-	// Array
-	68, [ 0.66666666666667,  o[69],  1 ],  
-	// Array
-	70, [ 0.33333333333333,  0,  0 ],  
-	// Array
-	71, [ 0.66666666666667,  o[72],  1 ],  
-	// Array
-	73, [ o[74] ],  
-	// Array
-	74, [ 4,  0,  0 ],  
-	// Array
-	75, [ o[76],  o[77],  o[78],  o[79],  
-		o[80] ],  
-	// Array
-	76, [ 0.75,  2,  1 ],  
-	// Array
-	77, [ 1,  2,  1 ],  
-	// Array
-	78, [ 0.7,  2,  1 ],  
-	// Array
-	79, [ 0.55,  2,  1 ],  
-	// Array
-	80, [ 1,  2,  1 ],  
-	// Array
-	81, [ o[82],  o[83],  o[84],  o[85],  
-		o[86],  o[87],  o[88],  o[89],  
-		o[90] ],  
-	// Array
-	91, [ 60.0,  56.0,  54.0,  60,  
-		62.0,  58.0,  58.0,  46.0,  
+	52, [ 60.0,  56.0,  54.0,  60,  
+		62.0,  58.0,  56.0,  46.0,  
 		46.0 ],  
 	// Dictionary
-	92, [ array: o[93],  size: 11 ],  
+	53, [ array: o[54],  size: 11 ],  
 	// Array
-	93, [ nil,  nil,  nil,  nil,  
+	54, [ nil,  nil,  nil,  nil,  
 		nil,  nil,  nil,  nil,  
 		nil,  nil,  nil,  nil,  
 		nil,  nil,  'size',  1.2,  
@@ -213,83 +167,83 @@ p = [
 		'high',  0.4,  nil,  nil,  
 		nil,  nil,  'lowcut',  400 ],  
 	// Array
-	94, [ false,  false,  false,  false,  
+	55, [ false,  false,  false,  false,  
 		false,  false,  false,  false,  
 		false ],  
 	// Array
-	95, [ o[96],  o[97],  o[98],  o[99],  
-		o[100],  o[101],  o[102],  o[103],  
-		o[104] ],  
+	56, [ o[57],  o[58],  o[59],  o[60],  
+		o[61],  o[62],  o[63],  o[64],  
+		o[65] ],  
 	// Array
-	96, [ 200,  0,  0.707,  1000,  
+	57, [ 200,  0,  0.707,  1000,  
 		0,  0.707,  5000,  0,  
 		0.707,  false,  0 ],  
 	// Array
-	97, [ 200,  0,  0.707,  1000,  
+	58, [ 200,  0,  0.707,  1000,  
 		0,  0.707,  5000,  0,  
 		0.707,  false,  0 ],  
 	// Array
-	98, [ 200,  0,  0.707,  1000,  
+	59, [ 200,  0,  0.707,  1000,  
 		0,  0.707,  5000,  0,  
 		0.707,  false,  0 ],  
 	// Array
-	99, [ 200,  0,  0.707,  1000,  
+	60, [ 200,  0,  0.707,  1000,  
 		0,  0.707,  5000,  0,  
 		0.707,  false,  0 ],  
 	// Array
-	100, [ 200,  0,  0.707,  1000,  
+	61, [ 200,  0,  0.707,  1000,  
 		0,  0.707,  5000,  0,  
 		0.707,  false,  0 ],  
 	// Array
-	101, [ 200,  0,  0.707,  561.51429389746,  
+	62, [ 200,  0,  0.707,  561.51429389746,  
 		23.035620258383,  4.3114555432853,  12373.26311648,  20.299183623335,  
 		8.3600599334693,  false,  12.0 ],  
 	// Array
-	102, [ 200,  0,  0.707,  1000,  
+	63, [ 200,  0,  0.707,  1000,  
 		0,  0.707,  5000,  0,  
 		0.707,  false,  10.8 ],  
 	// Array
-	103, [ 200,  0,  0.707,  1000,  
+	64, [ 200,  0,  0.707,  1000,  
 		0,  0.707,  5000,  0,  
 		0.707,  false,  8.0 ],  
 	// Array
-	104, [ 200,  0,  0.707,  1000,  
+	65, [ 200,  0,  0.707,  1000,  
 		0,  0.707,  5000,  0,  
 		0.707,  false,  0 ],  
 	// Array
-	105, [ false,  true,  false,  true,  
-		true,  true,  false,  true,  
+	66, [ false,  true,  false,  true,  
+		true,  false,  false,  true,  
 		true ],  
 	// Array
-	106, [ 3,  5,  13,  0,  
-		0,  22,  33,  0,  
-		1 ],  
+	67, [ 3,  5,  15,  0,  
+		0,  33,  34,  0,  
+		0 ],  
 	// Array
-	107, [ 0,  0,  0,  0,  
+	68, [ 0,  0,  0,  0,  
 		0,  0,  0,  0,  
 		0 ],  
 	// Array
-	108, [ 0,  0,  0,  0,  
+	69, [ 0,  0,  0,  0,  
 		0,  0,  0,  0,  
 		0 ],  
 	// Array
-	109, [ 1.4962356560944,  1.1791044981297,  1.0346965601279,  0.001,  
+	70, [ 1.4962356560944,  1.1791044981297,  1.0346965601279,  0.001,  
 		0.001,  1.4962356560944,  1.1057207257138,  0.54130277195509,  
 		0.77419596608544 ],  
 	// Array
-	110, [ 0,  0,  0,  0,  
+	71, [ 0,  0,  0,  0,  
 		0,  0,  0,  0,  
 		0 ],  
 	// Array
-	111, [ 1,  5,  11,  0,  
+	72, [ 1,  5,  11,  0,  
 		0,  24,  15,  0,  
 		1 ],  
 	// Array
-	112, [ 0,  1,  2,  3,  
+	73, [ 0,  1,  2,  3,  
 		4,  5,  0,  0,  
 		0 ],  
 	// Array
-	113, [ 0.02289965881948,  0.3,  0.17289965881948,  0.3,  
+	74, [ 0.02289965881948,  0.3,  0.17289965881948,  0.3,  
 		0.3,  0.3,  0.3,  0.3,  
 		0.3 ]
 ];
