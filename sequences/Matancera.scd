@@ -31,7 +31,7 @@ p = [
 	// Array
 	1, [ nil,  nil,  nil,  nil,  
 		nil,  nil,  nil,  nil,  
-		'chorusRefBpm',  105,  nil,  nil,  
+		'chorusRefBpm',  75,  nil,  nil,  
 		'choirSetIdx2',  0,  nil,  nil,  
 		'rhythms',  o[2],  'reverbWetGain',  0.65,  
 		'choirSetIdx',  0,  nil,  nil,  
@@ -261,8 +261,8 @@ p = [
 		4,  5,  0,  0,  
 		0 ],  
 	// Array
-	95, [ 0.02289965881948,  0.0,  0.17289965881948,  0.3,  
-		0.3,  0.0,  0.0,  0.3,  
+	95, [ 0.1623002250866,  0.2,  0.28855017059026,  0.3,  
+		0.3,  0.28855017059026,  0.2376997749134,  0.3,  
 		0.3 ]
 ];
 prUnarchive(o,p);
