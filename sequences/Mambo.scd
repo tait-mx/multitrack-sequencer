@@ -212,7 +212,7 @@ p = [
 	// Array
 	83, [ 200,  0,  0.707,  1000,  
 		0,  0.707,  5000,  0,  
-		0.707,  false,  0 ],  
+		0.707,  false,  5.9 ],  
 	// Array
 	84, [ 200,  0,  0.707,  1000,  
 		0,  0.707,  5000,  0,  
@@ -235,7 +235,7 @@ p = [
 		0.707,  false,  0.7 ],  
 	// Array
 	89, [ false,  false,  false,  false,  
-		false,  false,  false,  false,  
+		false,  false,  true,  false,  
 		false ],  
 	// Array
 	90, [ 2,  7,  13,  41,  
